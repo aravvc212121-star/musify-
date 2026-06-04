@@ -156,17 +156,55 @@ async function performSearch(query, limit = 20) {
   }
 }
 
-// ─── Stream URL Extractor (with Invidious Fallback) ───
+// ─── Stream URL Extractor (with Piped API Fallback) ───
 import youtubedl from 'youtube-dl-exec'
 
-// A list of community-hosted public Invidious proxies that are not blocked by YouTube
-const INVIDIOUS_INSTANCES = [
-  'https://vid.puffyan.us',
-  'https://invidious.jing.rocks',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.fdn.fr',
-  'https://invidious.flokinet.to'
-];
+// Piped is an open-source YouTube proxy network — audio is proxied through their servers,
+// so Render's IP never contacts YouTube directly. Much more reliable than Invidious.
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://pipedapi.projectsegfau.lt',
+  'https://pipedapi.adminforge.de',
+  'https://piped-api.garudalinux.org',
+  'https://api.piped.yt',
+]
+
+async function getPipedStreamUrl(videoId) {
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      console.log(`[Stream] Trying Piped instance: ${instance}`)
+      const res = await fetch(`${instance}/streams/${videoId}`, {
+        headers: { 'User-Agent': getRandomUA() },
+        signal: AbortSignal.timeout(6000)
+      })
+
+      if (!res.ok) continue
+
+      const data = await res.json()
+
+      // Find the best audio-only stream from Piped response
+      const audioStreams = data.audioStreams || []
+      if (audioStreams.length === 0) continue
+
+      // Sort by bitrate to get best quality, prefer m4a
+      const sorted = audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
+      const best = sorted.find(s => s.mimeType?.includes('mp4') || s.mimeType?.includes('m4a')) || sorted[0]
+
+      if (best && best.url) {
+        console.log(`[Stream] ${videoId} resolved via Piped (${instance}) — ${best.mimeType}`)
+        return {
+          url: best.url,
+          mime: best.mimeType || 'audio/mp4',
+          size: 0,
+          client: 'PIPED'
+        }
+      }
+    } catch (e) {
+      console.log(`[Stream] Piped instance ${instance} failed: ${e.message}`)
+    }
+  }
+  return null
+}
 
 async function getStreamUrl(videoId) {
   console.log(`[Stream] Extracting ${videoId} using yt-dlp...`)
@@ -185,7 +223,6 @@ async function getStreamUrl(videoId) {
     
     if (info && info.url) {
       console.log(`[Stream] ${videoId} extracted via yt-dlp`)
-      // Map extensions to mime types
       const mimeMap = {
         'webm': 'audio/webm',
         'm4a': 'audio/mp4',
@@ -194,47 +231,30 @@ async function getStreamUrl(videoId) {
       }
       const mime = mimeMap[info.ext] || 'audio/webm'
       const size = info.filesize || info.filesize_approx || 0
-      
-      return { 
-        url: info.url, 
-        mime, 
-        size, 
-        client: 'YTDLP' 
-      }
+      return { url: info.url, mime, size, client: 'YTDLP' }
     }
   } catch (err) {
-    console.warn(`[Stream] yt-dlp failed for ${videoId} (likely IP block). Falling back to Invidious...`)
+    console.warn(`[Stream] yt-dlp failed for ${videoId} (likely IP block). Falling back to Piped API...`)
   }
 
-  // ─── Fallback Strategy: Public Invidious APIs ───
-  // If yt-dlp fails because the server IP is blocked (e.g. Render/AWS), we proxy through these public servers.
-  for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      const fallbackUrl = `${instance}/latest_version?id=${videoId}&itag=140`;
-      
-      // Perform a quick HEAD request to see if this specific instance is online and working
-      const checkRes = await fetch(fallbackUrl, { 
-        method: 'HEAD', 
-        headers: { 'User-Agent': getRandomUA() },
-        signal: AbortSignal.timeout(4000) // Don't hang for more than 4 seconds per instance
-      });
-      
-      if (checkRes.ok) {
-        console.log(`[Stream] ${videoId} successfully extracted via Invidious proxy: ${instance}`);
-        return {
-          url: fallbackUrl,
-          mime: 'audio/mp4', // itag=140 is an m4a/mp4 audio stream
-          size: 0,           // The stream endpoint will figure out the size automatically
-          client: 'INVIDIOUS'
-        };
-      }
-    } catch (e) {
-      console.log(`[Stream] Invidious instance ${instance} unavailable, trying next...`);
+  // ─── Fallback: Piped API (Proxies audio through their servers — Render-safe) ───
+  const pipedResult = await getPipedStreamUrl(videoId)
+  if (pipedResult) return pipedResult
+
+  // ─── Last Resort: play-dl ───
+  try {
+    console.log(`[Stream] Trying play-dl as last resort for ${videoId}...`)
+    const stream = await play.stream(`https://www.youtube.com/watch?v=${videoId}`, { quality: 2 })
+    if (stream && stream.url) {
+      return { url: stream.url, mime: 'audio/webm', size: 0, client: 'PLAYDL' }
     }
+  } catch (e) {
+    console.error(`[Stream] play-dl also failed: ${e.message}`)
   }
 
-  throw new Error('All streaming methods (yt-dlp and Invidious) failed. YouTube might be completely blocking requests.')
+  throw new Error('All streaming methods failed (yt-dlp, Piped API, play-dl). YouTube is completely blocking requests.')
 }
+
 
 // ─── Stream Prefetcher ───
 function prefetchStream(videoId) {
