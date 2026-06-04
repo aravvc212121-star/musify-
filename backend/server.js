@@ -159,8 +159,8 @@ async function performSearch(query, limit = 20) {
 // ─── Stream URL Extractor (with Piped API Fallback) ───
 import youtubedl from 'youtube-dl-exec'
 
-// Piped is an open-source YouTube proxy network — audio is proxied through their servers,
-// so Render's IP never contacts YouTube directly. Much more reliable than Invidious.
+// Piped is an open-source YouTube proxy network. We use its /videoplayback proxy
+// endpoint so audio bytes are served by Piped's servers, not Render's (which YouTube blocks).
 const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
   'https://pipedapi.projectsegfau.lt',
@@ -168,6 +168,14 @@ const PIPED_INSTANCES = [
   'https://piped-api.garudalinux.org',
   'https://api.piped.yt',
 ]
+
+// Derive the Piped frontend domain from the API domain (pipedapi.x.y -> piped.x.y)
+function getPipedProxyBase(apiInstance) {
+  return apiInstance
+    .replace('pipedapi.', 'proxy.')
+    .replace('piped-api.', 'proxy.')
+    .replace('api.piped.', 'proxy.piped.')
+}
 
 async function getPipedStreamUrl(videoId) {
   for (const instance of PIPED_INSTANCES) {
@@ -178,26 +186,42 @@ async function getPipedStreamUrl(videoId) {
         signal: AbortSignal.timeout(6000)
       })
 
-      if (!res.ok) continue
+      if (!res.ok) {
+        console.log(`[Stream] Piped ${instance} returned ${res.status}, trying next...`)
+        continue
+      }
 
       const data = await res.json()
-
-      // Find the best audio-only stream from Piped response
       const audioStreams = data.audioStreams || []
       if (audioStreams.length === 0) continue
 
-      // Sort by bitrate to get best quality, prefer m4a
+      // Get best quality audio stream
       const sorted = audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
       const best = sorted.find(s => s.mimeType?.includes('mp4') || s.mimeType?.includes('m4a')) || sorted[0]
 
-      if (best && best.url) {
-        console.log(`[Stream] ${videoId} resolved via Piped (${instance}) — ${best.mimeType}`)
-        return {
-          url: best.url,
-          mime: best.mimeType || 'audio/mp4',
-          size: 0,
-          client: 'PIPED'
-        }
+      if (!best || !best.url) continue
+
+      // The URL from Piped is a /videoplayback URL that goes through Piped's own proxy server.
+      // We must keep the host of the original Piped proxy — do NOT redirect to the raw YouTube CDN.
+      // Parse the URL to find the proxy host and reconstruct
+      let proxyUrl = best.url
+      
+      // Piped streams sometimes come with a relative-looking path or a different host.
+      // Ensure we're using the proxy host, not googlevideo.com
+      if (proxyUrl.includes('googlevideo.com') || proxyUrl.includes('youtube.com')) {
+        // Rebuild via Piped's own videoplayback proxy endpoint
+        const proxyBase = getPipedProxyBase(instance)
+        const parsed = new URL(proxyUrl)
+        proxyUrl = `${proxyBase}/videoplayback${parsed.search}`
+      }
+
+      console.log(`[Stream] ${videoId} resolved via Piped proxy (${instance})`)
+      return {
+        url: proxyUrl,
+        mime: best.mimeType || 'audio/mp4',
+        size: 0,
+        client: 'PIPED',
+        redirect: true // Signal to the stream endpoint to use redirect instead of proxying
       }
     } catch (e) {
       console.log(`[Stream] Piped instance ${instance} failed: ${e.message}`)
@@ -205,6 +229,7 @@ async function getPipedStreamUrl(videoId) {
   }
   return null
 }
+
 
 async function getStreamUrl(videoId) {
   console.log(`[Stream] Extracting ${videoId} using yt-dlp...`)
@@ -438,9 +463,19 @@ app.get('/api/stream', async (req, res) => {
     const mimeType = streamInfo.mime || 'audio/webm'
     const userAgent = getRandomUA()
 
-    // Use a large chunk size for local, small for Vercel
-    const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production'
-    const CHUNK_SIZE = isVercel ? 1024 * 1024 * 2 : 1024 * 1024 * 10 // 10MB for local
+    // ─── For Piped streams: redirect the browser directly to Piped's proxy URL ───
+    // Piped stream URLs are served by Piped's own servers and are IP-locked to them.
+    // If Render tries to fetch & proxy these bytes, it will get blocked.
+    // Instead, we send a 302 redirect so the browser fetches audio directly from Piped.
+    if (streamInfo.client === 'PIPED' || streamInfo.redirect) {
+      console.log(`[Stream] Redirecting ${videoId} → Piped proxy (client handles stream)`)
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Cache-Control', 'public, max-age=1800')
+      return res.redirect(302, streamUrl)
+    }
+
+    const CHUNK_SIZE = 1024 * 1024 * 10 // 10MB chunks for proxied streams
+
     
     let range = req.headers.range || 'bytes=0-'
     let start = 0
