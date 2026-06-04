@@ -158,14 +158,20 @@ async function performSearch(query, limit = 20) {
 
 // ─── Stream Section ───
 import youtubedl from 'youtube-dl-exec'
+import ytdl from 'ytdl-core-enhanced'
 
-// ─── play-dl direct stream (primary on cloud, works without binary download) ───
-async function getPlayDlStream(videoId) {
-  const stream = await play.stream(`https://www.youtube.com/watch?v=${videoId}`, {
-    quality: 2,
-    discordPlayerCompatibility: false
-  })
-  return stream // { stream: Readable, type: 'opus'|'arbitrary' }
+// ─── ytdl-core-enhanced stream URL (Auto-generates poToken to bypass YouTube blocks) ───
+async function getYtdlCoreEnhancedUrl(videoId) {
+  try {
+    const info = await ytdl.getInfo(videoId)
+    const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' })
+    if (format && format.url) {
+      return { url: format.url, mime: format.mimeType || 'audio/mp4', size: format.contentLength || 0, client: 'YTDL_CORE' }
+    }
+  } catch (err) {
+    console.warn(`[Stream] ytdl-core-enhanced failed for ${videoId}: ${err.message}`)
+  }
+  return null
 }
 
 // ─── yt-dlp URL extractor (works great locally, fails on cloud IPs) ───
@@ -196,42 +202,22 @@ app.get('/api/stream', async (req, res) => {
   console.log(`[Stream] Request for ${videoId} from ${clientIp}`)
 
   try {
-    // ── Strategy 1: Try play-dl stream first (works on Render — uses InnerTube) ──
-    try {
-      console.log(`[Stream] Attempting play-dl stream for ${videoId}...`)
-      const playStream = await getPlayDlStream(videoId)
-
-      res.setHeader('Content-Type', 'audio/webm')
-      res.setHeader('Accept-Ranges', 'none')
-      res.setHeader('Cache-Control', 'no-store')
-      res.setHeader('Access-Control-Allow-Origin', '*')
-      res.status(200)
-
-      playStream.stream.pipe(res)
-
-      playStream.stream.on('error', (err) => {
-        console.error(`[Stream] play-dl stream error for ${videoId}:`, err.message)
-        if (!res.headersSent) res.status(500).json({ error: 'Stream error' })
-      })
-
-      req.on('close', () => {
-        playStream.stream.destroy()
-      })
-
-      console.log(`[Stream] ✅ play-dl streaming ${videoId}`)
-      return
-    } catch (playDlErr) {
-      console.warn(`[Stream] play-dl failed for ${videoId}: ${playDlErr.message}. Trying yt-dlp URL fallback...`)
-    }
-
-    // ── Strategy 2: yt-dlp URL + proxy (works locally, may fail on cloud) ──
     let streamInfo = streamCache.get(videoId)
+
     if (!streamInfo || streamInfo === 'loading' || streamInfo.client === 'PIPED') {
-      streamInfo = await getYtdlpUrl(videoId)
+      console.log(`[Stream] Attempting ytdl-core-enhanced extraction for ${videoId}...`)
+      streamInfo = await getYtdlCoreEnhancedUrl(videoId)
+      
+      if (!streamInfo) {
+        console.log(`[Stream] Falling back to yt-dlp extraction for ${videoId}...`)
+        streamInfo = await getYtdlpUrl(videoId)
+      }
+      
       if (streamInfo) streamCache.set(videoId, streamInfo)
     }
 
     if (!streamInfo) throw new Error('All extraction methods failed')
+
 
     const streamUrl = streamInfo.url
     const mimeType = streamInfo.mime || 'audio/webm'
