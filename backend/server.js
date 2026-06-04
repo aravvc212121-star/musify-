@@ -156,148 +156,146 @@ async function performSearch(query, limit = 20) {
   }
 }
 
-// ─── Stream URL Extractor (with Piped API Fallback) ───
+// ─── Stream Section ───
 import youtubedl from 'youtube-dl-exec'
 
-// Piped is an open-source YouTube proxy network. We use its /videoplayback proxy
-// endpoint so audio bytes are served by Piped's servers, not Render's (which YouTube blocks).
-const PIPED_INSTANCES = [
-  'https://pipedapi.kavin.rocks',
-  'https://pipedapi.projectsegfau.lt',
-  'https://pipedapi.adminforge.de',
-  'https://piped-api.garudalinux.org',
-  'https://api.piped.yt',
-]
-
-// Derive the Piped frontend domain from the API domain (pipedapi.x.y -> piped.x.y)
-function getPipedProxyBase(apiInstance) {
-  return apiInstance
-    .replace('pipedapi.', 'proxy.')
-    .replace('piped-api.', 'proxy.')
-    .replace('api.piped.', 'proxy.piped.')
+// ─── play-dl direct stream (primary on cloud, works without binary download) ───
+async function getPlayDlStream(videoId) {
+  const stream = await play.stream(`https://www.youtube.com/watch?v=${videoId}`, {
+    quality: 2,
+    discordPlayerCompatibility: false
+  })
+  return stream // { stream: Readable, type: 'opus'|'arbitrary' }
 }
 
-async function getPipedStreamUrl(videoId) {
-  for (const instance of PIPED_INSTANCES) {
-    try {
-      console.log(`[Stream] Trying Piped instance: ${instance}`)
-      const res = await fetch(`${instance}/streams/${videoId}`, {
-        headers: { 'User-Agent': getRandomUA() },
-        signal: AbortSignal.timeout(6000)
-      })
-
-      if (!res.ok) {
-        console.log(`[Stream] Piped ${instance} returned ${res.status}, trying next...`)
-        continue
-      }
-
-      const data = await res.json()
-      const audioStreams = data.audioStreams || []
-      if (audioStreams.length === 0) continue
-
-      // Get best quality audio stream
-      const sorted = audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
-      const best = sorted.find(s => s.mimeType?.includes('mp4') || s.mimeType?.includes('m4a')) || sorted[0]
-
-      if (!best || !best.url) continue
-
-      // The URL from Piped is a /videoplayback URL that goes through Piped's own proxy server.
-      // We must keep the host of the original Piped proxy — do NOT redirect to the raw YouTube CDN.
-      // Parse the URL to find the proxy host and reconstruct
-      let proxyUrl = best.url
-      
-      // Piped streams sometimes come with a relative-looking path or a different host.
-      // Ensure we're using the proxy host, not googlevideo.com
-      if (proxyUrl.includes('googlevideo.com') || proxyUrl.includes('youtube.com')) {
-        // Rebuild via Piped's own videoplayback proxy endpoint
-        const proxyBase = getPipedProxyBase(instance)
-        const parsed = new URL(proxyUrl)
-        proxyUrl = `${proxyBase}/videoplayback${parsed.search}`
-      }
-
-      console.log(`[Stream] ${videoId} resolved via Piped proxy (${instance})`)
-      return {
-        url: proxyUrl,
-        mime: best.mimeType || 'audio/mp4',
-        size: 0,
-        client: 'PIPED',
-        redirect: true // Signal to the stream endpoint to use redirect instead of proxying
-      }
-    } catch (e) {
-      console.log(`[Stream] Piped instance ${instance} failed: ${e.message}`)
-    }
+// ─── yt-dlp URL extractor (works great locally, fails on cloud IPs) ───
+async function getYtdlpUrl(videoId) {
+  const info = await withRetry(() => youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
+    dumpJson: true,
+    noWarnings: true,
+    noCheckCertificates: true,
+    preferFreeFormats: true,
+    youtubeSkipDashManifest: true,
+    referer: 'https://www.youtube.com/',
+    format: 'bestaudio/best',
+    userAgent: getRandomUA()
+  }), 1, 500)
+  if (info && info.url) {
+    const mimeMap = { 'webm': 'audio/webm', 'm4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'opus': 'audio/ogg' }
+    return { url: info.url, mime: mimeMap[info.ext] || 'audio/webm', size: info.filesize || 0, client: 'YTDLP' }
   }
   return null
 }
 
+// ─── Stream Endpoint ───
+app.get('/api/stream', async (req, res) => {
+  const videoId = req.query.id
+  if (!videoId) return res.status(400).json({ error: 'Missing video ID' })
 
-async function getStreamUrl(videoId) {
-  console.log(`[Stream] Extracting ${videoId} using yt-dlp...`)
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
+  console.log(`[Stream] Request for ${videoId} from ${clientIp}`)
+
   try {
-    // Primary: yt-dlp — Extremely reliable for direct stream URLs (when not blocked by YouTube)
-    const info = await withRetry(() => youtubedl(`https://www.youtube.com/watch?v=${videoId}`, { 
-      dumpJson: true, 
-      noWarnings: true, 
-      noCheckCertificates: true,
-      preferFreeFormats: true,
-      youtubeSkipDashManifest: true,
-      referer: 'https://www.youtube.com/',
-      format: 'bestaudio/best',
-      userAgent: getRandomUA()
-    }), 2, 500)
-    
-    if (info && info.url) {
-      console.log(`[Stream] ${videoId} extracted via yt-dlp`)
-      const mimeMap = {
-        'webm': 'audio/webm',
-        'm4a': 'audio/mp4',
-        'mp3': 'audio/mpeg',
-        'opus': 'audio/ogg'
+    // ── Strategy 1: Try play-dl stream first (works on Render — uses InnerTube) ──
+    try {
+      console.log(`[Stream] Attempting play-dl stream for ${videoId}...`)
+      const playStream = await getPlayDlStream(videoId)
+
+      res.setHeader('Content-Type', 'audio/webm')
+      res.setHeader('Accept-Ranges', 'none')
+      res.setHeader('Cache-Control', 'no-store')
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.status(200)
+
+      playStream.stream.pipe(res)
+
+      playStream.stream.on('error', (err) => {
+        console.error(`[Stream] play-dl stream error for ${videoId}:`, err.message)
+        if (!res.headersSent) res.status(500).json({ error: 'Stream error' })
+      })
+
+      req.on('close', () => {
+        playStream.stream.destroy()
+      })
+
+      console.log(`[Stream] ✅ play-dl streaming ${videoId}`)
+      return
+    } catch (playDlErr) {
+      console.warn(`[Stream] play-dl failed for ${videoId}: ${playDlErr.message}. Trying yt-dlp URL fallback...`)
+    }
+
+    // ── Strategy 2: yt-dlp URL + proxy (works locally, may fail on cloud) ──
+    let streamInfo = streamCache.get(videoId)
+    if (!streamInfo || streamInfo === 'loading' || streamInfo.client === 'PIPED') {
+      streamInfo = await getYtdlpUrl(videoId)
+      if (streamInfo) streamCache.set(videoId, streamInfo)
+    }
+
+    if (!streamInfo) throw new Error('All extraction methods failed')
+
+    const streamUrl = streamInfo.url
+    const mimeType = streamInfo.mime || 'audio/webm'
+    const userAgent = getRandomUA()
+
+    const CHUNK_SIZE = 1024 * 1024 * 10 // 10MB
+    let range = req.headers.range || 'bytes=0-'
+    let start = 0, end = undefined
+    const parts = range.replace(/bytes=/, '').split('-')
+    start = parseInt(parts[0], 10)
+    if (parts[1]) end = parseInt(parts[1], 10)
+
+    let totalSize = streamInfo.size || 0
+    if (!totalSize) {
+      try {
+        const headRes = await fetch(streamUrl, { method: 'HEAD', headers: { 'User-Agent': userAgent } })
+        totalSize = parseInt(headRes.headers.get('content-length') || '0', 10)
+      } catch (e) {}
+    }
+
+    if (totalSize > 0) {
+      if (end === undefined || end >= totalSize) end = totalSize - 1
+      if (end - start + 1 > CHUNK_SIZE) end = start + CHUNK_SIZE - 1
+    }
+
+    const fetchOptions = {
+      headers: {
+        'Range': `bytes=${start}-${end !== undefined ? end : ''}`,
+        'User-Agent': userAgent,
+        'Referer': 'https://www.youtube.com/',
+        'Origin': 'https://www.youtube.com/',
+        'Accept': '*/*',
+        'Connection': 'keep-alive'
       }
-      const mime = mimeMap[info.ext] || 'audio/webm'
-      const size = info.filesize || info.filesize_approx || 0
-      return { url: info.url, mime, size, client: 'YTDLP' }
     }
+
+    const response = await fetch(streamUrl, fetchOptions)
+    if (!response.ok && response.status !== 206) {
+      streamCache.delete(videoId)
+      throw new Error(`Upstream returned ${response.status}`)
+    }
+
+    res.status(response.status === 206 ? 206 : 200)
+    res.setHeader('Accept-Ranges', 'bytes')
+    res.setHeader('Content-Type', mimeType)
+    res.setHeader('Cache-Control', 'public, max-age=3600')
+    res.setHeader('Access-Control-Allow-Origin', '*')
+
+    const upstreamRange = response.headers.get('content-range')
+    const upstreamLength = response.headers.get('content-length')
+    if (upstreamRange) res.setHeader('Content-Range', upstreamRange)
+    else if (totalSize > 0 && response.status === 206) res.setHeader('Content-Range', `bytes ${start}-${end}/${totalSize}`)
+    if (upstreamLength) res.setHeader('Content-Length', upstreamLength)
+    else if (totalSize > 0) res.setHeader('Content-Length', end !== undefined ? (end - start + 1) : (totalSize - start))
+
+    if (!response.body) return res.status(500).json({ error: 'Empty stream' })
+    Readable.fromWeb(response.body).pipe(res)
+
   } catch (err) {
-    console.warn(`[Stream] yt-dlp failed for ${videoId} (likely IP block). Falling back to Piped API...`)
+    console.error('[Stream] All methods exhausted:', err.message)
+    if (!res.headersSent) res.status(500).json({ error: 'unavailable' })
   }
+})
 
-  // ─── Fallback: Piped API (Proxies audio through their servers — Render-safe) ───
-  const pipedResult = await getPipedStreamUrl(videoId)
-  if (pipedResult) return pipedResult
-
-  // ─── Last Resort: play-dl ───
-  try {
-    console.log(`[Stream] Trying play-dl as last resort for ${videoId}...`)
-    const stream = await play.stream(`https://www.youtube.com/watch?v=${videoId}`, { quality: 2 })
-    if (stream && stream.url) {
-      return { url: stream.url, mime: 'audio/webm', size: 0, client: 'PLAYDL' }
-    }
-  } catch (e) {
-    console.error(`[Stream] play-dl also failed: ${e.message}`)
-  }
-
-  throw new Error('All streaming methods failed (yt-dlp, Piped API, play-dl). YouTube is completely blocking requests.')
-}
-
-
-// ─── Stream Prefetcher ───
-function prefetchStream(videoId) {
-  if (streamCache.has(videoId)) return
-
-  // Set a temporary flag so we don't duplicate requests
-  streamCache.set(videoId, 'loading')
-
-  getStreamUrl(videoId)
-    .then(streamInfo => {
-      streamCache.set(videoId, streamInfo)
-    })
-    .catch(() => {
-      streamCache.delete(videoId) // Failed, remove flag
-    })
-}
-
-// ─── Related Videos (Simplified for play-dl) ───
 async function getRelatedVideos(videoId, limit = 15) {
   try {
     const info = await withRetry(() => play.video_info(`https://www.youtube.com/watch?v=${videoId}`), 2, 300)
@@ -443,112 +441,8 @@ app.get('/api/charts/:id', async (req, res) => {
   }
 })
 
-// ─── Stream Endpoint ───
-app.get('/api/stream', async (req, res) => {
-  const videoId = req.query.id
-  if (!videoId) return res.status(400).json({ error: 'Missing video ID' })
 
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
-  console.log(`[Stream] Request for ${videoId} from ${clientIp} (Range: ${req.headers.range || 'none'})`)
-  try {
-    // Check cache for resolved stream info
-    let streamInfo = streamCache.get(videoId)
 
-    if (!streamInfo || streamInfo === 'loading') {
-      streamInfo = await getStreamUrl(videoId)
-      streamCache.set(videoId, streamInfo)
-    }
-
-    const streamUrl = streamInfo.url
-    const mimeType = streamInfo.mime || 'audio/webm'
-    const userAgent = getRandomUA()
-
-    // ─── For Piped streams: redirect the browser directly to Piped's proxy URL ───
-    // Piped stream URLs are served by Piped's own servers and are IP-locked to them.
-    // If Render tries to fetch & proxy these bytes, it will get blocked.
-    // Instead, we send a 302 redirect so the browser fetches audio directly from Piped.
-    if (streamInfo.client === 'PIPED' || streamInfo.redirect) {
-      console.log(`[Stream] Redirecting ${videoId} → Piped proxy (client handles stream)`)
-      res.setHeader('Access-Control-Allow-Origin', '*')
-      res.setHeader('Cache-Control', 'public, max-age=1800')
-      return res.redirect(302, streamUrl)
-    }
-
-    const CHUNK_SIZE = 1024 * 1024 * 10 // 10MB chunks for proxied streams
-
-    
-    let range = req.headers.range || 'bytes=0-'
-    let start = 0
-    let end = undefined
-    
-    const parts = range.replace(/bytes=/, "").split("-")
-    start = parseInt(parts[0], 10)
-    if (parts[1]) end = parseInt(parts[1], 10)
-
-    let totalSize = streamInfo.size || 0
-    if (!totalSize) {
-      try {
-        const headRes = await fetch(streamUrl, { method: 'HEAD', headers: { 'User-Agent': userAgent } })
-        totalSize = parseInt(headRes.headers.get('content-length') || '0', 10)
-      } catch (e) {}
-    }
-
-    if (totalSize > 0) {
-      if (end === undefined || end >= totalSize) end = totalSize - 1
-      if (end - start + 1 > CHUNK_SIZE) end = start + CHUNK_SIZE - 1
-    }
-
-    const fetchOptions = { 
-      headers: { 
-        'Range': `bytes=${start}-${end !== undefined ? end : ''}`,
-        'User-Agent': userAgent,
-        'Referer': 'https://www.youtube.com/',
-        'Origin': 'https://www.youtube.com/',
-        'Accept': '*/*',
-        'Connection': 'keep-alive'
-      } 
-    }
-    
-    const response = await fetch(streamUrl, fetchOptions)
-
-    if (!response.ok && response.status !== 206) {
-      console.error(`[Stream] Upstream 403 for ${videoId}. URL starts with: ${streamUrl.substring(0, 50)}...`)
-      throw new Error(`Upstream returned ${response.status}`)
-    }
-
-    // Set headers correctly
-    res.status(response.status === 206 ? 206 : 200)
-    res.setHeader('Accept-Ranges', 'bytes')
-    res.setHeader('Content-Type', mimeType)
-    res.setHeader('Cache-Control', 'public, max-age=3600')
-    res.setHeader('Access-Control-Allow-Origin', '*')
-
-    const upstreamRange = response.headers.get('content-range')
-    const upstreamLength = response.headers.get('content-length')
-
-    if (upstreamRange) res.setHeader('Content-Range', upstreamRange)
-    else if (totalSize > 0 && response.status === 206) {
-      res.setHeader('Content-Range', `bytes ${start}-${end}/${totalSize}`)
-    }
-
-    if (upstreamLength) res.setHeader('Content-Length', upstreamLength)
-    else if (totalSize > 0) {
-      res.setHeader('Content-Length', end !== undefined ? (end - start + 1) : (totalSize - start))
-    }
-
-    if (!response.body) return res.status(500).json({ error: 'Empty stream' })
-
-    // Efficient piping using Node's stream conversion
-    Readable.fromWeb(response.body).pipe(res)
-
-  } catch (err) {
-    console.error('Stream endpoint error:', err.message)
-    if (err.message?.includes('403') || err.message?.includes('expired')) {
-      streamCache.delete(videoId)
-    }
-    if (!res.headersSent) res.status(500).json({ error: 'unavailable' })
-  }
-})
 
 // ─── Serve static files ───
 app.use(express.static(path.join(__dirname, '../frontend/dist')))

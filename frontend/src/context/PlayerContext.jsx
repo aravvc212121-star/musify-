@@ -528,7 +528,6 @@ export function PlayerProvider({ children }) {
       setPlaybackHistory(prev => [currentSongRef.current, ...prev].slice(0, 50))
     }
 
-    audio.crossOrigin = 'anonymous'
     setCurrentSong(song)
     setRecentlyPlayed(prev => {
       const filtered = prev.filter(s => s.videoId !== song.videoId)
