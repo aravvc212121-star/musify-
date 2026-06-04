@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: musify
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    plan: free # Change to a paid plan like 'starter' if you need more resources
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0 # Standard stable Node.js version

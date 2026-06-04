@@ -156,13 +156,22 @@ async function performSearch(query, limit = 20) {
   }
 }
 
-// ─── Stream URL Extractor (youtubei.js primary) ───
+// ─── Stream URL Extractor (with Invidious Fallback) ───
 import youtubedl from 'youtube-dl-exec'
+
+// A list of community-hosted public Invidious proxies that are not blocked by YouTube
+const INVIDIOUS_INSTANCES = [
+  'https://vid.puffyan.us',
+  'https://invidious.jing.rocks',
+  'https://invidious.nerdvpn.de',
+  'https://invidious.fdn.fr',
+  'https://invidious.flokinet.to'
+];
 
 async function getStreamUrl(videoId) {
   console.log(`[Stream] Extracting ${videoId} using yt-dlp...`)
   try {
-    // Primary: yt-dlp — Extremely reliable for direct stream URLs
+    // Primary: yt-dlp — Extremely reliable for direct stream URLs (when not blocked by YouTube)
     const info = await withRetry(() => youtubedl(`https://www.youtube.com/watch?v=${videoId}`, { 
       dumpJson: true, 
       noWarnings: true, 
@@ -194,10 +203,37 @@ async function getStreamUrl(videoId) {
       }
     }
   } catch (err) {
-    console.error(`[Stream] yt-dlp failed for ${videoId}:`, err.message)
+    console.warn(`[Stream] yt-dlp failed for ${videoId} (likely IP block). Falling back to Invidious...`)
   }
 
-  throw new Error('Streaming extraction failed. YouTube might be blocking requests.')
+  // ─── Fallback Strategy: Public Invidious APIs ───
+  // If yt-dlp fails because the server IP is blocked (e.g. Render/AWS), we proxy through these public servers.
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const fallbackUrl = `${instance}/latest_version?id=${videoId}&itag=140`;
+      
+      // Perform a quick HEAD request to see if this specific instance is online and working
+      const checkRes = await fetch(fallbackUrl, { 
+        method: 'HEAD', 
+        headers: { 'User-Agent': getRandomUA() },
+        signal: AbortSignal.timeout(4000) // Don't hang for more than 4 seconds per instance
+      });
+      
+      if (checkRes.ok) {
+        console.log(`[Stream] ${videoId} successfully extracted via Invidious proxy: ${instance}`);
+        return {
+          url: fallbackUrl,
+          mime: 'audio/mp4', // itag=140 is an m4a/mp4 audio stream
+          size: 0,           // The stream endpoint will figure out the size automatically
+          client: 'INVIDIOUS'
+        };
+      }
+    } catch (e) {
+      console.log(`[Stream] Invidious instance ${instance} unavailable, trying next...`);
+    }
+  }
+
+  throw new Error('All streaming methods (yt-dlp and Invidious) failed. YouTube might be completely blocking requests.')
 }
 
 // ─── Stream Prefetcher ───
