@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { usePlayer } from '../context/PlayerContext.jsx'
-import { FiPlay, FiMusic, FiChevronRight, FiSearch } from 'react-icons/fi'
+import { FiPlay, FiMusic, FiChevronRight, FiSearch, FiX, FiClock } from 'react-icons/fi'
+import SongCard from '../components/ui/SongCard.jsx'
+import Fuse from 'fuse.js'
 
 const CATEGORIES = [
   { name: 'Pop', color: '#E13300', emoji: '🎤' },
@@ -29,7 +31,7 @@ const CATEGORIES = [
   { name: 'Reggae', color: '#148A08', emoji: '🦁' }
 ]
 
-export default function SearchPage() {
+export default function SearchPage({ isMobile }) {
   const { 
     searchQuery, setSearchQuery, 
     masterPlaylistData, playSong,
@@ -38,6 +40,39 @@ export default function SearchPage() {
 
   const [results, setResults] = useState({ songs: [], playlists: [], artists: [] })
   const [isSearching, setIsSearching] = useState(false)
+  const [recentSongs, setRecentSongs] = useState([])
+
+  // Load recent songs
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('musify_recent_searches') || '[]')
+    setRecentSongs(saved)
+  }, [])
+
+  const removeRecentSong = (videoId) => {
+    const updated = recentSongs.filter(s => s.videoId !== videoId)
+    setRecentSongs(updated)
+    localStorage.setItem('musify_recent_searches', JSON.stringify(updated))
+  }
+
+  const clearAllRecent = () => {
+    setRecentSongs([])
+    localStorage.setItem('musify_recent_searches', JSON.stringify([]))
+  }
+
+  const saveToRecent = (song) => {
+    if (!song || !song.videoId) return
+    const songData = { 
+      videoId: song.videoId, 
+      title: song.title || 'Unknown', 
+      artist: song.artist || song.channelTitle || 'Unknown',
+      thumbnail: song.albumArt || song.thumbnail || ''
+    }
+    const saved = JSON.parse(localStorage.getItem('musify_recent_searches') || '[]')
+    let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
+    updated = updated.slice(0, 10)
+    setRecentSongs(updated)
+    localStorage.setItem('musify_recent_searches', JSON.stringify(updated))
+  }
 
   // Escape key to clear search
   useEffect(() => {
@@ -49,20 +84,42 @@ export default function SearchPage() {
   }, [setSearchQuery])
 
   useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      setIsSearching(true)
+    }
+
     const timer = setTimeout(async () => {
       if (searchQuery.trim().length > 0) {
-        setIsSearching(true)
-        const q = searchQuery.toLowerCase()
+        const q = searchQuery.trim()
         
-        // 1. Local Data Filter
-        const localSongs = masterPlaylistData.filter(s => 
-          s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)
-        )
-        const localPlaylists = userPlaylists.filter(p => 
-          p.name.toLowerCase().includes(q)
-        )
+        // 1. Local Data Filter using Fuse.js (fuzzy matching)
+        const songFuse = new Fuse(masterPlaylistData, {
+          keys: ['title', 'artist'],
+          threshold: 0.4,
+          distance: 100,
+          includeScore: true
+        })
+        const localSongs = songFuse.search(q).map(r => r.item)
+
+        const playlistFuse = new Fuse(userPlaylists, {
+          keys: ['name'],
+          threshold: 0.4,
+          distance: 100
+        })
+        const localPlaylists = playlistFuse.search(q).map(r => r.item)
+
         const allArtists = Array.from(new Set(masterPlaylistData.map(s => s.artist)))
-        const localArtists = allArtists.filter(a => a.toLowerCase().includes(q))
+        const artistFuse = new Fuse(allArtists.map(a => ({ name: a })), {
+          keys: ['name'],
+          threshold: 0.4,
+          distance: 100
+        })
+        const localArtists = artistFuse.search(q).map(r => r.item.name)
+
+        // Show local results immediately
+        if (localSongs.length > 0) {
+          setResults({ songs: localSongs, playlists: localPlaylists, artists: localArtists })
+        }
 
         // 2. API Data Fetch
         try {
@@ -77,15 +134,18 @@ export default function SearchPage() {
           })
 
           setResults({ songs: combinedSongs, playlists: localPlaylists, artists: localArtists })
+          setIsSearching(true)
+
         } catch (err) {
           console.error('Search API error:', err)
           setResults({ songs: localSongs, playlists: localPlaylists, artists: localArtists })
+          setIsSearching(true)
         }
       } else {
         setIsSearching(false)
         setResults({ songs: [], playlists: [], artists: [] })
       }
-    }, 300)
+    }, 200)
 
     return () => clearTimeout(timer)
   }, [searchQuery, masterPlaylistData, userPlaylists])
@@ -93,31 +153,100 @@ export default function SearchPage() {
   const isEmpty = searchQuery.trim().length === 0
 
   return (
-    <div style={{ padding: '24px 32px', minHeight: '100%' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 32px', minHeight: '100%' }}>
       
-      {/* STATE 1: BROWSE CATEGORIES */}
-      <div style={{ display: isEmpty ? 'block' : 'none', background: '#121212', borderRadius: '12px', padding: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '24px' }}>Browse all</h1>
+      {/* STATE 1: BROWSE CATEGORIES + RECENT SEARCHES */}
+      <div style={{ display: isEmpty ? 'block' : 'none' }}>
+
+        {/* Recent Searches Section — shows actual songs you played */}
+        {recentSongs.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '13px', fontWeight: 600, color: '#b3b3b3', margin: 0 }}>History</h2>
+              <button onClick={clearAllRecent} style={{
+                background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer',
+                fontSize: '13px', fontWeight: 600, padding: '4px 12px', borderRadius: '16px',
+                transition: 'all 0.2s'
+              }} className="clear-all-btn">Clear All</button>
+            </div>
+            <div style={{
+              display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px'
+            }} className="hide-scrollbar">
+              {recentSongs.map((song, i) => (
+                <div key={song.videoId || i} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: '8px', cursor: 'pointer', flexShrink: 0,
+                  width: isMobile ? '80px' : '120px',
+                  position: 'relative',
+                  transition: 'transform 0.2s'
+                }}
+                  className="recent-card"
+                  onClick={() => playSong(song, recentSongs, i)}
+                >
+                  <button onClick={(e) => { e.stopPropagation(); removeRecentSong(song.videoId) }} style={{
+                    position: 'absolute', top: '-4px', right: '-4px', zIndex: 2,
+                    width: '20px', height: '20px', borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#b3b3b3', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: 0,
+                    opacity: 0, transition: 'opacity 0.2s'
+                  }} className="recent-remove-btn">
+                    <FiX size={11} />
+                  </button>
+                  <div style={{
+                    width: isMobile ? '80px' : '120px', height: isMobile ? '80px' : '120px',
+                    borderRadius: isMobile ? '6px' : '12px', overflow: 'hidden',
+                    background: song.thumbnail ? 'transparent' : 'rgba(255,255,255,0.08)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+                  }}>
+                    {song.thumbnail ? (
+                      <img src={song.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <FiMusic size={isMobile ? 20 : 28} style={{ color: 'rgba(255,255,255,0.5)' }} />
+                    )}
+                  </div>
+                  <div style={{ width: '100%', textAlign: 'center', minWidth: 0 }}>
+                    <p className="truncate" style={{ margin: 0, fontSize: isMobile ? '11px' : '13px', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{song.title}</p>
+                    <p className="truncate" style={{ margin: '2px 0 0', fontSize: isMobile ? '9px' : '11px', color: '#b3b3b3' }}>{song.artist}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Separator line - doesn't connect to edges */}
+        {recentSongs.length > 0 && (
+          <div style={{
+            width: '80%',
+            maxWidth: '600px',
+            height: '1px',
+            background: 'rgba(255,255,255,0.1)',
+            margin: '32px auto',
+          }} />
+        )}
+
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-          gap: '16px'
+          gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
+          gap: isMobile ? '8px' : '16px'
         }}>
           {CATEGORIES.map(cat => (
             <div 
               key={cat.name} 
               onClick={() => setSearchQuery(cat.name)}
               style={{
-                height: '120px', background: cat.color, borderRadius: '8px',
-                padding: '12px', position: 'relative', overflow: 'hidden', cursor: 'pointer',
+                aspectRatio: '1 / 1', background: cat.color, borderRadius: isMobile ? '6px' : '8px',
+                padding: isMobile ? '10px' : '16px', position: 'relative', overflow: 'hidden', cursor: 'pointer',
                 transition: '0.2s ease'
               }}
               className="category-card"
             >
-              <span style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>{cat.name}</span>
+              <span style={{ fontSize: isMobile ? '11px' : '18px', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{cat.name}</span>
               <span style={{
                 position: 'absolute', bottom: '-10px', right: '-10px',
-                fontSize: '64px', transform: 'rotate(25deg)', opacity: 0.8
+                fontSize: isMobile ? '42px' : '64px', transform: 'rotate(25deg)', opacity: 0.8
               }}>{cat.emoji}</span>
             </div>
           ))}
@@ -126,58 +255,63 @@ export default function SearchPage() {
 
       {/* STATE 2: SEARCH RESULTS */}
       {!isEmpty && (
-        <div className="results-container" style={{ opacity: isSearching ? 1 : 0, transition: 'opacity 0.2s ease' }}>
-          
+        <div className="results-container" style={{ opacity: 1, transition: 'opacity 0.2s ease' }}>
+
           {results.songs.length > 0 ? (
             <div style={{ animation: 'staggerIn 0.25s ease forwards' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '20px' }}>Songs</h2>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
-                gap: '20px',
-                background: '#121212',
-                padding: '24px',
-                borderRadius: '12px'
-              }}>
-                {results.songs.map((song, i) => (
-                  <div key={song.videoId} className="search-song-card" 
-                    onClick={() => playSong(song, results.songs, i)} 
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      window.dispatchEvent(new CustomEvent('open-context-menu', {
-                        detail: { x: e.clientX, y: e.clientY, song, type: 'song' }
-                      }));
-                    }}
-                    style={{
-                      background: 'rgba(255,255,255,0.05)',
-                      padding: '16px',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}
-                  >
-                    <div style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-                      <img src={song.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <div className="search-card-play-btn" style={{
-                        position: 'absolute', bottom: '8px', right: '8px',
-                        width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        opacity: 0, transform: 'translateY(10px)', transition: 'all 0.2s'
-                      }}>
-                        <FiPlay size={18} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
+              {isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {results.songs.map((song, i) => (
+                    <SongCard key={song.videoId} song={song} songs={results.songs} index={i} showDuration={true} onPlay={(s) => saveToRecent(s)} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(3, 1fr)', 
+                  gap: '20px'
+                }}>
+                  {results.songs.map((song, i) => (
+                    <div key={song.videoId} className="search-song-card" 
+                      onClick={() => { saveToRecent(song); playSong(song, results.songs, i) }} 
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('open-context-menu', {
+                          detail: { x: e.clientX, y: e.clientY, song, type: 'song' }
+                        }));
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                        <img src={song.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div className="search-card-play-btn" style={{
+                          position: 'absolute', bottom: '8px', right: '8px',
+                          width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          opacity: 0, transform: 'translateY(10px)', transition: 'all 0.2s'
+                        }}>
+                          <FiPlay size={18} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
+                        </div>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p className="truncate" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#fff' }}>{song.title}</p>
+                        <p className="truncate" style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#b3b3b3' }}>{song.artist}</p>
                       </div>
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p className="truncate" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#fff' }}>{song.title}</p>
-                      <p className="truncate" style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#b3b3b3' }}>{song.artist}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             /* NO RESULTS STATE */
@@ -202,6 +336,9 @@ export default function SearchPage() {
           opacity: 1 !important;
           transform: translateY(0) !important;
         }
+        .recent-card:hover { transform: scale(1.05) !important; }
+        .recent-card:hover .recent-remove-btn { opacity: 1 !important; }
+        .clear-all-btn:hover { color: #fff !important; background: rgba(255,255,255,0.08); }
         
         @keyframes staggerIn {
           from { opacity: 0; transform: translateY(10px); }

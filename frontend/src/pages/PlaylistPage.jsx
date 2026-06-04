@@ -86,13 +86,11 @@ export default function PlaylistPage() {
       minHeight: '100%'
     }}>
       {/* ─── Hero Section ─── */}
-      <div style={{
+      <div className="playlist-hero" style={{
         background: color.includes('gradient') 
           ? `${color}, linear-gradient(to bottom, transparent, var(--bg-primary))` 
           : `linear-gradient(to bottom, ${color}, var(--bg-primary))`,
-        padding: '64px 32px 32px',
         position: 'relative', zIndex: 10,
-        display: 'flex', alignItems: 'flex-end', gap: '24px',
         transition: 'background 0.5s ease'
       }}>
         {/* Back Button */}
@@ -109,21 +107,20 @@ export default function PlaylistPage() {
           <FiArrowLeft size={20} />
         </button>
 
-        <div style={{
-          width: '232px', height: '232px',
+        <div className="playlist-cover" style={{
           background: isLikedPlaylist ? 'linear-gradient(135deg, var(--hero-start), #001a1a)' : (color.includes('gradient') ? color : '#282828'),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '84px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           flexShrink: 0
         }}>
           {isLikedPlaylist ? '💜' : '🎵'}
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="playlist-info" style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>Playlist</p>
-          <h1 style={{ fontSize: '96px', fontWeight: 900, margin: '0 0 16px 0', letterSpacing: '-4px', color: '#fff', lineHeight: 1 }}>
+          <h1 className="playlist-title truncate" style={{ fontWeight: 900, margin: '0 0 16px 0', color: '#fff', lineHeight: 1 }}>
             {playlistName}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="playlist-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: '#fff', fontWeight: 700 }}>Musify</span>
             <span style={{ color: 'rgba(255,255,255,0.7)' }}>• {songs.length} {songs.length === 1 ? 'song' : 'songs'}</span>
           </div>
@@ -155,15 +152,7 @@ export default function PlaylistPage() {
       </div>
 
       {/* ─── Song List ─── */}
-      <div 
-        className="glass-box"
-        style={{ 
-          padding: '32px', 
-          margin: '0 32px',
-          borderRadius: '24px',
-          overflow: 'hidden'
-        }}
-      >
+      <div className="song-list-container">
         {songs.length === 0 ? (
           <div style={{ padding: '80px 0', textAlign: 'center', color: '#b3b3b3' }}>
             <FiMusic size={64} style={{ marginBottom: '24px', opacity: 0.3 }} />
@@ -279,8 +268,52 @@ export default function PlaylistPage() {
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
+        .playlist-hero {
+          padding: 64px 32px 32px;
+          display: flex;
+          align-items: flex-end;
+          gap: 24px;
+        }
+        .playlist-cover {
+          width: 232px;
+          height: 232px;
+          font-size: 84px;
+        }
+        .playlist-title {
+          font-size: 96px;
+          letter-spacing: -4px;
+        }
+        .song-list-container {
+          padding: 0 32px;
+        }
+        
         @media (max-width: 768px) {
           .col-album { display: none !important; }
+          .playlist-hero {
+            padding: 72px 16px 24px;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            gap: 16px;
+          }
+          .playlist-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .playlist-cover {
+            width: 140px;
+            height: 140px;
+            font-size: 56px;
+          }
+          .playlist-title {
+            font-size: 32px;
+            letter-spacing: -1px;
+            white-space: normal;
+          }
+          .song-list-container {
+            padding: 0 16px;
+          }
         }
       `}</style>
     </div>

@@ -6,6 +6,7 @@ import {
   FiVolume2, FiVolumeX, FiList, FiMonitor, FiClock, FiMessageSquare, FiMaximize2, FiSquare
 } from 'react-icons/fi'
 import { getLyrics } from '../../utils/api.js'
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 
 /* ─── Time Formatter ─── */
 function fmt(s) {
@@ -55,6 +56,12 @@ export default function Player() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const queueRef = useRef(null)
   
+  // Motion values for smooth animations
+  const dragY = useMotionValue(0)
+  const heightValue = useTransform(dragY, [-250, 0], [180, 64], { clamp: true })
+  const borderRadiusValue = useTransform(dragY, [-250, 0], [28, 12], { clamp: true })
+  const scaleValue = useTransform(dragY, [-250, 0], [1.03, 1], { clamp: true })
+  
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handleResize)
@@ -87,33 +94,75 @@ export default function Player() {
 
   if (isMobile) {
     return (
-      <div 
-        onClick={() => setIsFullScreenPlayer(true)}
+      <motion.div 
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0}
+        dragMomentum={false}
+        dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+        onDrag={(event, info) => {
+          // Update motion value for smooth stretching
+          if (info.offset.y < 0) {
+            dragY.set(info.offset.y)
+          }
+        }}
+        onDragEnd={(event, info) => {
+          // Only open fullscreen if stretched beyond 200px
+          if (info.offset.y < -200) {
+            setIsFullScreenPlayer(true)
+          }
+          // Always reset stretch
+          animate(dragY, 0, { 
+            type: "spring",
+            stiffness: 500,
+            damping: 35,
+            mass: 0.5
+          })
+        }}
+        onClick={(e) => {
+          // Only open fullscreen if clicking on non-interactive areas
+          if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+            setIsFullScreenPlayer(true)
+          }
+        }}
         style={{
           position: 'fixed',
-          bottom: 'calc(64px + 8px + var(--safe-bottom, 0px))',
-          left: '8px',
-          right: '8px',
-          height: '64px',
-          background: 'rgba(32, 32, 32, 0.85)',
+          bottom: 'max(16px, env(safe-area-inset-bottom, 0px))',
+          left: '16px',
+          right: '16px',
+          height: heightValue,
+          background: 'rgba(32, 32, 32, 0.3)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRadius: '12px',
+          borderRadius: borderRadiusValue,
           display: 'flex',
           alignItems: 'center',
           padding: '0 12px',
           gap: '12px',
           zIndex: 900,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          border: 'none',
-          animation: 'slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+          boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          cursor: 'pointer',
+          scale: scaleValue,
+          touchAction: 'pan-y',
+          willChange: 'height, border-radius, transform',
+          y: 0,
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          perspective: 1000,
+          WebkitPerspective: 1000,
+          WebkitTapHighlightColor: 'transparent',
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
         }}
       >
-        <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '6px', overflow: 'hidden', flexShrink: 0, pointerEvents: 'none' }}>
           <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, pointerEvents: 'none' }}>
           <p className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0 }}>
             {currentSong.title}
           </p>
@@ -122,27 +171,54 @@ export default function Player() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleSavedSong(currentSong) }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          style={{
+            background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+            color: saved ? 'var(--accent)' : 'var(--text-secondary)',
+            pointerEvents: 'auto',
+            WebkitTapHighlightColor: 'transparent'
+          }}
+        >
+          <FiHeart size={18} style={{ fill: saved ? 'currentcolor' : 'none' }} />
+        </button>
+
+
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', pointerEvents: 'auto' }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); playPrevious() }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer', pointerEvents: 'auto', WebkitTapHighlightColor: 'transparent' }}
+          >
+            <FiSkipBack size={20} />
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); togglePlay() }}
-            style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer' }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer', pointerEvents: 'auto', WebkitTapHighlightColor: 'transparent' }}
           >
             {isPlaying ? <FiPause size={24} /> : <FiPlay size={24} />}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); playNext() }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer', pointerEvents: 'auto', WebkitTapHighlightColor: 'transparent' }}
+          >
+            <FiSkipForward size={20} />
           </button>
         </div>
 
         {/* Progress bar line at bottom */}
-        <div style={{ position: 'absolute', bottom: 0, left: '12px', right: '12px', height: '2px', background: 'rgba(255,255,255,0.1)', borderRadius: '1px', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', bottom: 0, left: '12px', right: '12px', height: '2px', background: 'rgba(255,255,255,0.1)', borderRadius: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
           <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.2s linear' }} />
         </div>
-
-        <style>{`
-          @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-        `}</style>
-      </div>
+      </motion.div>
     )
   }
 

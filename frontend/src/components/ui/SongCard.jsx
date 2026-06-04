@@ -25,6 +25,7 @@ const SongCard = memo(({
   isArtist = false,
   isChart = false,
   showDuration = true,
+  onPlay
 }) => {
   const navigate = useNavigate()
   const { playSong, currentSong, isPlaying } = usePlayer()
@@ -54,6 +55,7 @@ const SongCard = memo(({
     if (song.videoId) {
       playSong(song, songs.length > 0 ? songs : [song], index)
     }
+    if (onPlay) onPlay(song)
   }
 
   const displayImage = imgError
@@ -121,22 +123,35 @@ const SongCard = memo(({
       </div>
 
       {/* Text */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontSize: 14, fontWeight: 600,
-          color: isCurrent ? 'var(--accent)' : '#fff',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          lineHeight: 1.3,
-        }}>
-          {song.title || song.name || 'Unknown'}
-        </p>
-        <p style={{
-          fontSize: 11, fontWeight: 500,
-          color: 'rgba(255,255,255,0.35)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {song.artist || song.channelTitle || (isArtist ? 'Artist' : 'Unknown')}
-        </p>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{
+            fontSize: 14, fontWeight: 600,
+            color: isCurrent ? 'var(--accent)' : '#fff',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            lineHeight: 1.3,
+          }}>
+            {song.title || song.name || 'Unknown'}
+          </p>
+          <p style={{
+            fontSize: 11, fontWeight: 500,
+            color: 'rgba(255,255,255,0.35)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {song.artist || song.channelTitle || (isArtist ? 'Artist' : 'Unknown')}
+          </p>
+        </div>
+        {/* Album */}
+        {!isArtist && (
+          <div className="album-col" style={{ width: '120px', minWidth: 0, flexShrink: 0, opacity: 0.6 }}>
+            <p style={{
+              fontSize: 12, fontWeight: 500, color: '#fff',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+            }}>
+              {song.album || 'Single'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Duration */}
@@ -150,6 +165,9 @@ const SongCard = memo(({
         @keyframes eq-bar {
           0% { height: 4px; }
           100% { height: 14px; }
+        }
+        @media (max-width: 768px) {
+          .album-col { display: none !important; }
         }
       `}</style>
     </div>

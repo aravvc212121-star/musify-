@@ -8,8 +8,18 @@ import {
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { getLyrics } from '../../utils/api.js'
-import { Reorder, motion, AnimatePresence } from 'framer-motion'
+import { Reorder, motion, AnimatePresence, animate, useMotionValue, useTransform } from 'framer-motion'
 import html2canvas from 'html2canvas'
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return isMobile
+}
 
 const SWATCHES = [
   { name: 'Cyan Blue', value: '#00d2ff', text: 'light', glow: 'rgba(0, 210, 255, 0.5)' },
@@ -148,6 +158,7 @@ export default function FullScreenPlayer() {
   const [isFsQueueOpen, setIsFsQueueOpen] = useState(false)
   const [swipeDirection, setSwipeDirection] = useState(0)
   const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
   const lyricsContainerRef = useRef(null)
   const captureRef = useRef(null)
 
@@ -155,10 +166,60 @@ export default function FullScreenPlayer() {
   const [selectedColorIdx, setSelectedColorIdx] = useState(0)
   const [isCapturing, setIsCapturing] = useState(false)
   const [isShareMode, setIsShareMode] = useState(false)
+  const [vibrantColor, setVibrantColor] = useState('#1a1a1a')
+  const isMobile = useIsMobile()
+  
+  // Motion value for drag
+  const dragY = useMotionValue(0)
+  const bgOpacity = useTransform(dragY, [0, 300], [1, 0])
 
   useEffect(() => {
     setHintSeen(localStorage.getItem('lyricsHintSeen') === 'true')
   }, [])
+
+  // Extract vibrant color from album art
+  useEffect(() => {
+    if (!currentSong?.thumbnail) return
+    
+    const extractColor = async () => {
+      try {
+        const img = new Image()
+        img.crossOrigin = 'Anonymous'
+        img.src = currentSong.thumbnail
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          canvas.width = img.width
+          canvas.height = img.height
+          ctx.drawImage(img, 0, 0)
+          
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+          let r = 0, g = 0, b = 0, count = 0
+          
+          // Sample every 10th pixel for performance
+          for (let i = 0; i < imageData.length; i += 40) {
+            r += imageData[i]
+            g += imageData[i + 1]
+            b += imageData[i + 2]
+            count++
+          }
+          
+          // Average and enhance vibrancy
+          r = Math.min(255, Math.floor((r / count) * 1.4))
+          g = Math.min(255, Math.floor((g / count) * 1.4))
+          b = Math.min(255, Math.floor((b / count) * 1.4))
+          
+          setVibrantColor(`rgb(${r}, ${g}, ${b})`)
+        }
+      } catch (err) {
+        console.error('Color extraction failed:', err)
+        setVibrantColor('#1a1a1a')
+      }
+    }
+    
+    extractColor()
+  }, [currentSong?.videoId])
 
   // Fetch Real Lyrics with Sync Support
   useEffect(() => {
@@ -210,8 +271,17 @@ export default function FullScreenPlayer() {
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFullScreenPlayer, isFsQueueOpen])
+    
+    // Cleanup body styles on unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      if (isMobile) {
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.width = ''
+      }
+    }
+  }, [isFullScreenPlayer, isFsQueueOpen, isMobile])
 
   // Sync lyrics with time
   useEffect(() => {
@@ -259,7 +329,21 @@ export default function FullScreenPlayer() {
   }
   const toggleFsQueue = (e) => {
     e.stopPropagation()
-    setIsFsQueueOpen(!isFsQueueOpen)
+    const newState = !isFsQueueOpen
+    setIsFsQueueOpen(newState)
+    
+    // Lock body scroll when queue is open on mobile
+    if (isMobile) {
+      if (newState) {
+        document.body.style.overflow = 'hidden'
+        document.body.style.position = 'fixed'
+        document.body.style.width = '100%'
+      } else {
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.width = ''
+      }
+    }
   }
 
   const toggleLine = (idx) => {
@@ -310,36 +394,58 @@ export default function FullScreenPlayer() {
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
   }
 
   const handleTouchEnd = (e) => {
     const touchEndX = e.changedTouches[0].clientX
-    const diff = touchStartX.current - touchEndX
-    if (Math.abs(diff) > 70) {
-      if (diff > 0) {
-        setSwipeDirection(1)
-        playNext()
-      } else {
-        setSwipeDirection(-1)
-        playPrevious()
+    const touchEndY = e.changedTouches[0].clientY
+    const diffX = touchStartX.current - touchEndX
+    const diffY = touchStartY.current - touchEndY
+    
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (Math.abs(diffX) > 70) {
+        if (diffX > 0) {
+          setSwipeDirection(1)
+          playNext()
+        } else {
+          setSwipeDirection(-1)
+          playPrevious()
+        }
+      }
+    } else {
+      if (diffY < -70) { // Swiped down
+        handleClose()
       }
     }
   }
 
   const handleMouseDown = (e) => {
+    if (isFsQueueOpen) return
     touchStartX.current = e.clientX
+    touchStartY.current = e.clientY
   }
 
   const handleMouseUp = (e) => {
+    if (isFsQueueOpen) return
     const mouseEndX = e.clientX
-    const diff = touchStartX.current - mouseEndX
-    if (Math.abs(diff) > 100) { // Slightly higher threshold for mouse to avoid accidental skips
-      if (diff > 0) {
-        setSwipeDirection(1)
-        playNext()
-      } else {
-        setSwipeDirection(-1)
-        playPrevious()
+    const mouseEndY = e.clientY
+    const diffX = touchStartX.current - mouseEndX
+    const diffY = touchStartY.current - mouseEndY
+    
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (Math.abs(diffX) > 100) { 
+        if (diffX > 0) {
+          setSwipeDirection(1)
+          playNext()
+        } else {
+          setSwipeDirection(-1)
+          playPrevious()
+        }
+      }
+    } else {
+      if (diffY < -100) {
+        handleClose()
       }
     }
   }
@@ -359,16 +465,69 @@ export default function FullScreenPlayer() {
   const saved = isSongSaved(currentSong.videoId)
   const activeLyrics = lyricsData.synced.length > 0 ? lyricsData.synced : lyricsData.plain.map(text => ({ text }))
 
+  // Don't render if not visible
+  if (!isFullScreenPlayer && !visible) return null
+
   return (
-    <div style={{
+    <motion.div 
+      drag="y"
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0, bottom: 0.3 }}
+      dragMomentum={false}
+      dragTransition={{ 
+        bounceStiffness: 300, 
+        bounceDamping: 40,
+        power: 0.2,
+        timeConstant: 200
+      }}
+      onDrag={(event, info) => {
+        // Allow dragging down only
+        if (info.offset.y > 0) {
+          dragY.set(info.offset.y)
+        }
+      }}
+      onDragEnd={(event, info) => {
+        // Close if dragged down more than 150px
+        if (info.offset.y > 150) {
+          animate(dragY, window.innerHeight, {
+            type: "spring",
+            stiffness: 300,
+            damping: 30,
+            duration: 0.3
+          }).then(() => {
+            setIsFullScreenPlayer(false)
+          })
+        } else {
+          // Reset position with smooth spring
+          animate(dragY, 0, {
+            type: "spring",
+            stiffness: 400,
+            damping: 35,
+            mass: 0.8
+          })
+        }
+      }}
+      initial={{ y: window.innerHeight }}
+      animate={{ y: 0 }}
+      exit={{ y: window.innerHeight }}
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+        mass: 0.8
+      }}
+      style={{
       position: 'fixed', inset: 0, zIndex: 9998,
-      display: 'flex', flexDirection: 'column',
+      display: isFullScreenPlayer ? 'flex' : 'none',
+      flexDirection: 'column',
       color: '#fff',
-      transform: isFullScreenPlayer ? 'translateY(0)' : 'translateY(100%)',
-      transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
       overflow: 'hidden',
-      background: '#121212',
-      userSelect: 'none'
+      background: vibrantColor,
+      userSelect: 'none',
+      pointerEvents: isFullScreenPlayer ? 'auto' : 'none',
+      y: dragY,
+      touchAction: 'none',
+      WebkitUserSelect: 'none'
     }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -377,15 +536,26 @@ export default function FullScreenPlayer() {
     >
       
       {/* Background */}
-      <div style={{
+      <motion.div style={{
         position: 'absolute', inset: 0, zIndex: -2,
-        background: `hsl(${hue}, 35%, 15%)`,
-        transition: 'background 0.8s ease'
+        backgroundImage: `url(${thumb})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'blur(80px) brightness(0.6) saturate(1.5)',
+        transform: 'scale(1.2)',
+        transition: 'background-image 0.8s ease',
+        opacity: bgOpacity
       }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: -1, background: 'rgba(0,0,0,0.2)' }} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: -1, background: `linear-gradient(to bottom, ${vibrantColor}dd 0%, ${vibrantColor}ee 100%)` }} />
 
       {/* Suggestions Panel */}
-      <div style={{
+      <div 
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        style={{
         position: 'absolute', top: '64px', right: '16px',
         width: 'min(340px, 90vw)', bottom: '135px',
         background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(24px)',
@@ -393,13 +563,27 @@ export default function FullScreenPlayer() {
         display: 'flex', flexDirection: 'column', zIndex: 10001,
         transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease',
         transform: isFsQueueOpen ? 'translateX(0)' : 'translateX(120%)',
-        opacity: isFsQueueOpen ? 1 : 0, pointerEvents: isFsQueueOpen ? 'auto' : 'none', overflow: 'hidden'
+        opacity: isFsQueueOpen ? 1 : 0, pointerEvents: isFsQueueOpen ? 'auto' : 'none', overflow: 'hidden',
+        touchAction: 'pan-y'
       }}>
         <div style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: 'none', background: 'rgba(0,0,0,0.2)' }}>
           <span style={{ fontSize: '16px', fontWeight: 'bold' }}>Up Next</span>
-          <button onClick={() => setIsFsQueueOpen(false)} style={{ background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer', padding: '4px' }}><FiX size={24} /></button>
+          <button onClick={() => {
+            setIsFsQueueOpen(false)
+            if (isMobile) {
+              document.body.style.overflow = ''
+              document.body.style.position = ''
+              document.body.style.width = ''
+            }
+          }} style={{ background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer', padding: '4px' }}><FiX size={24} /></button>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }} className="hide-scrollbar">
+        <div 
+          style={{ flex: 1, overflowY: 'auto', padding: '8px 0', overscrollBehavior: 'contain' }} 
+          className="hide-scrollbar"
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {/* NOW PLAYING SECTION */}
           <p style={{ fontSize: '10px', color: '#b3b3b3', fontWeight: 700, letterSpacing: '1.5px', padding: '16px 20px 8px', margin: 0 }}>NOW PLAYING</p>
           <SongRow song={currentSong} isPlaying={isPlaying} isCurrent={true} onMore={(e, s) => openMenu(e, s)} />
@@ -408,28 +592,43 @@ export default function FullScreenPlayer() {
           {queue.length > queueIndex + 1 && (
             <>
               <p style={{ fontSize: '10px', color: '#b3b3b3', fontWeight: 700, letterSpacing: '1.5px', padding: '24px 20px 8px', margin: 0 }}>UP NEXT</p>
-              <Reorder.Group 
-                axis="y" 
-                values={queue} 
-                onReorder={reorderQueue}
-                style={{ listStyle: 'none', padding: 0, margin: 0 }}
-              >
-                {queue.map((s, i) => {
-                  if (i <= queueIndex) return null;
-                  return (
-                    <Reorder.Item 
-                      key={s.videoId || i} 
-                      value={s}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      whileDrag={{ scale: 1.05, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 1 }}
-                    >
-                      <SongRow song={s} onClick={() => { setSwipeDirection(1); playSong(s) }} onMore={(e, s2) => openMenu(e, s2, true)} />
-                    </Reorder.Item>
-                  )
-                })}
-              </Reorder.Group>
+              {isMobile ? (
+                // Static list for mobile - no reordering
+                <div style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {queue.map((s, i) => {
+                    if (i <= queueIndex) return null;
+                    return (
+                      <div key={s.videoId || i}>
+                        <SongRow song={s} onClick={() => { setSwipeDirection(1); playSong(s) }} onMore={(e, s2) => openMenu(e, s2, true)} />
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                // Draggable list for desktop
+                <Reorder.Group 
+                  axis="y" 
+                  values={queue} 
+                  onReorder={reorderQueue}
+                  style={{ listStyle: 'none', padding: 0, margin: 0 }}
+                >
+                  {queue.map((s, i) => {
+                    if (i <= queueIndex) return null;
+                    return (
+                      <Reorder.Item 
+                        key={s.videoId || i} 
+                        value={s}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        whileDrag={{ scale: 1.05, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 1 }}
+                      >
+                        <SongRow song={s} onClick={() => { setSwipeDirection(1); playSong(s) }} onMore={(e, s2) => openMenu(e, s2, true)} />
+                      </Reorder.Item>
+                    )
+                  })}
+                </Reorder.Group>
+              )}
             </>
           )}
 
@@ -445,23 +644,23 @@ export default function FullScreenPlayer() {
         </div>
       </div>
 
-      {/* Top Bar */}
+      {/* Top Bar (Floating controls) */}
       <div style={{ 
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-        padding: '0 24px', height: '64px', flexShrink: 0,
-        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)',
-        borderBottom: 'none'
+        position: 'absolute', top: 0, right: 0, left: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', 
+        padding: isMobile ? '8px 12px' : '24px',
+        background: 'transparent', pointerEvents: 'none'
       }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p className="truncate" style={{ fontSize: '13px', fontWeight: 700, margin: 0, opacity: 0.9 }}>{currentSong.album || 'Premium Player'}</p>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiDisc size={18} /></button>
-          <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiYoutube size={18} /></button>
-          <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiUser size={18} /></button>
-          <button onClick={(e) => openMenu(e, currentSong)} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiMoreHorizontal size={18} /></button>
-          <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiMaximize2 size={18} /></button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px', pointerEvents: 'auto' }}>
+          {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiDisc size={18} /></button>}
+          {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiYoutube size={18} /></button>}
+          {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiUser size={18} /></button>}
+          <button onClick={(e) => openMenu(e, currentSong)} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiMoreHorizontal size={isMobile ? 24 : 18} /></button>
+          {!isMobile && (
+            <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}>
+              <FiMaximize2 size={18} />
+            </button>
+          )}
         </div>
       </div>      {/* Main Container */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="hide-scrollbar">
@@ -469,9 +668,10 @@ export default function FullScreenPlayer() {
           {/* Large Album Art */}
           <div 
             style={{ 
-              width: 'min(400px, 80vw)', aspectRatio: '1/1', position: 'relative', 
+              width: isMobile ? 'min(360px, 85vw)' : 'min(540px, 70vw)', aspectRatio: '1/1', position: 'relative', 
               perspective: '1200px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              marginTop: isMobile ? '-20px' : '0px'
             }}
           >
             <AnimatePresence mode="wait" initial={false} custom={swipeDirection}>
@@ -525,9 +725,9 @@ export default function FullScreenPlayer() {
                     style={{
                       position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
                       borderRadius: '12px', 
-                      background: isShareMode ? SWATCHES[selectedColorIdx].value : 'rgba(255,255,255,0.1)',
+                      background: isShareMode ? SWATCHES[selectedColorIdx].value : `linear-gradient(135deg, ${vibrantColor} 0%, ${vibrantColor}dd 100%)`,
                       color: isShareMode ? (SWATCHES[selectedColorIdx].text === 'light' ? '#fff' : '#000') : '#fff',
-                      backdropFilter: isShareMode ? 'none' : 'blur(30px)',
+                      backdropFilter: 'none',
                       transform: 'rotateY(180deg)', overflowY: 'auto', padding: '40px 24px',
                       display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center',
                       boxShadow: '0 16px 64px rgba(0,0,0,0.6)',
@@ -556,17 +756,17 @@ export default function FullScreenPlayer() {
                               }
                             }}
                             style={{
-                              fontSize: i === lyricsIdx || isSelected ? '20px' : '16px', 
-                              fontWeight: i === lyricsIdx || isSelected ? '800' : '600',
+                              fontSize: '18px', 
+                              fontWeight: '700',
                               color: isSelected ? textColor : (i === lyricsIdx ? textColor : secondaryColor),
                               textAlign: 'center', margin: 0, 
-                              transition: 'all 0.4s ease', lineHeight: '1.4',
+                              transition: 'color 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', lineHeight: '1.4',
                               cursor: isShareMode ? 'pointer' : 'default',
                               padding: '8px 16px',
                               borderRadius: '12px',
                               background: isSelected ? (isShareMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)') : 'none',
                               boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
-                              transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                              transform: isSelected ? 'scale(1.05)' : (i === lyricsIdx ? 'scale(1.15)' : 'scale(1)'),
                             }}
                           >
                             {l.text}
@@ -582,21 +782,21 @@ export default function FullScreenPlayer() {
                 </div>
               </motion.div>
             </AnimatePresence>
-        </div>
         
-        {/* Selection / Color Palette Toolbar */}
-        <AnimatePresence>
-          {isFlipped && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              style={{ 
-                position: 'absolute', bottom: '140px', left: '0', right: '0',
-                zIndex: 1000, display: 'flex', justifyContent: 'center',
-                pointerEvents: 'none'
-              }}
-            >
+          {/* Selection / Color Palette Toolbar */}
+          <AnimatePresence>
+            {isFlipped && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                style={{ 
+                  position: 'absolute', bottom: '-48px', left: 0, right: 0,
+                  width: '100%',
+                  zIndex: 1000, display: 'flex', justifyContent: 'center',
+                  pointerEvents: 'none'
+                }}
+              >
               <div style={{ 
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 pointerEvents: 'auto', position: 'relative'
@@ -638,14 +838,14 @@ export default function FullScreenPlayer() {
                     else setIsShareMode(false);
                   }}
                   style={{
-                    background: isShareMode ? SWATCHES[selectedColorIdx].value : 'rgba(255,255,255,0.15)', 
+                    background: isShareMode ? SWATCHES[selectedColorIdx].value : 'rgba(255,255,255,0.1)', 
                     backdropFilter: isShareMode ? 'none' : 'blur(12px)',
-                    border: 'none', borderRadius: '24px',
-                    padding: '8px 20px', 
-                    color: isShareMode ? (SWATCHES[selectedColorIdx].text === 'light' ? '#fff' : '#000') : '#fff', 
-                    fontWeight: 800, fontSize: '12px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', 
-                    cursor: 'pointer', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px',
+                    padding: '6px 14px', 
+                    color: isShareMode ? (SWATCHES[selectedColorIdx].text === 'light' ? '#fff' : '#000') : 'rgba(255,255,255,0.8)', 
+                    fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
+                    cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                     transition: 'all 0.3s ease',
                     position: 'relative', zIndex: 2
                   }}
@@ -657,6 +857,7 @@ export default function FullScreenPlayer() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
 
         {/* Hidden Capture Target */}
         <div 
@@ -693,60 +894,85 @@ export default function FullScreenPlayer() {
       </div>
 
       {/* Bottom Controls Bar */}
-      <div style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)', padding: '20px 32px', borderTop: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+      <div style={{ 
+        background: 'rgba(0,0,0,0.5)', 
+        backdropFilter: 'blur(24px)', 
+        padding: isMobile ? '16px' : '20px 32px', 
+        borderTop: 'none', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: isMobile ? '12px' : '0',
+        borderRadius: isMobile ? '32px' : '0',
+        margin: isMobile ? '0 16px 24px 16px' : '0',
+        boxShadow: isMobile ? '0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' : 'none'
+      }}>
+        
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '0' : '12px', gap: isMobile ? '12px' : '0' }}>
+          
           {/* Left: Song Info */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
-            <img src={thumb} style={{ width: '56px', height: '56px', borderRadius: '4px', objectFit: 'cover' }} alt="" />
-            <div style={{ minWidth: 0 }}>
-              <p className="truncate" style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>{currentSong.title}</p>
-              <p className="truncate" style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: 0.6 }}>{currentSong.artist}</p>
+          <div style={{ width: isMobile ? '100%' : 'auto', flex: isMobile ? 'none' : 1, display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, justifyContent: isMobile ? 'space-between' : 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+              {!isMobile && <img src={thumb} style={{ width: '56px', height: '56px', borderRadius: '4px', objectFit: 'cover' }} alt="" />}
+              <div style={{ minWidth: 0 }}>
+                <p className="truncate" style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>{currentSong.title}</p>
+                <p className="truncate" style={{ margin: '2px 0 0 0', fontSize: isMobile ? '12px' : '13px', opacity: 0.6 }}>{currentSong.artist}</p>
+              </div>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-context-menu', { detail: { x: e.clientX, y: e.clientY - 200, song: currentSong, type: 'song' } })) }} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}>
-              <FiPlusCircle size={20} />
-            </button>
-            <button onClick={() => toggleSavedSong(currentSong)} style={{ background: 'none', border: 'none', color: saved ? 'var(--accent)' : '#fff', cursor: 'pointer', padding: '8px' }}>
-              <FiHeart size={20} style={{ fill: saved ? 'var(--accent)' : 'none', opacity: saved ? 1 : 0.4 }} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button onClick={() => toggleSavedSong(currentSong)} style={{ background: 'none', border: 'none', color: saved ? 'var(--accent)' : '#fff', cursor: 'pointer', padding: '6px' }}>
+                <FiHeart size={isMobile ? 18 : 20} style={{ fill: saved ? 'var(--accent)' : 'none', opacity: saved ? 1 : 0.4 }} />
+              </button>
+              {isMobile && (
+                <button onClick={toggleFsQueue} style={{ background: 'none', border: 'none', color: isFsQueueOpen ? 'var(--accent)' : '#fff', opacity: isFsQueueOpen ? 1 : 0.6, cursor: 'pointer', padding: '6px' }}><FiList size={18} /></button>
+              )}
+            </div>
           </div>
+
+          {/* Progress Bar (Mobile only, between Info and Controls) */}
+          {isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '4px 0' }}>
+              <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px' }}>{fmt(currentTime)}</span>
+              <div style={{ flex: 1, position: 'relative', height: '12px', display: 'flex', alignItems: 'center' }}>
+                <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer' }} />
+              </div>
+              <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px', textAlign: 'right' }}>{fmt(duration)}</span>
+            </div>
+          )}
 
           {/* Center: Playback Controls */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
-            <button onClick={() => setShuffle(!shuffle)} style={{ background: 'none', border: 'none', color: shuffle ? 'var(--accent)' : '#fff', opacity: shuffle ? 1 : 0.4, cursor: 'pointer' }}><FiShuffle size={18} /></button>
-            <button onClick={() => { setSwipeDirection(-1); playPrevious() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><FiSkipBack size={24} /></button>
-            <button onClick={togglePlay} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>{isPlaying ? <FiPause size={24} color="#000" /> : <FiPlay size={24} color="#000" style={{ marginLeft: 3 }} />}</button>
-            <button onClick={() => { setSwipeDirection(1); playNext() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><FiSkipForward size={24} /></button>
-            <button onClick={() => setRepeat(repeat === 'none' ? 'context' : 'none')} style={{ background: 'none', border: 'none', color: repeat !== 'none' ? 'var(--accent)' : '#fff', opacity: repeat !== 'none' ? 1 : 0.4, cursor: 'pointer' }}><FiRepeat size={18} /></button>
+          <div style={{ width: isMobile ? '100%' : 'auto', flex: isMobile ? 'none' : 1, display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'center', gap: isMobile ? '0' : '20px' }}>
+            <button onClick={() => setShuffle(!shuffle)} style={{ background: 'none', border: 'none', color: shuffle ? 'var(--accent)' : '#fff', opacity: shuffle ? 1 : 0.4, cursor: 'pointer', padding: '6px' }}><FiShuffle size={16} /></button>
+            <button onClick={() => { setSwipeDirection(-1); playPrevious() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px' }}><FiSkipBack size={20} /></button>
+            <button onClick={togglePlay} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>{isPlaying ? <FiPause size={20} color="#000" /> : <FiPlay size={20} color="#000" style={{ marginLeft: 3 }} />}</button>
+            <button onClick={() => { setSwipeDirection(1); playNext() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px' }}><FiSkipForward size={20} /></button>
+            <button onClick={() => setRepeat(repeat === 'none' ? 'context' : 'none')} style={{ background: 'none', border: 'none', color: repeat !== 'none' ? 'var(--accent)' : '#fff', opacity: repeat !== 'none' ? 1 : 0.4, cursor: 'pointer', padding: '6px' }}><FiRepeat size={16} /></button>
           </div>
 
-          {/* Right: Utility Controls */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-            <button onClick={() => setIsFlipped(!isFlipped)} style={{ background: 'none', border: 'none', color: isFlipped ? 'var(--accent)' : '#fff', opacity: isFlipped ? 1 : 0.6, cursor: 'pointer', padding: '8px' }}><FiMusic size={18} /></button>
-            <button onClick={toggleFsQueue} style={{ background: 'none', border: 'none', color: isFsQueueOpen ? 'var(--accent)' : '#fff', opacity: isFsQueueOpen ? 1 : 0.6, cursor: 'pointer', padding: '8px' }}><FiList size={18} /></button>
-            <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.6, cursor: 'pointer', padding: '8px' }}><FiMinimize2 size={20} /></button>
-            <button onClick={() => {
-              if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-              } else {
-                document.exitFullscreen();
-              }
-            }} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.6, cursor: 'pointer', padding: '8px' }}><FiMonitor size={18} /></button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100px', marginLeft: '8px', marginRight: '12px' }}>
-              <FiVolume2 size={16} style={{ opacity: 0.6 }} />
-              <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolume} className="fs-vol-slider" style={{ flex: 1, height: '4px', borderRadius: '2px', appearance: 'none', background: `linear-gradient(to right, #fff ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%)`, cursor: 'pointer' }} />
+          {/* Right: Utility Controls (Desktop Only) */}
+          {!isMobile && (
+            <div style={{ width: 'auto', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+              <button onClick={() => setIsFlipped(!isFlipped)} style={{ background: 'none', border: 'none', color: isFlipped ? 'var(--accent)' : '#fff', opacity: isFlipped ? 1 : 0.6, cursor: 'pointer', padding: '6px' }}><FiMusic size={16} /></button>
+              <button onClick={toggleFsQueue} style={{ background: 'none', border: 'none', color: isFsQueueOpen ? 'var(--accent)' : '#fff', opacity: isFsQueueOpen ? 1 : 0.6, cursor: 'pointer', padding: '6px' }}><FiList size={16} /></button>
+              <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.6, cursor: 'pointer', padding: '6px' }}><FiMinimize2 size={18} /></button>
+              <button onClick={() => { if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); } }} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.6, cursor: 'pointer', padding: '6px' }}><FiMonitor size={16} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '90px', marginLeft: '6px', marginRight: '10px' }}>
+                <FiVolume2 size={14} style={{ opacity: 0.6 }} />
+                <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolume} className="fs-vol-slider" style={{ flex: 1, height: '3px', borderRadius: '2px', appearance: 'none', background: `linear-gradient(to right, #fff ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%)`, cursor: 'pointer' }} />
+              </div>
             </div>
-
-          </div>
+          )}
         </div>
 
-        {/* Progress Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px' }}>{fmt(currentTime)}</span>
-          <div style={{ flex: 1, position: 'relative', height: '12px', display: 'flex', alignItems: 'center' }}>
-            <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer' }} />
+        {/* Progress Bar (Desktop only) */}
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px' }}>{fmt(currentTime)}</span>
+            <div style={{ flex: 1, position: 'relative', height: '12px', display: 'flex', alignItems: 'center' }}>
+              <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer' }} />
+            </div>
+            <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px', textAlign: 'right' }}>{fmt(duration)}</span>
           </div>
-          <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px', textAlign: 'right' }}>{fmt(duration)}</span>
-        </div>
+        )}
       </div>
 
       <style>{`
@@ -765,6 +991,6 @@ export default function FullScreenPlayer() {
           100% { background-position: 0% 50%; }
         }
       `}</style>
-    </div>
+    </motion.div>
   )
 }

@@ -95,46 +95,46 @@ export function PlayerProvider({ children }) {
     } catch {}
     
     const defaults = [
-      { name: 'Liked Songs', color: 'linear-gradient(135deg, #FF00FF, #7000FF)' },
-      { name: 'Chill Vibes', color: 'linear-gradient(135deg, #00FF00, #00FF99)' },
-      { name: 'Workout Mix', color: 'linear-gradient(135deg, #FF3131, #FF914D)' },
-      { name: 'Focus 2024', color: 'linear-gradient(135deg, #00FFFF, #0077FF)' },
-      { name: 'Roadtrip', color: 'linear-gradient(135deg, #FFBD59, #FF914D)' },
-      { name: 'Coding Flow', color: 'linear-gradient(135deg, #8C52FF, #5CE1E6)' },
-      { name: 'Discover Weekly', color: 'linear-gradient(135deg, #FF5757, #8C52FF)' },
-      { name: 'Release Radar', color: 'linear-gradient(135deg, #FF66C4, #FFDE59)' },
-      { name: 'Synthwave', color: 'linear-gradient(135deg, #FF00CC, #3333FF)' },
-      { name: 'Lo-Fi Beats', color: 'linear-gradient(135deg, #39FF14, #04D9FF)' },
-      { name: 'Acoustic Covers', color: 'linear-gradient(135deg, #F9D423, #FF4E50)' },
-      { name: 'Classical', color: 'linear-gradient(135deg, #7000FF, #00FFFF)' }
+      { name: 'Liked Songs', color: 'linear-gradient(135deg, #E6B3E6, #C9A3E6)' },
+      { name: 'Chill Vibes', color: 'linear-gradient(135deg, #B3E6B3, #A3E6D7)' },
+      { name: 'Workout Mix', color: 'linear-gradient(135deg, #FFB3B3, #FFCBA3)' },
+      { name: 'Focus 2024', color: 'linear-gradient(135deg, #B3E6E6, #A3C9E6)' },
+      { name: 'Roadtrip', color: 'linear-gradient(135deg, #FFE0B3, #FFCBA3)' },
+      { name: 'Coding Flow', color: 'linear-gradient(135deg, #C9B3E6, #B3E0E6)' },
+      { name: 'Discover Weekly', color: 'linear-gradient(135deg, #FFB3B3, #C9B3E6)' },
+      { name: 'Release Radar', color: 'linear-gradient(135deg, #FFB3D9, #FFE0B3)' },
+      { name: 'Synthwave', color: 'linear-gradient(135deg, #E6B3E0, #B3B3E6)' },
+      { name: 'Lo-Fi Beats', color: 'linear-gradient(135deg, #C9E6B3, #B3E0E6)' },
+      { name: 'Acoustic Covers', color: 'linear-gradient(135deg, #FFE6B3, #FFBFB3)' },
+      { name: 'Classical', color: 'linear-gradient(135deg, #C9A3E6, #B3E6E6)' }
     ]
     return defaults.map(p => ({ name: p.name, songs: [], color: p.color }))
   })
 
-  // Migration: Update existing playlists to neon colors
+  // Migration: Update existing playlists to pastel colors
   useEffect(() => {
-    const neonGradients = [
-      'linear-gradient(135deg, #FF00FF, #7000FF)',
-      'linear-gradient(135deg, #00FF00, #00FF99)',
-      'linear-gradient(135deg, #00FFFF, #0077FF)',
-      'linear-gradient(135deg, #FF3131, #FF914D)',
-      'linear-gradient(135deg, #FFBD59, #FF914D)',
-      'linear-gradient(135deg, #8C52FF, #5CE1E6)',
-      'linear-gradient(135deg, #FFDE59, #FF66C4)'
+    const pastelGradients = [
+      'linear-gradient(135deg, #E6B3E6, #C9A3E6)',
+      'linear-gradient(135deg, #B3E6B3, #A3E6D7)',
+      'linear-gradient(135deg, #B3E6E6, #A3C9E6)',
+      'linear-gradient(135deg, #FFB3B3, #FFCBA3)',
+      'linear-gradient(135deg, #FFE0B3, #FFCBA3)',
+      'linear-gradient(135deg, #C9B3E6, #B3E0E6)',
+      'linear-gradient(135deg, #FFE0B3, #FFB3D9)'
     ]
     const defaults = [
-      { name: 'Liked Songs', color: 'linear-gradient(135deg, #FF00FF, #7000FF)' },
-      { name: 'Chill Vibes', color: 'linear-gradient(135deg, #00FF00, #00FF99)' },
-      { name: 'Workout Mix', color: 'linear-gradient(135deg, #FF3131, #FF914D)' },
-      { name: 'Focus 2024', color: 'linear-gradient(135deg, #00FFFF, #0077FF)' },
-      { name: 'Roadtrip', color: 'linear-gradient(135deg, #FFBD59, #FF914D)' },
-      { name: 'Coding Flow', color: 'linear-gradient(135deg, #8C52FF, #5CE1E6)' },
-      { name: 'Discover Weekly', color: 'linear-gradient(135deg, #FF5757, #8C52FF)' },
-      { name: 'Release Radar', color: 'linear-gradient(135deg, #FF66C4, #FFDE59)' },
-      { name: 'Synthwave', color: 'linear-gradient(135deg, #FF00CC, #3333FF)' },
-      { name: 'Lo-Fi Beats', color: 'linear-gradient(135deg, #39FF14, #04D9FF)' },
-      { name: 'Acoustic Covers', color: 'linear-gradient(135deg, #F9D423, #FF4E50)' },
-      { name: 'Classical', color: 'linear-gradient(135deg, #7000FF, #00FFFF)' }
+      { name: 'Liked Songs', color: 'linear-gradient(135deg, #E6B3E6, #C9A3E6)' },
+      { name: 'Chill Vibes', color: 'linear-gradient(135deg, #B3E6B3, #A3E6D7)' },
+      { name: 'Workout Mix', color: 'linear-gradient(135deg, #FFB3B3, #FFCBA3)' },
+      { name: 'Focus 2024', color: 'linear-gradient(135deg, #B3E6E6, #A3C9E6)' },
+      { name: 'Roadtrip', color: 'linear-gradient(135deg, #FFE0B3, #FFCBA3)' },
+      { name: 'Coding Flow', color: 'linear-gradient(135deg, #C9B3E6, #B3E0E6)' },
+      { name: 'Discover Weekly', color: 'linear-gradient(135deg, #FFB3B3, #C9B3E6)' },
+      { name: 'Release Radar', color: 'linear-gradient(135deg, #FFB3D9, #FFE0B3)' },
+      { name: 'Synthwave', color: 'linear-gradient(135deg, #E6B3E0, #B3B3E6)' },
+      { name: 'Lo-Fi Beats', color: 'linear-gradient(135deg, #C9E6B3, #B3E0E6)' },
+      { name: 'Acoustic Covers', color: 'linear-gradient(135deg, #FFE6B3, #FFBFB3)' },
+      { name: 'Classical', color: 'linear-gradient(135deg, #C9A3E6, #B3E6E6)' }
     ]
 
     setUserPlaylists(prev => {
@@ -147,7 +147,7 @@ export function PlayerProvider({ children }) {
         }
         if (pl.color && pl.color.startsWith('hsl')) {
           changed = true
-          return { ...pl, color: neonGradients[Math.floor(Math.random() * neonGradients.length)] }
+          return { ...pl, color: pastelGradients[Math.floor(Math.random() * pastelGradients.length)] }
         }
         return pl
       })

@@ -104,7 +104,7 @@ export default function LibraryPage() {
       paddingBottom: 24,
       animation: 'libraryFadeIn 0.25s ease',
       transformOrigin: 'top center'
-    }}>
+    }} className="library-page-container">
       <style>{`
         @keyframes libraryFadeIn {
           from { opacity: 0; transform: translateX(-10px); }
@@ -137,15 +137,49 @@ export default function LibraryPage() {
           opacity: 1 !important;
           transform: translateY(0) !important;
         }
+        
+        /* Mobile 3x3 grid */
+        @media (max-width: 767px) {
+          .library-page-container {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .library-header {
+            padding: 24px 8px 12px !important;
+          }
+          .library-content {
+            padding: 0 8px !important;
+          }
+          .library-playlist-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 4px !important;
+          }
+          .playlist-card-item {
+            padding: 8px !important;
+            gap: 8px !important;
+            border-radius: 4px !important;
+          }
+          .playlist-card-item > div:first-child {
+            font-size: 24px !important;
+          }
+          .playlist-card-item > div:last-child p:first-child {
+            font-size: 11px !important;
+          }
+          .playlist-card-item > div:last-child p:last-child {
+            font-size: 10px !important;
+          }
+          .filter-pill {
+            padding: 6px 12px !important;
+            font-size: 12px !important;
+          }
+        }
       `}</style>
 
       {/* ─── Header ─── */}
-      <div style={{ padding: '48px 32px 16px' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 20 }}>Your Library</h1>
-        
+      <div style={{ padding: '48px 32px 16px' }} className="library-header">
         {/* Filter Pills */}
         <div style={{ display: 'flex', gap: 8 }}>
-          {['Playlists', 'Recently Played', 'Albums', 'Liked Songs'].map(f => (
+          {['Playlists', 'Recently Played', 'Liked Songs'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(filter === f ? 'All' : f)}
@@ -158,7 +192,7 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div style={{ padding: '0 32px' }}>
+      <div style={{ padding: '0 32px' }} className="library-content">
         {/* ─── Section A: Recently Listened ─── */}
         {showRecentlyPlayed && recentlyPlayed.length > 0 && (
           <div style={{ marginBottom: 40 }}>
@@ -212,9 +246,9 @@ export default function LibraryPage() {
             
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
               gap: 16 
-            }}>
+            }} className="library-playlist-grid">
               {userPlaylists.map((pl, i) => {
                 const isObj = typeof pl === 'object' && pl !== null
                 const name = isObj ? pl.name : pl
@@ -224,7 +258,7 @@ export default function LibraryPage() {
                 return (
                   <div 
                     key={i}
-                    className="lib-card"
+                    className="lib-card playlist-card-item"
                     onClick={() => navigate(`/playlist/${urlName}`)}
                     style={{
                       background: '#181818', padding: '16px', borderRadius: '8px', cursor: 'pointer',

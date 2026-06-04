@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2300C9FF%22/><path d=%22M38 30 L72 50 L38 70 Z%22 fill=%22%23121212%22/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="format-detection" content="telephone=no" />
     <meta name="description" content="Musify — Your music, everywhere. Stream millions of songs for free." />
     <meta name="theme-color" content="#121212" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,6 +17,37 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
+    <!-- Clear old cache on page load -->
+    <script>
+      // Clear old carousel cache format immediately - Version 4
+      (function() {
+        try {
+          const oldSong = localStorage.getItem('dailySong');
+          const oldSongs = localStorage.getItem('dailySongs');
+          
+          // Always clear old formats or old versions
+          if (oldSong) {
+            console.log('[Cache Clear] Removing old dailySong cache');
+            localStorage.removeItem('dailySong');
+            localStorage.removeItem('dailySongs');
+          } else if (oldSongs) {
+            try {
+              const parsed = JSON.parse(oldSongs);
+              // Version 4 is required for multi-artist format (1 song per artist)
+              if (!parsed.version || parsed.version < 4) {
+                console.log('[Cache Clear] Removing old version cache (< v4)');
+                localStorage.removeItem('dailySongs');
+              }
+            } catch(e) {
+              console.log('[Cache Clear] Invalid cache format, clearing');
+              localStorage.removeItem('dailySongs');
+            }
+          }
+        } catch(e) {
+          console.error('Cache clear error:', e);
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

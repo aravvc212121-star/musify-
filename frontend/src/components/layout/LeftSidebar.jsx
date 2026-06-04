@@ -6,7 +6,9 @@ import {
 } from 'react-icons/fi'
 import { usePlayer } from '../../context/PlayerContext.jsx'
 
-export default function LeftSidebar() {
+import { FiX } from 'react-icons/fi'
+
+export default function LeftSidebar({ isMobile = false, onClose }) {
   const { 
     userPlaylists, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed
   } = usePlayer()
@@ -37,63 +39,95 @@ export default function LeftSidebar() {
     { path: '/search', label: 'Search', Icon: IconSearch },
     { path: '/library', label: 'Your Library', Icon: IconLibrary },
   ]
+  const collapsed = isMobile ? false : isLeftSidebarCollapsed
 
   return (
     <div className="left-sidebar" 
       style={{ 
-      padding: isLeftSidebarCollapsed ? '24px 0' : '24px 12px', 
+      padding: collapsed ? '24px 0' : '24px 12px', 
       position: 'relative',
       width: '100%',
       height: '100%',
-      transition: isReady ? (isLeftSidebarCollapsed ? 'width 0.35s cubic-bezier(0.4,0,0.2,1)' : 'width 0.35s cubic-bezier(0.34,1.56,0.64,1)') : 'none',
-      borderRight: isLeftSidebarCollapsed ? '2px solid var(--accent)' : 'none',
+      transition: isReady ? (collapsed ? 'width 0.35s cubic-bezier(0.4,0,0.2,1)' : 'width 0.35s cubic-bezier(0.34,1.56,0.64,1)') : 'none',
       display: 'flex', flexDirection: 'column',
-      cursor: isLeftSidebarCollapsed ? 'pointer' : 'default'
+      cursor: collapsed ? 'pointer' : 'default',
+      background: '#0a0a0a',
+      borderRadius: '0 20px 20px 0',
+      overflow: 'hidden',
+      overscrollBehavior: 'contain'
     }}>
       
       {/* Top Header Row */}
       <div style={{ 
-        display: 'flex', alignItems: 'center', justifyContent: isLeftSidebarCollapsed ? 'center' : 'space-between',
-        padding: isLeftSidebarCollapsed ? '0' : '0 12px', marginBottom: '24px' 
+        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
+        padding: collapsed ? '0' : '0 12px', marginBottom: '24px' 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '24px', color: 'var(--accent)', fontWeight: 900 }}>♪</span>
-          {!isLeftSidebarCollapsed && (
-            <span style={{ fontSize: '20px', fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Musify</span>
+          {!collapsed && (
+            <span style={{ fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '-0.5px' }}>Musify</span>
           )}
         </div>
-        {!isLeftSidebarCollapsed && (
-          <button onClick={() => setIsLeftSidebarCollapsed(true)} className="collapse-btn" style={{ background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer', padding: '4px 6px', borderRadius: '6px' }}>❯</button>
+        {isMobile && onClose ? (
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer', padding: '4px 6px', borderRadius: '6px' }}>
+            <FiX size={22} />
+          </button>
+        ) : (
+          !collapsed && (
+            <button onClick={() => setIsLeftSidebarCollapsed(true)} className="collapse-btn" style={{ background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer', padding: '4px 6px', borderRadius: '6px' }}>❯</button>
+          )
         )}
       </div>
 
-      {/* Nav Group */}
-      <div className="glass-box" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '4px', padding: isLeftSidebarCollapsed ? '0' : '8px 12px', margin: '0 4px 24px 4px' }}>
+      {/* Nav Group - In a box */}
+      <div className="ambient-box" style={{ 
+        background: 'rgba(255,255,255,0.03)', 
+        borderRadius: '12px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '4px', 
+        padding: collapsed ? '8px' : '8px 12px', 
+        margin: '0 4px 16px 4px',
+        boxShadow: '0 0 30px rgba(0, 210, 255, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
+        border: '1px solid rgba(255, 255, 255, 0.02)'
+      }}>
         {navItems.map(({ path, label, Icon }) => {
           const isActive = pathname === path
           return (
             <NavLink 
-              key={path} to={path} title={isLeftSidebarCollapsed ? label : ''}
+              key={path} to={path} title={collapsed ? label : ''}
               className="nav-link-hover"
+              onClick={() => isMobile && onClose?.()}
               style={{
                 display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 12px', textDecoration: 'none',
-                justifyContent: isLeftSidebarCollapsed ? 'center' : 'flex-start',
+                justifyContent: collapsed ? 'center' : 'flex-start',
                 color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                fontWeight: isActive ? 700 : 600, borderRadius: '8px', transition: 'all 0.2s ease'
+                fontWeight: isActive ? 500 : 400, borderRadius: '8px', transition: 'all 0.2s ease'
               }}
             >
-              <Icon size={isLeftSidebarCollapsed ? 20 : 24} />
-              {!isLeftSidebarCollapsed && <span style={{ fontSize: '14px' }}>{label}</span>}
+              <Icon size={collapsed ? 20 : 24} />
+              {!collapsed && <span style={{ fontSize: '14px' }}>{label}</span>}
             </NavLink>
           )
         })}
       </div>
 
-      {/* Library Group */}
-      {!isLeftSidebarCollapsed ? (
-        <div className="glass-box" style={{ borderRadius: '12px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', margin: '0 4px 8px 4px' }}>
+      {/* Library Group - In a separate box */}
+      {!collapsed ? (
+        <div style={{ 
+          background: 'rgba(255,255,255,0.03)', 
+          borderRadius: '12px', 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden', 
+          margin: '0 4px 8px 4px',
+          boxShadow: '0 0 30px rgba(0, 210, 255, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.02)',
+          overscrollBehavior: 'contain'
+        }}>
           <div style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-            <div onClick={() => setIsPlaylistsExpanded(!isPlaylistsExpanded)} style={{ display: 'flex', alignItems: 'center', gap: '16px', fontWeight: 700, cursor: 'pointer' }} className="hover-text-primary">
+            <div onClick={() => setIsPlaylistsExpanded(!isPlaylistsExpanded)} style={{ display: 'flex', alignItems: 'center', gap: '16px', fontWeight: 400, cursor: 'pointer' }} className="hover-text-primary">
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <IconPlaylist size={24} />
                 {isPlaylistsExpanded ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
@@ -105,7 +139,16 @@ export default function LeftSidebar() {
             </button>
           </div>
 
-          <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: isPlaylistsExpanded ? '8px 12px' : '0 12px', maxHeight: isPlaylistsExpanded ? '1000px' : '0', transition: 'all 0.3s ease' }}>
+          <div className="hide-scrollbar" style={{ 
+            flex: 1, 
+            overflowY: 'auto', 
+            padding: isPlaylistsExpanded ? '8px 12px' : '0 12px', 
+            maxHeight: isPlaylistsExpanded ? '1000px' : '0', 
+            transition: 'all 0.3s ease', 
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y'
+          }}>
             {userPlaylists.map((playlist, i) => {
               const name = playlist.name
               const isLiked = name === 'Liked Songs'
@@ -113,15 +156,15 @@ export default function LeftSidebar() {
                 <NavLink
                   key={i} to={`/playlist/${encodeURIComponent(name)}`}
                   onContextMenu={(e) => onPlaylistContextMenu(e, name)}
+                  onClick={() => isMobile && onClose?.()}
                   className={({ isActive }) => "sidebar-playlist " + (isActive ? "active" : "")}
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '4px', textDecoration: 'none', marginBottom: '4px' }}
                 >
                   <div style={{ width: '48px', height: '48px', background: playlist.color || '#282828', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', fontWeight: 700 }}>
                     {isLiked ? '💜' : name.charAt(0).toUpperCase()}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="truncate" style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>{name}</span>
-                    <span className="truncate" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Playlist • {playlist.songs?.length || 0} songs</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span className="truncate" style={{ fontSize: '14px', color: '#fff', fontWeight: 400 }}>{name}</span>
                   </div>
                 </NavLink>
               )
@@ -134,12 +177,39 @@ export default function LeftSidebar() {
         </div>
       )}
 
+      {/* Credit at bottom - outside the playlist box */}
+      {!collapsed && (
+        <div style={{ 
+          padding: '12px 16px', 
+          textAlign: 'center',
+          marginTop: '8px'
+        }}>
+          <span style={{ 
+            fontSize: '8px', 
+            fontWeight: 500, 
+            color: 'rgba(255,255,255,0.3)', 
+            letterSpacing: '0.5px'
+          }}>
+            Designed & Created by Ayushman
+          </span>
+        </div>
+      )}
+
       <style>{`
         .collapse-btn:hover { color: #fff !important; }
         .hover-text-primary:hover { color: #fff !important; }
-        .sidebar-playlist:hover { background: rgba(255,255,255,0.05); }
-        .sidebar-playlist.active { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
-        .nav-link-hover:hover { background: #282828; color: #fff !important; }
+        .sidebar-playlist { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-playlist:hover { 
+          background: rgba(255,255,255,0.03); 
+          transform: scale(1.02);
+        }
+        .sidebar-playlist.active { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
+        .nav-link-hover { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-link-hover:hover { 
+          background: rgba(255,255,255,0.03); 
+          color: #fff !important; 
+          transform: scale(1.02);
+        }
       `}</style>
     </div>
   )

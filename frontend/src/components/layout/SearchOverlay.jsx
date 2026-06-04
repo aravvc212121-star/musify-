@@ -16,6 +16,7 @@ import { FiSearch, FiX } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../../context/PlayerContext.jsx'
 import { searchSongs } from '../../utils/api.js'
+import Fuse from 'fuse.js'
 
 const BROWSE_CATEGORIES = [
   { name: 'Podcasts', color: '#E13300' },
@@ -40,7 +41,7 @@ const BROWSE_CATEGORIES = [
 
 export default function SearchOverlay() {
   const navigate = useNavigate()
-  const { isSearchOpen, setIsSearchOpen, playSong } = usePlayer()
+  const { isSearchOpen, setIsSearchOpen, playSong, masterPlaylistData } = usePlayer()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -51,20 +52,40 @@ export default function SearchOverlay() {
   }, [isSearchOpen])
 
   useEffect(() => {
+    if (query.trim().length < 1) {
+      setResults([])
+      return
+    }
+
+    // Instant local fuzzy results
+    const fuse = new Fuse(masterPlaylistData, {
+      keys: ['title', 'artist'],
+      threshold: 0.4,
+      distance: 100,
+      includeScore: true
+    })
+    const localResults = fuse.search(query.trim()).map(r => r.item)
+    if (localResults.length > 0) {
+      setResults(localResults.slice(0, 15))
+    }
+
+    // Then fetch API results
     const delay = setTimeout(async () => {
-      if (query.trim().length >= 2) {
-        setLoading(true)
-        try {
-          const data = await searchSongs(query)
-          setResults(data.slice(0, 15))
-        } catch (err) { console.error(err) }
-        setLoading(false)
-      } else {
-        setResults([])
-      }
-    }, 300)
+      setLoading(true)
+      try {
+        const data = await searchSongs(query)
+        const combined = [...localResults]
+        data.forEach(s => {
+          if (!combined.find(c => c.videoId === s.videoId)) {
+            combined.push(s)
+          }
+        })
+        setResults(combined.slice(0, 15))
+      } catch (err) { console.error(err) }
+      setLoading(false)
+    }, 200)
     return () => clearTimeout(delay)
-  }, [query])
+  }, [query, masterPlaylistData])
 
   const handleClose = () => {
     setIsSearchOpen(false)
@@ -102,9 +123,14 @@ export default function SearchOverlay() {
               <FiSearch size={18} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
               <input
                 ref={inputRef}
-                type="text"
+                type="search"
                 value={query}
                 autoFocus
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                inputMode="search"
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && query.trim()) {
@@ -132,23 +158,23 @@ export default function SearchOverlay() {
 
           {/* Content */}
           <div className="hide-scrollbar scroll-container" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 120px' }}>
-            {query.length < 2 ? (
-              /* Browse Categories */
+            {query.length < 1 ? (
+              /* Browse Categories - 3 columns grid */
               <div>
                 <p className="section-heading" style={{ padding: '8px 4px' }}>Browse All</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {BROWSE_CATEGORIES.map((cat) => (
                     <div
                       key={cat.name}
                       onClick={() => handleCategorySearch(cat.name)}
                       style={{
-                        height: 80, borderRadius: 12, padding: '14px 16px',
+                        height: 70, borderRadius: 10, padding: '10px 12px',
                         background: `linear-gradient(135deg, ${cat.color}cc, ${cat.color}66)`,
                         cursor: 'pointer', display: 'flex', alignItems: 'flex-end',
                         transition: 'transform 80ms',
                       }}
                     >
-                      <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{cat.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{cat.name}</span>
                     </div>
                   ))}
                 </div>
@@ -168,7 +194,19 @@ export default function SearchOverlay() {
                     {results.map((song) => (
                       <div
                         key={song.videoId}
-                        onClick={() => { playSong(song); handleClose() }}
+                        onClick={() => { 
+                          const songData = { 
+                            videoId: song.videoId, 
+                            title: song.title || 'Unknown', 
+                            artist: song.artist || song.channelTitle || 'Unknown',
+                            thumbnail: song.albumArt || song.thumbnail || ''
+                          }
+                          const saved = JSON.parse(localStorage.getItem('musify_recent_searches') || '[]')
+                          let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
+                          localStorage.setItem('musify_recent_searches', JSON.stringify(updated.slice(0, 10)))
+                          playSong(song); 
+                          handleClose() 
+                        }}
                         className="song-item"
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,

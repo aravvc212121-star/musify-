@@ -14,6 +14,7 @@
     "@clerk/themes": "^2.4.57",
     "axios": "^1.15.2",
     "framer-motion": "^12.38.0",
+    "fuse.js": "^7.4.1",
     "html2canvas": "^1.4.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

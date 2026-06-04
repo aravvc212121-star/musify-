@@ -88,8 +88,50 @@ import GlobalModals from './components/ui/GlobalModals.jsx'
 import FullScreenPlayer from './components/layout/FullScreenPlayer.jsx'
 
 function AppShell({ location }) {
-  const { isRightSidebarOpen, isFullScreenPlayer, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed } = usePlayer()
+  const { isRightSidebarOpen, isFullScreenPlayer, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed, currentSong } = usePlayer()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+
+  // Minimum swipe distance (in px) to trigger close
+  const minSwipeDistance = 50
+
+  const handleTouchStart = (e) => {
+    setTouchEnd(0) // Reset
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    
+    // Close sidebar on left swipe
+    if (isLeftSwipe) {
+      setIsMobileSidebarOpen(false)
+    }
+  }
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.classList.add('mobile-sidebar-open')
+    } else {
+      document.body.classList.remove('mobile-sidebar-open')
+    }
+    return () => document.body.classList.remove('mobile-sidebar-open')
+  }, [isMobileSidebarOpen])
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setIsMobileSidebarOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     const handleResize = () => {
@@ -108,22 +150,40 @@ function AppShell({ location }) {
     <div id="app-container" style={{
       '--right-w': isRightSidebarOpen ? '280px' : '40px',
       '--left-w': isLeftSidebarCollapsed ? '56px' : '220px',
-      '--bottom-nav-h': isMobile ? '64px' : '0px',
+      '--bottom-nav-h': '0px',
       transition: 'grid-template-columns 0.35s cubic-bezier(0.4,0,0.2,1)',
       display: isFullScreenPlayer ? 'block' : 'grid',
       gridTemplateColumns: isMobile ? '1fr' : 'var(--left-w) 1fr var(--right-w)',
-      gridTemplateRows: `1fr ${isMobile ? 'calc(var(--bottom-bar-h) + var(--bottom-nav-h))' : 'var(--bottom-bar-h)'}`
+      gridTemplateRows: isMobile ? '1fr' : `1fr var(--bottom-bar-h)`
     }}>
       <div style={{ display: isFullScreenPlayer ? 'none' : 'contents' }}>
         {!isMobile && <LeftSidebar />}
 
+        {/* Mobile Sidebar Drawer */}
+        {isMobile && (
+          <>
+            <div
+              className={`mobile-sidebar-backdrop ${isMobileSidebarOpen ? 'open' : ''}`}
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
+            <div 
+              className={`mobile-sidebar-drawer ${isMobileSidebarOpen ? 'open' : ''}`}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <LeftSidebar isMobile onClose={() => setIsMobileSidebarOpen(false)} />
+            </div>
+          </>
+        )}
+
         {/* Center Panel (Scrollable content area) */}
         <div className="center-panel" style={{ margin: isMobile ? '0' : '8px 0', borderRadius: isMobile ? '0' : '8px' }}>
-          <TopBar />
+          <TopBar isMobile={isMobile} onMenuToggle={() => setIsMobileSidebarOpen(v => !v)} />
           <PageWrapper key={location.pathname}>
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/search" element={<SearchPage />} />
+              <Route path="/search" element={<SearchPage isMobile={isMobile} />} />
               <Route path="/library" element={<LibraryPage />} />
               <Route path="/artist/:id" element={<ArtistPage />} />
               <Route path="/charts/:id" element={<ChartsPage />} />
@@ -131,12 +191,10 @@ function AppShell({ location }) {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </PageWrapper>
-          {isMobile && <div style={{ height: '160px' }} />}
         </div>
 
         {!isMobile && <RightSidebar />}
         <Player />
-        {isMobile && <MobileNav />}
       </div>
 
       <FullScreenPlayer />

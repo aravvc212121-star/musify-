@@ -2,10 +2,22 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { searchSongs, getTrending } from '../utils/api.js'
-import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle } from 'react-icons/fi'
 import { useRef } from 'react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return isMobile
+}
+
 /* ─── Greeting based on time ─── */
+// Keeping for future use
+// eslint-disable-next-line no-unused-vars
 function getGreeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -27,7 +39,7 @@ const TOP_ARTISTS = [
 ]
 
 /* ─── Section Header ─── */
-function SectionHeader({ title, scrollRef }) {
+function SectionHeader({ title, scrollRef, isMobile }) {
   const scroll = (dir) => {
     if (scrollRef.current) {
       const amt = dir === 'left' ? -600 : 600;
@@ -38,27 +50,29 @@ function SectionHeader({ title, scrollRef }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      marginBottom: '16px',
+      marginBottom: isMobile ? '10px' : '16px',
     }}>
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff' }}>{title}</h2>
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button 
-          onClick={() => scroll('left')} 
-          style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-        >
-          <FiChevronLeft size={20} />
-        </button>
-        <button 
-          onClick={() => scroll('right')} 
-          style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-        >
-          <FiChevronRight size={20} />
-        </button>
-      </div>
+      <h2 style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#ffffff' }}>{title}</h2>
+      {!isMobile && scrollRef && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            onClick={() => scroll('left')} 
+            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+          >
+            <FiChevronLeft size={20} />
+          </button>
+          <button 
+            onClick={() => scroll('right')} 
+            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+          >
+            <FiChevronRight size={20} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -84,8 +98,13 @@ function HoverPlayButton({ style }) {
   )
 }
 
-/* ─── Vertical Card (180x220) ─── */
-function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick }) {
+/* ─── Vertical Card (Responsive) ─── */
+function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick, isMobile }) {
+  const cardW = isMobile ? 125 : 200
+  const cardH = isMobile ? 155 : 220
+  const imgSize = isMobile ? 105 : 168
+  const pad = isMobile ? 10 : 16
+
   return (
     <div 
       onClick={onClick} 
@@ -96,37 +115,37 @@ function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick }) 
         }));
       }}
       style={{
-      width: '180px', height: '220px',
-      padding: '16px',
-      borderRadius: '12px',
+      width: `${cardW}px`, height: `${cardH}px`,
+      padding: `${pad}px`,
+      borderRadius: isMobile ? '8px' : '12px',
       cursor: 'pointer',
       position: 'relative',
       flexShrink: 0,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }}
-    className="vertical-card glass-box">
-      <div style={{ position: 'relative', width: '148px', height: '148px', marginBottom: '16px', background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', borderRadius: isArtist ? '50%' : '4px' }}>
+    className="vertical-card">
+      <div style={{ position: 'relative', width: `${imgSize}px`, height: `${imgSize}px`, marginBottom: isMobile ? '8px' : '16px', background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', borderRadius: isArtist ? '50%' : '4px' }}>
         <img
           src={song.thumbnail || song.img} alt={song.title || song.name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: isArtist ? '50%' : '4px' }}
         />
         {isNewRelease && (
           <div style={{
-            position: 'absolute', top: '8px', left: '8px',
+            position: 'absolute', top: isMobile ? '4px' : '8px', left: isMobile ? '4px' : '8px',
             background: 'var(--accent)', color: '#fff',
-            fontSize: '8px', fontWeight: 700, padding: '2px 6px',
+            fontSize: isMobile ? '7px' : '8px', fontWeight: 700, padding: '2px 6px',
             borderRadius: '500px', zIndex: 2
           }}>
             NEW
           </div>
         )}
-        <HoverPlayButton style={{ bottom: '8px', right: '8px' }} />
+        {!isMobile && <HoverPlayButton style={{ bottom: '8px', right: '8px' }} />}
       </div>
       <div style={{ width: '100%' }}>
-        <p className="truncate" style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+        <p className="truncate" style={{ fontSize: isMobile ? '11px' : '14px', fontWeight: 700, color: '#ffffff', marginBottom: '2px' }}>
           {song.title || song.name}
         </p>
-        <p className="truncate" style={{ fontSize: '14px', color: isRecommended ? 'var(--accent-hover)' : '#b3b3b3' }}>
+        <p className="truncate" style={{ fontSize: isMobile ? '10px' : '14px', color: isRecommended ? 'var(--accent-hover)' : '#b3b3b3' }}>
           {isArtist ? 'Artist' : (isRecommended ? song.genre || 'Electronic' : song.artist)}
         </p>
       </div>
@@ -137,7 +156,7 @@ function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick }) 
 /* ─── Skeleton Row ─── */
 function SkeletonRow() {
   return (
-    <div style={{ background: '#121212', borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
+    <div style={{ marginBottom: '40px' }}>
       <div className="skeleton" style={{ width: '140px', height: '24px', marginBottom: '16px' }} />
       <div className="h-scroll" style={{ paddingBottom: 0 }}>
         {[...Array(6)].map((_, i) => (
@@ -157,6 +176,8 @@ export default function HomePage() {
   const [popularAlbums, setPopularAlbums] = useState([])
   const [recommendations, setRecommendations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [dailySongs, setDailySongs] = useState([])
+  const [activePosterIndex, setActivePosterIndex] = useState(0)
 
   const recentRef = useRef(null)
   const artistsRef = useRef(null)
@@ -164,6 +185,127 @@ export default function HomePage() {
   const newRef = useRef(null)
   const recomRef = useRef(null)
   const popularRef = useRef(null)
+  const rapRef = useRef(null)
+  const hollywoodRef = useRef(null)
+  const bollywoodRef = useRef(null)
+  const hindiRapRef = useRef(null)
+  const postersScrollRef = useRef(null)
+
+  const isMobile = useIsMobile()
+
+  // Get or generate daily songs (4 songs from DIFFERENT popular artists) based on current date
+  useEffect(() => {
+    const getDailySongs = async () => {
+      try {
+        const today = new Date().toDateString()
+        
+        // AGGRESSIVE CACHE CLEAR - Always check on mount
+        const stored = localStorage.getItem('dailySongs')
+        let shouldFetch = true
+        
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored)
+            // Only use cache if it has version 4, is from today, and has valid data
+            if (parsed.version === 4 && parsed.date === today && parsed.songs && parsed.songs.length >= 4) {
+              console.log('[Daily Carousel] ✓ Using cached songs from multiple artists')
+              setDailySongs(parsed.songs)
+              shouldFetch = false
+            } else {
+              console.log('[Daily Carousel] ✗ Cache invalid or old version, clearing')
+              localStorage.removeItem('dailySongs')
+            }
+          } catch {
+            console.log('[Daily Carousel] ✗ Cache parse error, clearing')
+            localStorage.removeItem('dailySongs')
+          }
+        } else {
+          console.log('[Daily Carousel] ○ No cache found, fetching fresh')
+        }
+        
+        if (!shouldFetch) return
+
+        // Fetch ONE song from each of these 4 artists
+        const artists = [
+          { name: 'Travis Scott', query: 'Travis Scott' },
+          { name: 'Dua Lipa', query: 'Dua Lipa' },
+          { name: 'Seedhe Maut', query: 'Seedhe Maut' },
+          { name: 'Karan Aujla', query: 'Karan Aujla' }
+        ]
+        
+        console.log('[Daily Carousel] 🎤 Fetching 1 song from each artist...')
+        
+        // Fetch songs from all 4 artists in parallel
+        const songPromises = artists.map(artist => 
+          searchSongs(artist.query).then(results => ({
+            artist: artist.name,
+            song: results && results.length > 0 ? results[0] : null
+          }))
+        )
+        
+        const artistResults = await Promise.all(songPromises)
+        
+        // Extract songs and filter out any nulls
+        const songs = artistResults
+          .filter(result => result.song !== null)
+          .map(result => {
+            console.log(`  ✓ ${result.artist}: ${result.song.title}`)
+            return result.song
+          })
+        
+        if (songs.length >= 4) {
+          console.log(`[Daily Carousel] ✓ Loaded ${songs.length} songs from different artists`)
+          
+          setDailySongs(songs)
+          localStorage.setItem('dailySongs', JSON.stringify({ 
+            date: today, 
+            songs, 
+            version: 4, // Version 4 for multi-artist format
+            timestamp: Date.now()
+          }))
+        } else {
+          console.warn(`[Daily Carousel] ⚠ Only got ${songs.length} songs, need 4`)
+          // Fallback to trending
+          const trending = await getTrending()
+          if (trending && trending.length >= 4) {
+            console.log('[Daily Carousel] ↻ Using trending fallback')
+            setDailySongs(trending.slice(0, 4))
+          }
+        }
+      } catch (e) {
+        console.error('[Daily Carousel] ✗ Error:', e)
+        // Try trending on error
+        try {
+          const trending = await getTrending()
+          if (trending && trending.length >= 4) {
+            setDailySongs(trending.slice(0, 4))
+            console.log('[Daily Carousel] ↻ Error recovery: using trending')
+          }
+        } catch (err) {
+          console.error('[Daily Carousel] ✗ All fallbacks failed:', err)
+        }
+      }
+    }
+    getDailySongs()
+  }, [])
+
+  // Track scroll position for poster dots
+  useEffect(() => {
+    const scrollContainer = postersScrollRef.current
+    if (!scrollContainer || dailySongs.length <= 1) return
+
+    const handleScroll = () => {
+      const scrollLeft = scrollContainer.scrollLeft
+      const itemWidth = scrollContainer.querySelector('.aesthetic-poster')?.offsetWidth || 0
+      const gap = isMobile ? 12 : 20
+      const totalWidth = itemWidth + gap
+      const index = Math.round(scrollLeft / totalWidth)
+      setActivePosterIndex(Math.min(Math.max(index, 0), dailySongs.length - 1))
+    }
+
+    scrollContainer.addEventListener('scroll', handleScroll)
+    return () => scrollContainer.removeEventListener('scroll', handleScroll)
+  }, [dailySongs.length, isMobile])
 
   useEffect(() => {
     const load = async () => {
@@ -196,117 +338,440 @@ export default function HomePage() {
     navigate(`/artist/${encodeURIComponent(name)}`)
   }
 
-  // 6 mock tracks for Recently Listened
-  const recentTracks = madeForYou.slice(0, 8)
+  // 10 tracks for Top Radios
+  const recentTracks = madeForYou.slice(0, 10)
 
   return (
-    <div style={{ padding: '16px 32px 64px' }}>
-      {/* ─── 2. Recently Played (Scroll Row) ─── */}
-      <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-        <SectionHeader title="Recently Played" scrollRef={recentRef} />
-        <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
-          {recentTracks.map((song, i) => (
-            <VerticalCard 
-              key={i} 
-              song={song} 
-              onClick={() => handlePlaySong(song, recentTracks, i)} 
-            />
-          ))}
-        </div>
+    <div style={{ position: 'relative', padding: isMobile ? '12px 12px 120px' : '16px 32px 120px', overflow: 'hidden' }}>
+      {/* ─── Ambient Aurora Background Effect ─── */}
+      <div className="aurora-background" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden'
+      }}>
+        {/* Aurora Orbs */}
+        <div className="aurora-orb aurora-orb-1" style={{
+          position: 'absolute',
+          width: isMobile ? '300px' : '600px',
+          height: isMobile ? '300px' : '600px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0, 210, 255, 0.05) 40%, transparent 70%)',
+          filter: 'blur(60px)',
+          top: '10%',
+          left: '20%',
+          animation: 'aurora-float-1 20s ease-in-out infinite'
+        }} />
+        
+        <div className="aurora-orb aurora-orb-2" style={{
+          position: 'absolute',
+          width: isMobile ? '250px' : '500px',
+          height: isMobile ? '250px' : '500px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(138, 43, 226, 0.12) 0%, rgba(138, 43, 226, 0.04) 40%, transparent 70%)',
+          filter: 'blur(50px)',
+          top: '50%',
+          right: '15%',
+          animation: 'aurora-float-2 25s ease-in-out infinite'
+        }} />
+        
+        <div className="aurora-orb aurora-orb-3" style={{
+          position: 'absolute',
+          width: isMobile ? '280px' : '550px',
+          height: isMobile ? '280px' : '550px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255, 94, 91, 0.1) 0%, rgba(255, 94, 91, 0.03) 40%, transparent 70%)',
+          filter: 'blur(55px)',
+          bottom: '15%',
+          left: '10%',
+          animation: 'aurora-float-3 22s ease-in-out infinite'
+        }} />
+        
+        <div className="aurora-orb aurora-orb-4" style={{
+          position: 'absolute',
+          width: isMobile ? '200px' : '400px',
+          height: isMobile ? '200px' : '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(29, 185, 84, 0.08) 0%, rgba(29, 185, 84, 0.02) 40%, transparent 70%)',
+          filter: 'blur(45px)',
+          top: '70%',
+          right: '25%',
+          animation: 'aurora-float-4 18s ease-in-out infinite'
+        }} />
       </div>
-
-      {/* ─── 3. Your Playlists (Quick Jump) ─── */}
-      <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-        <SectionHeader title="Your Playlists" />
-        <div className="playlists-grid">
-          {userPlaylists.slice(0, 10).map((playlist, i) => {
-            const isLiked = playlist.name === 'Liked Songs'
-            return (
-              <div 
-                key={i} 
-                onClick={() => navigate(`/playlist/${encodeURIComponent(playlist.name)}`)}
+      
+      {/* Content Container with relative positioning */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+      {/* ─── Daily Songs Carousel (Aesthetic & Scrollable) ─── */}
+      {dailySongs.length > 0 && (
+        <div style={{
+          marginBottom: isMobile ? '20px' : '32px',
+          position: 'relative'
+        }}>
+          <div 
+            ref={postersScrollRef}
+            className="posters-scroll"
+            style={{
+              display: 'flex',
+              gap: isMobile ? '12px' : '20px',
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: '8px'
+            }}
+          >
+            {dailySongs.map((song, idx) => (
+              <div
+                key={song.videoId || idx}
+                onClick={() => handlePlaySong(song, dailySongs, idx)}
                 style={{
-                  borderRadius: '8px',
-                  padding: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
+                  position: 'relative',
+                  width: isMobile ? '85vw' : '480px',
+                  height: isMobile ? '180px' : '280px',
+                  borderRadius: isMobile ? '12px' : '16px',
+                  overflow: 'hidden',
                   cursor: 'pointer',
-                  transition: 'background 0.2s, transform 0.2s',
-                  position: 'relative'
+                  flexShrink: 0,
+                  scrollSnapAlign: 'start',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
                 }}
-                className="playlist-quick-card glass-box"
+                className="aesthetic-poster"
               >
+                {/* Background Image */}
+                <img 
+                  src={song.thumbnail} 
+                  alt={song.title}
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+                
+                {/* Gradient overlay for text readability */}
                 <div style={{
-                  width: '56px', height: '56px',
-                  background: playlist.color || 'var(--hero-start)',
-                  borderRadius: '6px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: '24px', fontWeight: 900,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  flexShrink: 0
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)'
+                }} />
+                
+                {/* Song Title at Bottom */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: isMobile ? '12px' : '20px',
+                  zIndex: 2
                 }}>
-                  {isLiked ? '💜' : playlist.name.charAt(0).toUpperCase()}
+                  <h3 style={{
+                    fontSize: isMobile ? '14px' : '18px',
+                    fontWeight: 700,
+                    color: '#fff',
+                    margin: 0,
+                    lineHeight: 1.3,
+                    textShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical'
+                  }}>
+                    {song.title}
+                  </h3>
+                  {song.artist && (
+                    <p style={{
+                      fontSize: isMobile ? '12px' : '14px',
+                      color: 'rgba(255,255,255,0.85)',
+                      fontWeight: 500,
+                      margin: '4px 0 0 0',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {song.artist}
+                    </p>
+                  )}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p className="truncate" style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{playlist.name}</p>
-                  <p style={{ fontSize: '12px', color: '#b3b3b3', margin: '4px 0 0 0' }}>Playlist</p>
-                </div>
-                <div className="card-play-btn" style={{
-                  width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: 0, transform: 'scale(0.8)', transition: 'all 0.2s'
-                }}>
-                  <FiPlay size={14} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
+                
+                {/* Hover play icon overlay */}
+                <div 
+                  className="poster-play-overlay"
+                  style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(8px)',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease'
+                  }}
+                >
+                  <div style={{
+                    width: isMobile ? '56px' : '80px',
+                    height: isMobile ? '56px' : '80px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.95)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    transform: 'scale(0.9)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                  className="poster-play-icon"
+                  >
+                    <FiPlay 
+                      size={isMobile ? 24 : 32} 
+                      fill="currentColor" 
+                      style={{ color: '#000', marginLeft: '4px' }} 
+                    />
+                  </div>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ─── 4. Made For You (Scroll Row) ─── */}
-
-      {/* ─── 4. Popular Artists (Scroll Row) ─── */}
-      <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-        <SectionHeader title="Popular Artists" scrollRef={artistsRef} />
-        <div className="h-scroll" style={{ paddingBottom: 0 }} ref={artistsRef}>
-          {TOP_ARTISTS.map((artist, i) => (
-            <VerticalCard key={i} song={artist} isArtist onClick={() => handleArtistClick(artist.name)} />
-          ))}
-        </div>
-      </div>
-
-      {/* ─── 4b. Recently Played (Scroll Row) ─── */}
-      {recentlyPlayed && recentlyPlayed.length > 0 && (
-        <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-          <SectionHeader title="Recently Listened" scrollRef={listenRef} />
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={listenRef}>
-            {recentlyPlayed.slice(0, 10).map((song, i) => (
-              <VerticalCard key={song.videoId || i} song={song} onClick={() => handlePlaySong(song, recentlyPlayed, i)} />
             ))}
+          </div>
+          
+          {/* Static Dots Navigation - Outside carousel */}
+          {dailySongs.length > 1 && (
+            <div style={{
+              position: 'absolute',
+              bottom: isMobile ? '12px' : '16px',
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '8px',
+              zIndex: 10,
+              pointerEvents: 'auto'
+            }}>
+              {dailySongs.map((_, dotIdx) => (
+                <button
+                  key={dotIdx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const scrollContainer = postersScrollRef.current
+                    if (scrollContainer) {
+                      const poster = scrollContainer.querySelector('.aesthetic-poster')
+                      if (poster) {
+                        const posterWidth = poster.offsetWidth
+                        const gap = isMobile ? 12 : 20
+                        scrollContainer.scrollTo({
+                          left: dotIdx * (posterWidth + gap),
+                          behavior: 'smooth'
+                        })
+                      }
+                    }
+                  }}
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: dotIdx === activePosterIndex ? '#fff' : 'rgba(255,255,255,0.4)',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transform: dotIdx === activePosterIndex ? 'scale(1.2)' : 'scale(1)'
+                  }}
+                  aria-label={`Go to slide ${dotIdx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── 2. Top Radios (Scroll Row) ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Top Radios" scrollRef={recentRef} isMobile={isMobile} />
+        </div>
+        <div style={{ 
+          background: 'rgba(255,255,255,0.06)',
+          borderRadius: '16px',
+          padding: isMobile ? '16px 0' : '20px 0',
+          boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.03)'
+        }} className="ambient-box">
+          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
+            {recentTracks.map((song, i) => (
+              <VerticalCard 
+                key={i} 
+                song={song} 
+                isMobile={isMobile}
+                onClick={() => handlePlaySong(song, recentTracks, i)} 
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2b. Popular Artists (Scroll Row) ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Popular Artists" scrollRef={artistsRef} isMobile={isMobile} />
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={artistsRef}>
+            {TOP_ARTISTS.map((artist, i) => (
+              <VerticalCard key={i} song={artist} isArtist isMobile={isMobile} onClick={() => handleArtistClick(artist.name)} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2c. Recently Listened (Scroll Row) ─── */}
+      {recentlyPlayed && recentlyPlayed.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Recently Listened" scrollRef={listenRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={listenRef}>
+              {recentlyPlayed.slice(0, 10).map((song, i) => (
+                <VerticalCard key={song.videoId || i} song={song} isMobile={isMobile} onClick={() => handlePlaySong(song, recentlyPlayed, i)} />
+              ))}
+            </div>
           </div>
         </div>
       )}
 
+      {/* ─── 3. Your Playlists (2-row horizontal scroll on mobile) ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Your Playlists" isMobile={isMobile} />
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="playlists-grid" style={{ padding: isMobile ? '0 16px' : '0 20px' }}>
+            {userPlaylists.slice(0, 10).map((playlist, i) => {
+              const isLiked = playlist.name === 'Liked Songs'
+              return (
+                <div 
+                  key={i} 
+                  onClick={() => navigate(`/playlist/${encodeURIComponent(playlist.name)}`)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    borderRadius: '8px',
+                    padding: isMobile ? '8px' : '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isMobile ? '8px' : '12px',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s, transform 0.2s',
+                    position: 'relative'
+                  }}
+                  className="playlist-quick-card"
+                >
+                  <div style={{
+                    width: isMobile ? '42px' : '56px', height: isMobile ? '42px' : '56px',
+                    background: playlist.color || 'var(--hero-start)',
+                    borderRadius: '6px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: isMobile ? '18px' : '24px', fontWeight: 900,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    flexShrink: 0
+                  }}>
+                    {isLiked ? '💜' : playlist.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p className="truncate" style={{ fontSize: isMobile ? '12px' : '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{playlist.name}</p>
+                    <p style={{ fontSize: isMobile ? '10px' : '12px', color: '#b3b3b3', margin: '2px 0 0 0' }}>Playlist</p>
+                  </div>
+                  {!isMobile && (
+                    <div className="card-play-btn" style={{
+                      width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: 0, transform: 'scale(0.8)', transition: 'all 0.2s'
+                    }}>
+                      <FiPlay size={14} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* ─── 5. New Releases (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : trending.length > 0 && (
-        <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-          <SectionHeader title="New Releases" scrollRef={newRef} />
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={newRef}>
-            {trending.slice(0, 8).map((song, i) => (
-              <VerticalCard key={song.videoId} song={song} isNewRelease onClick={() => navigate(`/playlist/New%20Releases`)} />
-            ))}
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="New Releases" scrollRef={newRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={newRef}>
+              {trending.slice(0, 8).map((song) => (
+                <VerticalCard key={song.videoId} song={song} isNewRelease isMobile={isMobile} onClick={() => navigate(`/playlist/New%20Releases`)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 5b. Popular Albums (Scroll Row) ─── */}
+      {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Popular Albums" scrollRef={popularRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={popularRef}>
+              {popularAlbums.slice(0, 10).map((song, i) => (
+                <VerticalCard 
+                  key={song.videoId || i} 
+                  song={song}
+                  isMobile={isMobile}
+                  onClick={() => navigate(`/playlist/${encodeURIComponent(song.title)}`)} 
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 6. Recommended For You (Scroll Row) ─── */}
+      {loading ? <SkeletonRow /> : recommendations.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Recommended For You" scrollRef={recomRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recomRef}>
+              {recommendations.slice(0, 10).map((song, i) => (
+                <VerticalCard 
+                  key={song.videoId || i} 
+                  song={{...song, genre: 'Pop/Trending'}} 
+                  isRecommended
+                  isMobile={isMobile}
+                  onClick={() => navigate(`/playlist/Recommended%20For%20You`)} 
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* ─── 7. Featured Podcasts (Large Cards) ─── */}
-      <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-        <SectionHeader title="Featured Podcasts" />
+      <div style={{ 
+        marginBottom: isMobile ? '20px' : '40px'
+      }}>
+        <SectionHeader title="Featured Podcasts" isMobile={isMobile} />
         <div className="podcast-grid-premium" style={{ 
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))',
           gap: '24px',
           maxHeight: '1020px', // Even more generous height
           overflow: 'hidden'
@@ -366,7 +831,7 @@ export default function HomePage() {
               color: "#0d2b45",
               desc: "Dr. Andrew Huberman discusses the latest science on sleep, nutrition, and neural circuits..."
             }
-          ].map((pod, i) => (
+          ].slice(0, isMobile ? 2 : undefined).map((pod, i) => (
             <div key={i} style={{
               background: pod.color, borderRadius: '16px',
               padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px',
@@ -417,35 +882,87 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ─── 5b. Popular Albums (Scroll Row) ─── */}
-      {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
-        <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-          <SectionHeader title="Popular Albums" scrollRef={popularRef} />
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={popularRef}>
-            {popularAlbums.slice(0, 10).map((song, i) => (
-              <VerticalCard 
-                key={song.videoId || i} 
-                song={song} 
-                onClick={() => navigate(`/playlist/${encodeURIComponent(song.title)}`)} 
-              />
-            ))}
+
+      {/* ─── 8. Top English Rap ─── */}
+      {loading ? <SkeletonRow /> : madeForYou.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Top English Rap" scrollRef={rapRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={rapRef}>
+              {madeForYou.slice(0, 10).map((song, i) => (
+                <VerticalCard
+                  key={song.videoId || i}
+                  song={{ ...song, genre: 'Rap / Hip-Hop' }}
+                  isMobile={isMobile}
+                  onClick={() => handlePlaySong(song, madeForYou, i)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ─── 6. Recommended For You (Scroll Row) ─── */}
+      {/* ─── 9. Top Hollywood ─── */}
+      {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Top Hollywood" scrollRef={hollywoodRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={hollywoodRef}>
+              {popularAlbums.slice(0, 10).map((song, i) => (
+                <VerticalCard
+                  key={song.videoId || i}
+                  song={{ ...song, genre: 'Hollywood' }}
+                  isMobile={isMobile}
+                  onClick={() => handlePlaySong(song, popularAlbums, i)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 10. Top Bollywood ─── */}
+      {loading ? <SkeletonRow /> : trending.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Top Bollywood" scrollRef={bollywoodRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={bollywoodRef}>
+              {trending.slice(0, 10).map((song, i) => (
+                <VerticalCard
+                  key={song.videoId || i}
+                  song={{ ...song, genre: 'Bollywood' }}
+                  isMobile={isMobile}
+                  onClick={() => handlePlaySong(song, trending, i)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 11. Top Hindi Rap ─── */}
       {loading ? <SkeletonRow /> : recommendations.length > 0 && (
-        <div className="glass-box" style={{ borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
-          <SectionHeader title="Recommended For You" scrollRef={recomRef} />
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recomRef}>
-            {recommendations.slice(0, 10).map((song, i) => (
-              <VerticalCard 
-                key={song.videoId || i} 
-                song={{...song, genre: 'Pop/Trending'}} 
-                isRecommended 
-                onClick={() => navigate(`/playlist/Recommended%20For%20You`)} 
-              />
-            ))}
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Top Hindi Rap" scrollRef={hindiRapRef} isMobile={isMobile} />
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={hindiRapRef}>
+              {recommendations.slice(0, 10).map((song, i) => (
+                <VerticalCard
+                  key={song.videoId || i}
+                  song={{ ...song, genre: 'Hindi Rap' }}
+                  isMobile={isMobile}
+                  onClick={() => handlePlaySong(song, recommendations, i)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -455,18 +972,26 @@ export default function HomePage() {
         /* Scrollable rows */
         .h-scroll {
           display: flex;
-          gap: 24px;
+          gap: 10px;
           overflow-x: auto;
+          overflow-y: visible;
           scrollbar-width: none;
-          padding-bottom: 24px; /* Space for box-shadow hover */
+          padding-bottom: 8px;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-x: contain;
+          overscroll-behavior-y: auto;
+          touch-action: pan-y pan-x;
         }
-        .h-scroll::-webkit-scrollbar {
-          display: none;
+        @media (min-width: 768px) {
+          .h-scroll {
+            gap: 24px;
+            padding-bottom: 24px;
+          }
         }
 
         /* Vertical Card Hover */
         .vertical-card:hover {
-          background: rgba(255,255,255,0.1) !important;
+          background: #2a2a2a !important;
           transform: scale(1.04) !important;
           box-shadow: 0 12px 24px rgba(0,0,0,0.3) !important;
         }
@@ -499,7 +1024,20 @@ export default function HomePage() {
         }
         @media (max-width: 768px) {
           .recently-grid { grid-template-columns: repeat(2, 1fr); }
-          .playlists-grid { grid-template-columns: repeat(2, 1fr); }
+          .playlists-grid { 
+            grid-template-columns: none; 
+            grid-template-rows: repeat(2, 1fr); 
+            grid-auto-flow: column; 
+            grid-auto-columns: calc(65vw - 12px); 
+            overflow-x: auto; 
+            overflow-y: hidden;
+            scrollbar-width: none;
+            max-height: none; 
+            padding-bottom: 8px;
+          }
+          .playlists-grid::-webkit-scrollbar {
+            display: none;
+          }
         }
         .recent-card:hover {
           background: #333333 !important;
@@ -509,7 +1047,7 @@ export default function HomePage() {
         }
 
         .playlist-quick-card:hover {
-          background: #2a2a2a !important;
+          background: rgba(255, 255, 255, 0.12) !important;
           transform: scale(1.03) !important;
         }
         .playlist-quick-card:hover .card-play-btn {
@@ -520,7 +1058,91 @@ export default function HomePage() {
         .hover-underline:hover {
           text-decoration: underline;
         }
+
+        /* Poster Scroll Styles */
+        .posters-scroll::-webkit-scrollbar {
+          display: none;
+        }
+
+        .aesthetic-poster:hover {
+          transform: scale(1.02);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .aesthetic-poster:hover .poster-play-overlay {
+          opacity: 1;
+        }
+
+        .aesthetic-poster:hover .poster-play-icon {
+          transform: scale(1);
+        }
+
+        /* Aurora Background Animations */
+        @keyframes aurora-float-1 {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 1;
+          }
+          25% {
+            transform: translate(30px, -50px) scale(1.1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(-20px, -80px) scale(0.95);
+            opacity: 1;
+          }
+          75% {
+            transform: translate(40px, -30px) scale(1.05);
+            opacity: 0.9;
+          }
+        }
+
+        @keyframes aurora-float-2 {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.9;
+          }
+          33% {
+            transform: translate(-40px, 60px) scale(1.08);
+            opacity: 1;
+          }
+          66% {
+            transform: translate(30px, 90px) scale(0.92);
+            opacity: 0.85;
+          }
+        }
+
+        @keyframes aurora-float-3 {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.95;
+          }
+          30% {
+            transform: translate(50px, 40px) scale(1.12);
+            opacity: 0.8;
+          }
+          60% {
+            transform: translate(-30px, 70px) scale(0.98);
+            opacity: 1;
+          }
+        }
+
+        @keyframes aurora-float-4 {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.85;
+          }
+          40% {
+            transform: translate(-50px, -40px) scale(1.15);
+            opacity: 1;
+          }
+          80% {
+            transform: translate(20px, -60px) scale(0.9);
+            opacity: 0.9;
+          }
+        }
       `}</style>
+      </div>
     </div>
   )
 }

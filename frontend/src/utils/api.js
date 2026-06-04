@@ -26,7 +26,7 @@ export function getStreamUrl(videoId) {
 }
 
 export async function searchSongs(query) {
-  if (!query || query.trim().length < 2) return []
+  if (!query || query.trim().length < 1) return []
 
   const cacheKey = query.trim().toLowerCase()
   if (searchCache.has(cacheKey)) return searchCache.get(cacheKey)
@@ -39,6 +39,43 @@ export async function searchSongs(query) {
   } catch (error) {
     console.error('Search error:', error)
     return []
+  }
+}
+
+export async function fetchArtistProfile(query) {
+  if (!query || query.trim().length < 1) return null;
+  try {
+    const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=musicArtist&limit=1`);
+    if (!itunesRes.ok) return null;
+    const itunesData = await itunesRes.json();
+    if (!itunesData.results || itunesData.results.length === 0) return null;
+    
+    const artist = itunesData.results[0];
+    const genre = artist.primaryGenreName;
+
+    let bio = 'Musician / Band';
+    try {
+        const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exchars=250&explaintext=1&titles=${encodeURIComponent(artist.artistName)}&origin=*`);
+        if (wikiRes.ok) {
+            const wikiData = await wikiRes.json();
+            const pages = wikiData.query.pages;
+            const pageId = Object.keys(pages)[0];
+            if (pageId !== '-1' && pages[pageId].extract) {
+                bio = pages[pageId].extract;
+            }
+        }
+    } catch (e) {
+        console.warn('Wikipedia bio fetch failed', e);
+    }
+
+    return {
+        name: artist.artistName,
+        genre: genre,
+        bio: bio
+    };
+  } catch (err) {
+    console.warn('fetchArtistProfile error', err);
+    return null;
   }
 }
 

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Music App Cache</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            color: #333;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+        .success {
+            margin-top: 20px;
+            padding: 12px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Clear Music Cache</h1>
+        <p>Click below to clear the old carousel cache and load new artist songs</p>
+        <button onclick="clearCache()">Clear Cache & Refresh</button>
+        <div id="success" class="success">
+            ✅ Cache cleared! The app will now load new artist songs.
+        </div>
+    </div>
+
+    <script>
+        function clearCache() {
+            // Clear the old daily songs cache
+            localStorage.removeItem('dailySongs');
+            localStorage.removeItem('dailySong');
+            
+            // Show success message
+            document.getElementById('success').style.display = 'block';
+            
+            // Redirect to app after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

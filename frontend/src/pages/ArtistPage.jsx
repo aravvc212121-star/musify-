@@ -40,11 +40,9 @@ export default function ArtistPage() {
       minHeight: '100%'
     }}>
       {/* ─── Hero Section ─── */}
-      <div style={{
+      <div className="artist-hero" style={{
         background: `linear-gradient(to bottom, ${color}, var(--bg-primary))`,
-        padding: '64px 32px 32px',
         position: 'relative', zIndex: 10,
-        display: 'flex', alignItems: 'flex-end', gap: '24px',
         transition: 'background 0.5s ease'
       }}>
         {/* Back Button */}
@@ -61,8 +59,7 @@ export default function ArtistPage() {
           <FiArrowLeft size={20} />
         </button>
 
-        <div style={{
-          width: '232px', height: '232px',
+        <div className="artist-cover" style={{
           borderRadius: '50%', overflow: 'hidden',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           flexShrink: 0,
@@ -75,18 +72,16 @@ export default function ArtistPage() {
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80 }}>👤</div>
           )}
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="artist-info" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#3d91ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
             </div>
             <p style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', margin: 0, color: '#fff' }}>Verified Artist</p>
           </div>
-          <h1 style={{ 
-            fontSize: 'clamp(48px, 8vw, 96px)', 
+          <h1 className="artist-title truncate" style={{ 
             fontWeight: 900, 
             margin: '0 0 16px 0', 
-            letterSpacing: '-4px', 
             color: '#fff', 
             lineHeight: 1 
           }}>
@@ -133,15 +128,7 @@ export default function ArtistPage() {
       </div>
 
       {/* ─── Songs Container ─── */}
-      <div 
-        className="glass-box"
-        style={{ 
-          padding: '32px', 
-          margin: '0 32px',
-          borderRadius: '24px',
-          overflow: 'hidden'
-        }}
-      >
+      <div className="song-list-container">
         <h2 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, marginBottom: '24px' }}>Popular</h2>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -184,24 +171,49 @@ export default function ArtistPage() {
         .hover-bg-card:hover {
           background: rgba(255,255,255,0.1) !important;
         }
+        .song-list-container {
+          padding: 0 32px;
+        }
+
+        .artist-hero {
+          padding: 64px 32px 32px;
+          display: flex;
+          align-items: flex-end;
+          gap: 24px;
+        }
+        .artist-cover {
+          width: 232px;
+          height: 232px;
+        }
+        .artist-title {
+          font-size: clamp(48px, 8vw, 96px);
+          letter-spacing: -4px;
+        }
 
         @media (max-width: 768px) {
-          div[style*="padding: 64px 32px 32px"] {
+          .artist-hero {
+            padding: 72px 16px 24px;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding-top: 80px;
+            align-items: flex-start;
+            text-align: left;
+            gap: 16px;
           }
-          div[style*="width: 232px"] {
-            width: 180px !important;
-            height: 180px !important;
+          .artist-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
           }
-          h1 {
-            letter-spacing: -2px !important;
+          .artist-cover {
+            width: 140px;
+            height: 140px;
           }
-          div[style*="margin: 0 32px"] {
-            margin: 0 16px !important;
-            padding: 20px !important;
+          .artist-title {
+            font-size: 32px;
+            letter-spacing: -1px;
+            white-space: normal;
+          }
+          .song-list-container {
+            padding: 0 16px !important;
           }
         }
       `}</style>

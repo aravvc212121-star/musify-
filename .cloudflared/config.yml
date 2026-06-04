@@ -1,0 +1,19 @@
+tunnel: musify-tunnel
+credentials-file: C:\Users\ayuof\.cloudflared\musify-tunnel.json
+
+ingress:
+  # Frontend (Vite dev server or built app)
+  - hostname: musify.pages.dev
+    service: http://localhost:5173
+  
+  # Backend API
+  - hostname: api.musify.pages.dev
+    service: http://localhost:3001
+  
+  # Catch-all for API requests to main domain
+  - hostname: musify.pages.dev
+    path: /api/*
+    service: http://localhost:3001
+  
+  # Default route
+  - service: http://localhost:5173

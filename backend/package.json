@@ -15,7 +15,9 @@
     "lru-cache": "^11.0.0",
     "play-dl": "^1.9.7",
     "youtube-dl-exec": "^3.1.5",
+    "youtube-sr": "^4.3.12",
     "youtubei.js": "^17.0.1",
+    "yt-search": "^2.13.1",
     "ytdl-core-enhanced": "^2.3.0"
   }
 }
