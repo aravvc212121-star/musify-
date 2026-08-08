@@ -193,46 +193,16 @@ app.get('/api/stream', async (req, res) => {
       }
     }
 
-    // Proxy the Saavn CDN stream — forward range headers as-is
-    const headers = {}
-    if (req.headers.range) headers['Range'] = req.headers.range
-
-    let response = await fetch(streamUrl, { headers })
-
-    // If CDN returns error, clear cache and retry once with a fresh URL
-    if (!response.ok && response.status !== 206) {
-      console.warn(`[Stream] CDN returned ${response.status} for ${songId}, retrying...`)
-      streamCache.delete(songId)
-      try {
-        const streamInfo = await getStream(songId)
-        streamCache.set(songId, streamInfo.url)
-        response = await fetch(streamInfo.url, { headers })
-      } catch (_) {}
-      if (!response.ok && response.status !== 206) {
-        throw new Error(`Upstream CDN returned ${response.status}`)
-      }
-    }
-
-    // Mirror the upstream response
-    res.status(response.status === 206 ? 206 : 200)
-    res.setHeader('Accept-Ranges', 'bytes')
-    res.setHeader('Content-Type', 'audio/mp4')
-    res.setHeader('Cache-Control', 'public, max-age=3600')
-    res.setHeader('Access-Control-Allow-Origin', '*')
-
-    const contentRange = response.headers.get('content-range')
-    const contentLength = response.headers.get('content-length')
-    if (contentRange) res.setHeader('Content-Range', contentRange)
-    if (contentLength) res.setHeader('Content-Length', contentLength)
-
-    if (!response.body) return res.status(500).json({ error: 'Empty stream' })
-
-    Readable.fromWeb(response.body).pipe(res)
+    // Vercel serverless functions have a 4.5MB response limit.
+    // Instead of proxying the stream, we issue a 302 Redirect to the Saavn CDN.
+    // The browser's <audio> element will automatically follow this redirect and
+    // send Range headers directly to the CDN.
+    res.redirect(302, streamUrl)
 
   } catch (err) {
     console.error('Stream endpoint error:', err.message)
     streamCache.delete(songId)
-    if (!res.headersSent) res.status(500).json({ error: 'unavailable' })
+    res.status(500).json({ error: 'unavailable' })
   }
 })
 
