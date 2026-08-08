@@ -209,14 +209,47 @@ app.get('/api/stream', async (req, res) => {
       streamCache.set(songId, streamUrl)
     }
 
-    // For consistency with Vercel deployment, we issue a 302 Redirect
-    // to the Saavn CDN instead of proxying the stream locally.
-    res.redirect(302, streamUrl)
+    // Proxy the Saavn CDN stream — forward range headers as-is
+    const headers = {}
+    if (req.headers.range) headers['Range'] = req.headers.range
+
+    let response = await fetch(streamUrl, { headers })
+
+    // If CDN returns error, clear cache and retry once with a fresh URL
+    if (!response.ok && response.status !== 206) {
+      console.warn(`[Stream] CDN returned ${response.status} for ${songId}, retrying...`)
+      streamCache.delete(songId)
+      const freshUrl = await saavnGetStreamUrl(songId)
+      if (freshUrl) {
+        streamCache.set(songId, freshUrl)
+        response = await fetch(freshUrl, { headers })
+      }
+      if (!response.ok && response.status !== 206) {
+        throw new Error(`Upstream CDN returned ${response.status}`)
+      }
+    }
+
+    // Mirror the upstream response
+    res.status(response.status === 206 ? 206 : 200)
+    res.setHeader('Accept-Ranges', 'bytes')
+    res.setHeader('Content-Type', 'audio/mp4')
+    res.setHeader('Cache-Control', 'public, max-age=3600')
+    res.setHeader('Access-Control-Allow-Origin', '*')
+
+    const contentRange = response.headers.get('content-range')
+    const contentLength = response.headers.get('content-length')
+    if (contentRange) res.setHeader('Content-Range', contentRange)
+    if (contentLength) res.setHeader('Content-Length', contentLength)
+
+    if (!response.body) return res.status(500).json({ error: 'Empty stream' })
+
+    // Efficient piping using Node's stream conversion
+    Readable.fromWeb(response.body).pipe(res)
 
   } catch (err) {
     console.error('Stream endpoint error:', err.message)
     streamCache.delete(songId)
-    res.status(500).json({ error: 'unavailable' })
+    if (!res.headersSent) res.status(500).json({ error: 'unavailable' })
   }
 })
 
