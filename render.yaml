@@ -7,6 +7,4 @@ services:
     plan: free # Change to a paid plan like 'starter' if you need more resources
     envVars:
       - key: NODE_VERSION
-        value: 20.10.0
-      - key: YOUTUBE_DL_SKIP_DOWNLOAD
-        value: true
+        value: 20.10.0 # Standard stable Node.js version

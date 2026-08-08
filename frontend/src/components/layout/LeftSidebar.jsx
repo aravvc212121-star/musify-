@@ -6,12 +6,14 @@ import {
 } from 'react-icons/fi'
 import { usePlayer } from '../../context/PlayerContext.jsx'
 
-import { FiX } from 'react-icons/fi'
+import { FiX, FiDownload } from 'react-icons/fi'
+import { useInstallPrompt } from '../../hooks/useInstallPrompt.js'
 
 export default function LeftSidebar({ isMobile = false, onClose }) {
   const { 
     userPlaylists, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed
   } = usePlayer()
+  const { isInstallable, handleInstallClick } = useInstallPrompt()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [isReady, setIsReady] = useState(false)
@@ -110,6 +112,24 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
             </NavLink>
           )
         })}
+        
+        {isInstallable && (
+          <button 
+            onClick={handleInstallClick}
+            className="nav-link-hover"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 12px', 
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              color: 'var(--accent)', background: 'rgba(0, 210, 255, 0.1)',
+              border: '1px solid rgba(0, 210, 255, 0.2)',
+              fontWeight: 500, borderRadius: '8px', transition: 'all 0.2s ease', cursor: 'pointer',
+              marginTop: '8px'
+            }}
+          >
+            <FiDownload size={collapsed ? 20 : 24} />
+            {!collapsed && <span style={{ fontSize: '14px' }}>Install App</span>}
+          </button>
+        )}
       </div>
 
       {/* Library Group - In a separate box */}

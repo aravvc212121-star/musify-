@@ -25,13 +25,19 @@ export default defineConfig({
             src: 'favicon.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
             src: 'favicon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'favicon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'maskable'
           }
         ]
       },
@@ -39,13 +45,13 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,webp}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
-            handler: 'CacheFirst',
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.includes('/stream'),
+            handler: 'NetworkFirst',
             options: {
-              cacheName: 'unsplash-images',
+              cacheName: 'api-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 Days
+                maxAgeSeconds: 60 * 60 * 24 // 1 day
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -53,13 +59,27 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/i\.ytimg\.com\/.*/i,
+            urlPattern: ({ url }) => url.pathname.includes('/api/stream'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'youtube-thumbnails',
+              cacheName: 'audio-cache',
+              expiration: {
+                maxEntries: 20, // Only cache recently played 20 tracks
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 1 week
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: ({ url }) => url.href.includes('images.unsplash.com') || url.href.includes('i.ytimg.com') || url.href.includes('saavncdn.com'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'external-images',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 Days
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
               cacheableResponse: {
                 statuses: [0, 200]

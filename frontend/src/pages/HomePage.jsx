@@ -312,9 +312,9 @@ export default function HomePage() {
       try {
         const [trendData, mfyData, albumData, recomData] = await Promise.all([
           getTrending(),
-          searchSongs('chill vibes music 2024'),
-          searchSongs('popular music albums 2024 hits'),
-          searchSongs('latest popular songs recommendation 2024')
+          searchSongs('top hindi songs'),
+          searchSongs('popular pop albums'),
+          searchSongs('trending english songs')
         ])
         setTrending(trendData || [])
         setMadeForYou(mfyData || [])

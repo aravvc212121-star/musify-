@@ -1,31 +1,24 @@
 /**
- * MUSIFY BACKEND v4.0 — yt-dlp & play-dl Edition
+ * MUSIFY BACKEND v5.0 — JioSaavn Edition (Vercel Serverless)
  * ─────────────────────────────────────────────
  * REWRITE:
- * - Removed youtubei.js entirely (No more "Innertube" logs)
- * - Uses yt-dlp (via youtube-dl-exec) as the primary stream extractor
- * - Uses play-dl for fast, reliable search & metadata
- * - Retains LRU cache for high performance
- * - Optimization: Direct stream proxying with custom headers to prevent 403s
+ * - Removed ALL YouTube dependencies (yt-dlp, play-dl, youtubei.js)
+ * - 100% JioSaavn backend — works on any cloud platform
+ * - Saavn CDN streams proxied for reliable CORS-free playback
+ * - LRU cache for high performance
+ * - No IP blocking issues — fully deployable
  */
 
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import compression from 'compression'
 import { LRUCache } from 'lru-cache'
 import { Readable } from 'stream'
-import os from 'os'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 3001
 
 // ─── Middleware ───
 app.use(compression())
@@ -33,16 +26,23 @@ app.use(cors())
 app.use(express.json())
 
 // ─── Caches ───
-const streamCache = new LRUCache({ max: 100, ttl: 1000 * 60 * 60 })       // 1 hour
-const searchCache = new LRUCache({ max: 200, ttl: 1000 * 60 * 30 })       // 30 min
+const streamCache = new LRUCache({ max: 200, ttl: 1000 * 60 * 60 })       // 1 hour
+const searchCache = new LRUCache({ max: 300, ttl: 1000 * 60 * 30 })       // 30 min
 
-// ─── External Modules ───
-import { getRandomUA, initPlayDl, performSearch, getRelatedVideos } from './youtube.js'
-import { searchMusic, getStream, getMetadata } from './musicRouter.js'
+// ─── JioSaavn-only Backend ───
+import {
+  searchMusic,
+  getStream,
+  getMetadata,
+  getRecommendationsForSong,
+  getTrendingSongs,
+  getArtistSongs,
+  getChartSongs
+} from './musicRouter.js'
 
 // ─── Routes ───
 
-// Search (no rate limiting)
+// Search
 app.get('/api/search', async (req, res) => {
   try {
     const query = req.query.q
@@ -67,7 +67,7 @@ app.get('/api/trending', async (req, res) => {
     const cached = searchCache.get('trending')
     if (cached) return res.json({ results: cached })
 
-    const results = await performSearch('trending music 2025 hits', 25)
+    const results = await getTrendingSongs(25)
     searchCache.set('trending', results)
     res.json({ results })
   } catch (err) {
@@ -84,12 +84,12 @@ app.get('/api/artist/:id/songs', async (req, res) => {
     const cached = searchCache.get(cacheKey)
     if (cached) return res.json(cached)
 
-    const songs = await performSearch(`${artistId} top songs`, 30)
+    const songs = await getArtistSongs(artistId, 30)
     const result = {
       artist: {
         id: artistId,
         name: artistId,
-        image: songs[0]?.thumbnail || `https://picsum.photos/400/400?random=1`
+        image: songs[0]?.thumbnail || ''
       },
       songs
     }
@@ -102,29 +102,17 @@ app.get('/api/artist/:id/songs', async (req, res) => {
   }
 })
 
-// Recommendations — NOW using real YouTube "Up Next" data
+// Recommendations
 app.get('/api/recommendations', async (req, res) => {
   try {
     const { videoId, artist, title } = req.query
-    if (!videoId) return res.status(400).json({ error: 'Video ID is required' })
+    if (!videoId) return res.status(400).json({ error: 'Song ID is required' })
 
     const cacheKey = `rec:${videoId}`
     const cached = searchCache.get(cacheKey)
     if (cached) return res.json({ results: cached })
 
-    // Try real YouTube recommendations first
-    let results = await getRelatedVideos(videoId)
-
-    // Fallback to search-based if related videos returned too few
-    if (results.length < 5) {
-      const query = artist ? `${artist} similar songs` : `${title} remix mix`
-      const searchResults = await performSearch(query, 15)
-      // Merge: real recs first, then fill with search results
-      const existingIds = new Set(results.map(r => r.videoId))
-      const fillers = searchResults.filter(r => !existingIds.has(r.videoId) && r.videoId !== videoId)
-      results = [...results, ...fillers].slice(0, 15)
-    }
-
+    const results = await getRecommendationsForSong(videoId, artist, title)
     searchCache.set(cacheKey, results)
     res.json({ results })
   } catch (err) {
@@ -144,12 +132,12 @@ app.get('/api/charts/:id', async (req, res) => {
     let query = chartId.replace(/_/g, ' ')
     if (chartId === 'top_hits') query = 'top hits 2025'
 
-    const songs = await performSearch(query, 30)
+    const songs = await getChartSongs(query, 30)
     const result = {
       chart: {
         id: chartId,
         name: chartId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-        description: 'Automatically updated from YouTube trends.'
+        description: 'Curated from JioSaavn.'
       },
       songs
     }
@@ -162,123 +150,90 @@ app.get('/api/charts/:id', async (req, res) => {
   }
 })
 
-// Metadata Endpoint (NEW)
+// Metadata
 app.get('/api/metadata', async (req, res) => {
-    try {
-        const { id, source } = req.query;
-        if (!id) return res.status(400).json({ error: 'Missing song id' });
-        const meta = await getMetadata(id, source || 'youtube');
-        if (!meta) return res.status(404).json({ error: 'Metadata not found' });
-        res.json(meta);
-    } catch (err) {
-        console.error('Metadata route error:', err.message);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
+  try {
+    const { id } = req.query
+    if (!id) return res.status(400).json({ error: 'Missing song id' })
+    const meta = await getMetadata(id)
+    if (!meta) return res.status(404).json({ error: 'Metadata not found' })
+    res.json(meta)
+  } catch (err) {
+    console.error('Metadata route error:', err.message)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
 
 // ─── Stream Endpoint ───
+// Proxies audio from JioSaavn CDN. Much simpler than YouTube proxying
+// since Saavn CDN URLs are standard HTTP with native range-request support.
 app.get('/api/stream', async (req, res) => {
-  const videoId = req.query.id
-  const source = req.query.source || 'youtube'
-  if (!videoId) return res.status(400).json({ error: 'Missing video ID' })
+  const songId = req.query.id
+  if (!songId) return res.status(400).json({ error: 'Missing song ID' })
 
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
-  console.log(`[Stream] Vercel Request for ${videoId} (${source}) from ${clientIp} (Range: ${req.headers.range || 'none'})`)
+  console.log(`[Stream] Request for ${songId} (Range: ${req.headers.range || 'none'})`)
 
   try {
-    // Check cache for resolved stream info
-    const cacheKey = `${source}:${videoId}`
-    let streamInfo = streamCache.get(cacheKey)
+    // Check cache — instantly reject songs we already know don't exist
+    let streamUrl = streamCache.get(songId)
 
-    if (!streamInfo || streamInfo === 'loading') {
-      streamInfo = await getStream(videoId, source)
-      streamCache.set(cacheKey, streamInfo)
+    if (streamUrl === 'not_found') {
+      return res.status(404).json({ error: 'Song not available on Saavn' })
     }
 
-    const streamUrl = streamInfo.url
-    const mimeType = streamInfo.mime || 'audio/webm'
-    const userAgent = getRandomUA()
-
-    // Force small 2MB chunk sizes for Vercel Serverless
-    const CHUNK_SIZE = 1024 * 1024 * 2
-    
-    let range = req.headers.range || 'bytes=0-'
-    let start = 0
-    let end = undefined
-    
-    const parts = range.replace(/bytes=/, "").split("-")
-    start = parseInt(parts[0], 10)
-    if (parts[1]) end = parseInt(parts[1], 10)
-
-    let totalSize = streamInfo.size || 0
-    if (!totalSize) {
+    if (!streamUrl || streamUrl === 'loading') {
       try {
-        const headRes = await fetch(streamUrl, { method: 'HEAD', headers: { 'User-Agent': userAgent } })
-        totalSize = parseInt(headRes.headers.get('content-length') || '0', 10)
-      } catch (e) {}
+        const streamInfo = await getStream(songId)
+        streamUrl = streamInfo.url
+        streamCache.set(songId, streamUrl)
+      } catch (e) {
+        // Cache the failure so retries don't hammer the Saavn API
+        streamCache.set(songId, 'not_found')
+        return res.status(404).json({ error: 'Song not available on Saavn' })
+      }
     }
 
-    if (totalSize > 0) {
-      if (end === undefined || end >= totalSize) end = totalSize - 1
-      if (end - start + 1 > CHUNK_SIZE) end = start + CHUNK_SIZE - 1
-    }
+    // Proxy the Saavn CDN stream — forward range headers as-is
+    const headers = {}
+    if (req.headers.range) headers['Range'] = req.headers.range
 
-    const fetchOptions = { 
-      headers: { 
-        'Range': `bytes=${start}-${end !== undefined ? end : ''}`,
-        'User-Agent': userAgent,
-        'Referer': 'https://www.youtube.com/',
-        'Origin': 'https://www.youtube.com/',
-        'Accept': '*/*',
-        'Connection': 'keep-alive'
-      } 
-    }
-    
-    const response = await fetch(streamUrl, fetchOptions)
+    let response = await fetch(streamUrl, { headers })
 
+    // If CDN returns error, clear cache and retry once with a fresh URL
     if (!response.ok && response.status !== 206) {
-      throw new Error(`Upstream returned ${response.status}`)
+      console.warn(`[Stream] CDN returned ${response.status} for ${songId}, retrying...`)
+      streamCache.delete(songId)
+      try {
+        const streamInfo = await getStream(songId)
+        streamCache.set(songId, streamInfo.url)
+        response = await fetch(streamInfo.url, { headers })
+      } catch (_) {}
+      if (!response.ok && response.status !== 206) {
+        throw new Error(`Upstream CDN returned ${response.status}`)
+      }
     }
 
-    // Set headers correctly
+    // Mirror the upstream response
     res.status(response.status === 206 ? 206 : 200)
     res.setHeader('Accept-Ranges', 'bytes')
-    res.setHeader('Content-Type', mimeType)
+    res.setHeader('Content-Type', 'audio/mp4')
     res.setHeader('Cache-Control', 'public, max-age=3600')
     res.setHeader('Access-Control-Allow-Origin', '*')
 
-    const upstreamRange = response.headers.get('content-range')
-    const upstreamLength = response.headers.get('content-length')
-
-    if (upstreamRange) res.setHeader('Content-Range', upstreamRange)
-    else if (totalSize > 0 && response.status === 206) {
-      res.setHeader('Content-Range', `bytes ${start}-${end}/${totalSize}`)
-    }
-
-    if (upstreamLength) res.setHeader('Content-Length', upstreamLength)
-    else if (totalSize > 0) {
-      res.setHeader('Content-Length', end !== undefined ? (end - start + 1) : (totalSize - start))
-    }
+    const contentRange = response.headers.get('content-range')
+    const contentLength = response.headers.get('content-length')
+    if (contentRange) res.setHeader('Content-Range', contentRange)
+    if (contentLength) res.setHeader('Content-Length', contentLength)
 
     if (!response.body) return res.status(500).json({ error: 'Empty stream' })
 
-    // Use Readable.fromWeb for clean piping on Node 18+ (Vercel's default)
     Readable.fromWeb(response.body).pipe(res)
 
   } catch (err) {
     console.error('Stream endpoint error:', err.message)
-
-    if (err.message?.includes('403') || err.message?.includes('expired') || err.message?.includes('status')) {
-      streamCache.delete(`${source}:${videoId}`)
-    }
-
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'unavailable' })
-    }
+    streamCache.delete(songId)
+    if (!res.headersSent) res.status(500).json({ error: 'unavailable' })
   }
 })
-
-// ─── Initialize Clients for Serverless ───
-initPlayDl().catch(console.error)
 
 export default app

@@ -390,3 +390,16 @@ body.mobile-sidebar-open {
     height: 0;
   }
 }
+
+/* Horizontal Scroll Containers */
+.h-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.h-scroll::-webkit-scrollbar {
+  display: none;
+}

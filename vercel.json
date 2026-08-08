@@ -4,10 +4,7 @@
   "builds": [
     {
       "src": "api/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": "node_modules/youtube-dl-exec/bin/yt-dlp*"
-      }
+      "use": "@vercel/node"
     },
     {
       "src": "package.json",
@@ -17,11 +14,6 @@
       }
     }
   ],
-  "build": {
-    "env": {
-      "YOUTUBE_DL_SKIP_PYTHON_CHECK": "1"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",

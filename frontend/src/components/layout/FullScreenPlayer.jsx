@@ -172,6 +172,8 @@ export default function FullScreenPlayer() {
   // Motion value for drag
   const dragY = useMotionValue(0)
   const bgOpacity = useTransform(dragY, [0, 300], [1, 0])
+  const contentScale = useTransform(dragY, [0, 300], [1, 0.92])
+  const dismissRadius = useTransform(dragY, [0, 100], [0, 24])
 
   useEffect(() => {
     setHintSeen(localStorage.getItem('lyricsHintSeen') === 'true')
@@ -260,6 +262,32 @@ export default function FullScreenPlayer() {
     else {
       const t = setTimeout(() => setVisible(false), 350)
       return () => clearTimeout(t)
+    }
+  }, [isFullScreenPlayer])
+
+  // Dim/restore underlying content for crossfade effect
+  useEffect(() => {
+    const el = document.getElementById('app-main-content')
+    if (!el) return
+
+    if (isFullScreenPlayer) {
+      requestAnimationFrame(() => {
+        el.style.transition = 'opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease, border-radius 0.4s ease'
+        el.style.opacity = '0.3'
+        el.style.transform = 'scale(0.92)'
+        el.style.filter = 'blur(4px)'
+        el.style.borderRadius = '16px'
+      })
+    }
+
+    return () => {
+      if (el) {
+        el.style.transition = ''
+        el.style.opacity = ''
+        el.style.transform = ''
+        el.style.filter = ''
+        el.style.borderRadius = ''
+      }
     }
   }, [isFullScreenPlayer])
 
@@ -484,11 +512,31 @@ export default function FullScreenPlayer() {
         // Allow dragging down only
         if (info.offset.y > 0) {
           dragY.set(info.offset.y)
+          // Animate underlying content — crossfade reveal
+          const el = document.getElementById('app-main-content')
+          if (el) {
+            const progress = Math.min(info.offset.y / 300, 1)
+            el.style.transition = 'none'
+            el.style.opacity = `${0.3 + progress * 0.7}`
+            el.style.transform = `scale(${0.92 + progress * 0.08})`
+            el.style.filter = `blur(${Math.max(0, (1 - progress) * 4)}px)`
+            el.style.borderRadius = `${Math.max(0, (1 - progress) * 16)}px`
+          }
         }
       }}
       onDragEnd={(event, info) => {
+        const el = document.getElementById('app-main-content')
+
         // Close if dragged down more than 150px
         if (info.offset.y > 150) {
+          // Animate content to full visibility
+          if (el) {
+            el.style.transition = 'all 0.35s cubic-bezier(0.4,0,0.2,1)'
+            el.style.opacity = '1'
+            el.style.transform = 'scale(1)'
+            el.style.filter = 'none'
+            el.style.borderRadius = '0px'
+          }
           animate(dragY, window.innerHeight, {
             type: "spring",
             stiffness: 300,
@@ -498,7 +546,15 @@ export default function FullScreenPlayer() {
             setIsFullScreenPlayer(false)
           })
         } else {
-          // Reset position with smooth spring
+          // Cancelled — restore content to dimmed state
+          if (el) {
+            el.style.transition = 'all 0.35s cubic-bezier(0.4,0,0.2,1)'
+            el.style.opacity = '0.3'
+            el.style.transform = 'scale(0.92)'
+            el.style.filter = 'blur(4px)'
+            el.style.borderRadius = '16px'
+          }
+          // Reset player position
           animate(dragY, 0, {
             type: "spring",
             stiffness: 400,
@@ -522,10 +578,13 @@ export default function FullScreenPlayer() {
       flexDirection: 'column',
       color: '#fff',
       overflow: 'hidden',
-      background: vibrantColor,
+      background: 'transparent',
       userSelect: 'none',
       pointerEvents: isFullScreenPlayer ? 'auto' : 'none',
       y: dragY,
+      opacity: bgOpacity,
+      scale: contentScale,
+      borderRadius: dismissRadius,
       touchAction: 'none',
       WebkitUserSelect: 'none'
     }}
@@ -536,15 +595,14 @@ export default function FullScreenPlayer() {
     >
       
       {/* Background */}
-      <motion.div style={{
+      <div style={{
         position: 'absolute', inset: 0, zIndex: -2,
         backgroundImage: `url(${thumb})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         filter: 'blur(80px) brightness(0.6) saturate(1.5)',
         transform: 'scale(1.2)',
-        transition: 'background-image 0.8s ease',
-        opacity: bgOpacity
+        transition: 'background-image 0.8s ease'
       }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: -1, background: `linear-gradient(to bottom, ${vibrantColor}dd 0%, ${vibrantColor}ee 100%)` }} />
 

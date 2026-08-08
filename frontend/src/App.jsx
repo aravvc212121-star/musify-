@@ -156,7 +156,19 @@ function AppShell({ location }) {
       gridTemplateColumns: isMobile ? '1fr' : 'var(--left-w) 1fr var(--right-w)',
       gridTemplateRows: isMobile ? '1fr' : `1fr var(--bottom-bar-h)`
     }}>
-      <div style={{ display: isFullScreenPlayer ? 'none' : 'contents' }}>
+      <div 
+        id="app-main-content"
+        style={isFullScreenPlayer ? {
+          position: 'fixed',
+          inset: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: 1,
+          transformOrigin: 'center center'
+        } : {
+          display: 'contents'
+        }}
+      >
         {!isMobile && <LeftSidebar />}
 
         {/* Mobile Sidebar Drawer */}
