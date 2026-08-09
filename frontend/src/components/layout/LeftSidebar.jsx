@@ -65,7 +65,16 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
         padding: collapsed ? '0' : '0 12px', marginBottom: '24px' 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '24px', color: 'var(--accent)', fontWeight: 900 }}>♪</span>
+          <svg width="28" height="28" viewBox="0 0 512 512" style={{ borderRadius: '6px', flexShrink: 0 }}>
+            <rect width="512" height="512" rx="100" ry="100" fill="#000"/>
+            <g fill="#fff">
+              <rect x="148" y="200" width="22" height="160" rx="11"/>
+              <rect x="192" y="145" width="22" height="270" rx="11"/>
+              <rect x="236" y="95" width="22" height="322" rx="11"/>
+              <rect x="280" y="130" width="22" height="290" rx="11"/>
+              <rect x="324" y="175" width="22" height="200" rx="11"/>
+            </g>
+          </svg>
           {!collapsed && (
             <span style={{ fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '-0.5px' }}>Musify</span>
           )}
