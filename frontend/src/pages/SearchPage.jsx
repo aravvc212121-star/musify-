@@ -44,19 +44,19 @@ export default function SearchPage({ isMobile }) {
 
   // Load recent songs
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('musify_recent_searches') || '[]')
+    const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
     setRecentSongs(saved)
   }, [])
 
   const removeRecentSong = (videoId) => {
     const updated = recentSongs.filter(s => s.videoId !== videoId)
     setRecentSongs(updated)
-    localStorage.setItem('musify_recent_searches', JSON.stringify(updated))
+    localStorage.setItem('rhym_recent_searches', JSON.stringify(updated))
   }
 
   const clearAllRecent = () => {
     setRecentSongs([])
-    localStorage.setItem('musify_recent_searches', JSON.stringify([]))
+    localStorage.setItem('rhym_recent_searches', JSON.stringify([]))
   }
 
   const saveToRecent = (song) => {
@@ -67,11 +67,11 @@ export default function SearchPage({ isMobile }) {
       artist: song.artist || song.channelTitle || 'Unknown',
       thumbnail: song.albumArt || song.thumbnail || ''
     }
-    const saved = JSON.parse(localStorage.getItem('musify_recent_searches') || '[]')
+    const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
     let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
     updated = updated.slice(0, 10)
     setRecentSongs(updated)
-    localStorage.setItem('musify_recent_searches', JSON.stringify(updated))
+    localStorage.setItem('rhym_recent_searches', JSON.stringify(updated))
   }
 
   // Escape key to clear search

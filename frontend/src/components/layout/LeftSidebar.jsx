@@ -76,7 +76,7 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
             </g>
           </svg>
           {!collapsed && (
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '-0.5px' }}>Musify</span>
+            <span style={{ fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '-0.5px' }}>Rhym</span>
           )}
         </div>
         {isMobile && onClose ? (

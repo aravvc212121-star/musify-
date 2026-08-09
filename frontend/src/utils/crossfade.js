@@ -1,5 +1,5 @@
 /**
- * MUSIFY — Crossfade Utility
+ * RHYM — Crossfade Utility
  * ─────────────────────────────────────────────
  * Implements an independent dual-player crossfade system 
  * with an ease-in-out cosine curve.

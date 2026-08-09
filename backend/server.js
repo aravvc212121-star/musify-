@@ -1,5 +1,5 @@
 /**
- * MUSIFY BACKEND v5.0 — JioSaavn Edition (Local Dev Server)
+ * RHYM BACKEND v5.0 — JioSaavn Edition (Local Dev Server)
  * ─────────────────────────────────────────────
  * REWRITE:
  * - Removed ALL YouTube dependencies (yt-dlp, play-dl, Invidious)
@@ -228,7 +228,7 @@ app.get('*', (req, res) => {
 
 // ─── Start ───
 const server = app.listen(PORT, () => {
-  console.log(`🎵 Musify v5 (JioSaavn) running on port ${PORT}`)
+  console.log(`🎵 Rhym v5 (JioSaavn) running on port ${PORT}`)
 })
 
 server.keepAliveTimeout = 65000

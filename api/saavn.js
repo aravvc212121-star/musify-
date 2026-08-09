@@ -1,5 +1,5 @@
 /**
- * MUSIFY — JioSaavn Backend Module
+ * RHYM — JioSaavn Backend Module
  * ─────────────────────────────────────────────
  * Complete JioSaavn integration:
  * - Search songs

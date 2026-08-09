@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — ChartsPage
+ * RHYM v2.0 — ChartsPage
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Uses 64px horizontal song items

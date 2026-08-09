@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: musify
+    name: rhym
     env: node
     buildCommand: npm run build
     startCommand: npm start

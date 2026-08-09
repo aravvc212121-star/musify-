@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — SongRow
+ * RHYM v2.0 — SongRow
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Removed playlist references (playlists, addToPlaylist)

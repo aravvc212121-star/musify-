@@ -201,9 +201,9 @@ export default function SearchOverlay() {
                             artist: song.artist || song.channelTitle || 'Unknown',
                             thumbnail: song.albumArt || song.thumbnail || ''
                           }
-                          const saved = JSON.parse(localStorage.getItem('musify_recent_searches') || '[]')
+                          const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
                           let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
-                          localStorage.setItem('musify_recent_searches', JSON.stringify(updated.slice(0, 10)))
+                          localStorage.setItem('rhym_recent_searches', JSON.stringify(updated.slice(0, 10)))
                           playSong(song); 
                           handleClose() 
                         }}

@@ -1,5 +1,5 @@
 /**
- * MUSIFY — Music Router (JioSaavn Only)
+ * RHYM — Music Router (JioSaavn Only)
  * ─────────────────────────────────────────────
  * All music operations routed through JioSaavn.
  * No YouTube dependency — fully deployable on any cloud platform.

@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — HomeRow
+ * RHYM v2.0 — HomeRow
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Uses horizontal song items (64px tall) instead of grid cards

@@ -1,5 +1,5 @@
 /**
- * MUSIFY BACKEND v5.0 — JioSaavn Edition (Vercel Serverless)
+ * RHYM BACKEND v5.0 — JioSaavn Edition (Vercel Serverless)
  * ─────────────────────────────────────────────
  * REWRITE:
  * - Removed ALL YouTube dependencies (yt-dlp, play-dl, youtubei.js)

@@ -121,7 +121,7 @@ export default function PlaylistPage() {
             {playlistName}
           </h1>
           <div className="playlist-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#fff', fontWeight: 700 }}>Musify</span>
+            <span style={{ color: '#fff', fontWeight: 700 }}>Rhym</span>
             <span style={{ color: 'rgba(255,255,255,0.7)' }}>• {songs.length} {songs.length === 1 ? 'song' : 'songs'}</span>
           </div>
         </div>

@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — Skeleton
+ * RHYM v2.0 — Skeleton
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Uses CSS keyframe pulse instead of shimmer sweep

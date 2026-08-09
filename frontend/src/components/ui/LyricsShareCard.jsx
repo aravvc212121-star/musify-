@@ -36,7 +36,7 @@ export default function LyricsShareCard({ song, lyrics, minimal }) {
   const songTitle = song?.title || 'Unknown Song';
   const songArtist = song?.artist || 'Unknown Artist';
   const songArt = song?.thumbnail || 'https://picsum.photos/100/100';
-  const songLink = `https://musify.com/track/${song?.videoId || ''}`;
+  const songLink = `https://rhym.com/track/${song?.videoId || ''}`;
 
   useEffect(() => {
     if (isExpanded) {
@@ -203,7 +203,7 @@ export default function LyricsShareCard({ song, lyrics, minimal }) {
           </div>
           <div style={{ position: 'absolute', bottom: '30px', left: '40px', opacity: 0.7, color: activeColor.text === 'light' ? '#fff' : '#000', zIndex: 10, display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FiMusic size={24} />
-            <span style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '4px' }}>MUSIFY</span>
+            <span style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '4px' }}>RHYM</span>
           </div>
         </div>
 
@@ -270,7 +270,7 @@ export default function LyricsShareCard({ song, lyrics, minimal }) {
 
           <div style={{ position: 'absolute', bottom: '6px', left: '24px', opacity: 0.6, color: activeColor.text === 'light' ? '#fff' : '#000', zIndex: 10, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FiMusic size={16} />
-            <span style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '2px' }}>MUSIFY</span>
+            <span style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '2px' }}>RHYM</span>
           </div>
         </div>
 

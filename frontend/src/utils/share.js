@@ -1,5 +1,5 @@
 /**
- * MUSIFY — Share Song Utility
+ * RHYM — Share Song Utility
  * ─────────────────────────────────────────────
  * Uses Web Share API (native share dialog) with
  * clipboard fallback. Works across Android, iOS, and Web.
@@ -30,7 +30,7 @@ function getSongUrl(song) {
 function getShareText(song) {
   const artist = song.artist || song.channelTitle || 'Unknown Artist'
   const title = song.title || 'Unknown Song'
-  return `🎵 Listen to ${title} by ${artist} on Musify`
+  return `🎵 Listen to ${title} by ${artist} on Rhym`
 }
 
 /**
@@ -81,7 +81,7 @@ export async function shareSong(song) {
   if (canNativeShare()) {
     try {
       await navigator.share({
-        title: song.title || 'Musify',
+        title: song.title || 'Rhym',
         text: text,
         url: url,
       })

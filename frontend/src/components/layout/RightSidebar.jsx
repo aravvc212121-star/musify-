@@ -114,7 +114,7 @@ export default function RightSidebar() {
     let interval;
     if (isRightSidebarOpen) {
       interval = setInterval(() => {
-        const audio = document.querySelector('audio') || window.__musifyAudio
+        const audio = document.querySelector('audio') || window.__rhymAudio
         if (audio) {
           setCurrentTime(audio.currentTime || 0)
           setDuration(audio.duration || 0)
@@ -125,7 +125,7 @@ export default function RightSidebar() {
   }, [isRightSidebarOpen])
 
   const handleSeek = (e) => {
-    const audio = document.querySelector('audio') || window.__musifyAudio
+    const audio = document.querySelector('audio') || window.__rhymAudio
     if (audio) audio.currentTime = Number(e.target.value)
   }
 

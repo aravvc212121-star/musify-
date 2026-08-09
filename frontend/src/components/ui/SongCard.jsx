@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — SongCard (Horizontal Item)
+ * RHYM v2.0 — SongCard (Horizontal Item)
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Horizontal layout: 64px tall, thumbnail (40px) + title + artist

@@ -196,7 +196,7 @@ export function PlayerProvider({ children }) {
 
   // HTML Audio element — also exposed globally for time polling
   const audioRef = useRef(new Audio())
-  if (typeof window !== 'undefined') window.__musifyAudio = audioRef.current
+  if (typeof window !== 'undefined') window.__rhymAudio = audioRef.current
   const timeUpdateRef = useRef(null)
   
   // Invisible preloader
@@ -472,7 +472,7 @@ export function PlayerProvider({ children }) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentSong.title,
         artist: currentSong.artist || currentSong.channelTitle,
-        album: 'Musify',
+        album: 'Rhym',
         artwork: [
           { src: currentSong.thumbnail, sizes: '320x180', type: 'image/jpeg' }
         ]

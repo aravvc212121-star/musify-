@@ -24,7 +24,7 @@ function usePlayerTime() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const audio = document.querySelector('audio') || window.__musifyAudio
+      const audio = document.querySelector('audio') || window.__rhymAudio
       if (audio) {
         setCurrentTime(audio.currentTime || 0)
         setDuration(audio.duration || 0)
@@ -70,7 +70,7 @@ export default function Player() {
 
   // Set global audio volume
   useEffect(() => {
-    const audio = document.querySelector('audio') || window.__musifyAudio
+    const audio = document.querySelector('audio') || window.__rhymAudio
     if (audio) audio.volume = localVolume
   }, [localVolume])
 

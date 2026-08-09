@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Musify Premium',
-        short_name: 'Musify',
+        name: 'Rhym',
+        short_name: 'Rhym',
         description: 'Ultra-premium music experience with zero distractions.',
         theme_color: '#000000',
         background_color: '#000000',

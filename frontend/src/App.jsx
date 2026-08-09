@@ -46,7 +46,7 @@ function PageLoader() {
         opacity: 0.8,
         animation: 'pulse 2s ease-in-out infinite'
       }}>
-        Musify
+        Rhym
       </div>
     </div>
   )

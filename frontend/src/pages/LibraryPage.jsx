@@ -1,5 +1,5 @@
 /**
- * MUSIFY — Library Screen (Liked Songs)
+ * RHYM — Library Screen (Liked Songs)
  * Hero gradient card + song list + context actions
  */
 

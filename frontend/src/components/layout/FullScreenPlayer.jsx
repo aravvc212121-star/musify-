@@ -246,7 +246,7 @@ export default function FullScreenPlayer() {
     let interval;
     if (isFullScreenPlayer) {
       interval = setInterval(() => {
-        const audio = document.querySelector('audio') || window.__musifyAudio
+        const audio = document.querySelector('audio') || window.__rhymAudio
         if (audio) {
           setCurrentTime(audio.currentTime || 0)
           setDuration(audio.duration || 0)
@@ -337,11 +337,11 @@ export default function FullScreenPlayer() {
 
   const handleClose = () => setIsFullScreenPlayer(false)
   const handleSeek = (e) => {
-    const audio = document.querySelector('audio') || window.__musifyAudio
+    const audio = document.querySelector('audio') || window.__rhymAudio
     if (audio) audio.currentTime = Number(e.target.value)
   }
   const handleVolume = (e) => {
-    const audio = document.querySelector('audio') || window.__musifyAudio
+    const audio = document.querySelector('audio') || window.__rhymAudio
     if (audio) audio.volume = Number(e.target.value)
   }
   const openMenu = (e, song, fromQueue = false) => {
@@ -945,7 +945,7 @@ export default function FullScreenPlayer() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6, marginTop: '24px' }}>
             <FiMusic size={20} />
-            <span style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '4px' }}>MUSIFY</span>
+            <span style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '4px' }}>RHYM</span>
           </div>
         </div>
       </div>

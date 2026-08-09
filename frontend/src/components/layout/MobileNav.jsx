@@ -1,5 +1,5 @@
 /**
- * MUSIFY — Bottom Navigation
+ * RHYM — Bottom Navigation
  * 4 tabs: Home, Search, Library, Menu (sidebar toggle)
  */
 

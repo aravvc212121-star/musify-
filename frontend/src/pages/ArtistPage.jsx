@@ -88,7 +88,7 @@ export default function ArtistPage() {
             {artist?.name || id}
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#fff', fontWeight: 700 }}>Musify Premium</span>
+            <span style={{ color: '#fff', fontWeight: 700 }}>Rhym Premium</span>
             <span style={{ color: 'rgba(255,255,255,0.7)' }}>• {songs.length * 1234} monthly listeners</span>
           </div>
         </div>

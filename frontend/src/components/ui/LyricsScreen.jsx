@@ -334,10 +334,10 @@ function LyricsCardPreview({ isOpen, onClose, song, lines }) {
         
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           shareData.files = [file];
-          shareData.url = `https://musify.com/track/${song?.videoId || ''}`;
+          shareData.url = `https://rhym.com/track/${song?.videoId || ''}`;
           await navigator.share(shareData);
         } else {
-          shareData.text = `${shareData.text}\n\nListen here: https://musify.com/track/${song?.videoId || ''}`;
+          shareData.text = `${shareData.text}\n\nListen here: https://rhym.com/track/${song?.videoId || ''}`;
           await navigator.share(shareData); // Fallback text only
         }
       });
@@ -402,7 +402,7 @@ function LyricsCardPreview({ isOpen, onClose, song, lines }) {
 
             {/* Watermark */}
             <div style={{ position: 'absolute', bottom: -8, right: -4, color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 700 }}>
-              MUSIFY
+              RHYM
             </div>
           </div>
         </div>

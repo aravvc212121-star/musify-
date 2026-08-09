@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — Sidebar (Desktop only)
+ * RHYM v2.0 — Sidebar (Desktop only)
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Removed history/recents section

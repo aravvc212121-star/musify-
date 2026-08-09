@@ -1,5 +1,5 @@
 /**
- * MUSIFY — Entry Point
+ * RHYM — Entry Point
  * Simplified: no Clerk, direct render
  */
 

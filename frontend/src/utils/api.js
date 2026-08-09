@@ -1,5 +1,5 @@
 /**
- * MUSIFY v2.0 — API Utils
+ * RHYM v2.0 — API Utils
  * ─────────────────────────────────────────────
  * CHANGES:
  * - Added getStreamUrl() for /api/stream endpoint
