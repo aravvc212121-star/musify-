@@ -5,7 +5,7 @@
  */
 
 import { lazy, Suspense, useState, useEffect } from 'react'
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import Player from './components/layout/Player.jsx'
 import LeftSidebar from './components/layout/LeftSidebar.jsx'
 import RightSidebar from './components/layout/RightSidebar.jsx'
@@ -19,6 +19,7 @@ import LibraryPage from './pages/LibraryPage.jsx'
 const ArtistPage = lazy(() => import('./pages/ArtistPage.jsx'))
 const ChartsPage = lazy(() => import('./pages/ChartsPage.jsx'))
 const PlaylistPage = lazy(() => import('./pages/PlaylistPage.jsx'))
+const AuthPage = lazy(() => import('./pages/AuthPage.jsx'))
 
 /* ─── Loading Spinner ─── */
 function PageLoader() {
@@ -74,6 +75,24 @@ function PageWrapper({ children }) {
 
 export default function App() {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Redirect first-time visitors to /auth
+  useEffect(() => {
+    const hasSeenAuth = localStorage.getItem('rhym_auth_seen')
+    if (!hasSeenAuth && location.pathname !== '/auth') {
+      navigate('/auth', { replace: true })
+    }
+  }, [])
+
+  // Auth page renders outside the app shell for full-screen takeover
+  if (location.pathname === '/auth') {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <AuthPage />
+      </Suspense>
+    )
+  }
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -200,6 +219,7 @@ function AppShell({ location }) {
               <Route path="/artist/:id" element={<ArtistPage />} />
               <Route path="/charts/:id" element={<ChartsPage />} />
               <Route path="/playlist/:id" element={<PlaylistPage />} />
+              <Route path="/auth" element={<AuthPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </PageWrapper>
