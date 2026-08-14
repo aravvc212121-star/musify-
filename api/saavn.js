@@ -24,8 +24,26 @@ const DES_KEY = '38346591';
 async function fetchWithTimeout(url, options = {}, timeout = 8000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
+  
+  // Add a standard User-Agent to prevent getting blocked by JioSaavn's firewall
+  // when deployed on cloud providers like Render or Vercel.
+  const defaultHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9'
+  };
+
+  const finalOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {})
+    },
+    signal: controller.signal
+  };
+
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, finalOptions);
     clearTimeout(id);
     return response;
   } catch (error) {
