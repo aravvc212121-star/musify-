@@ -24,28 +24,8 @@ const DES_KEY = '38346591';
 async function fetchWithTimeout(url, options = {}, timeout = 8000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  
-  // Add a standard User-Agent to prevent getting blocked by JioSaavn's firewall
-  // when deployed on cloud providers like Render or Vercel. We use a Dalvik (Android)
-  // user-agent because Cloudflare forces JS challenges on desktop browsers from datacenters,
-  // but usually lets native mobile apps through without a challenge.
-  const defaultHeaders = {
-    'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 12; Pixel 6 Build/SD1A.210817.023)',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Language': 'en-US,en;q=0.9'
-  };
-
-  const finalOptions = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...(options.headers || {})
-    },
-    signal: controller.signal
-  };
-
   try {
-    const response = await fetch(url, finalOptions);
+    const response = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(id);
     return response;
   } catch (error) {
