@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { FiSearch, FiX, FiUser, FiSettings, FiLogOut, FiArrowLeft, FiArrowRight, FiCheck, FiSidebar } from 'react-icons/fi'
 import { usePlayer } from '../../context/PlayerContext.jsx'
-import Fuse from 'fuse.js'
+import { useSearch } from '../../hooks/useSearch.js'
 
 export default function TopBar({ isMobile = false, onMenuToggle }) {
   const navigate = useNavigate()
@@ -18,7 +18,14 @@ export default function TopBar({ isMobile = false, onMenuToggle }) {
   } = usePlayer()
 
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
-  const [results, setResults] = useState({ songs: [], playlists: [], artists: [] })
+
+  // Use centralized search hook — handles fuzzy matching, API fetch, and artist detection
+  const searchResults = useSearch(searchQuery, masterPlaylistData, userPlaylists)
+  const results = {
+    songs: searchResults.songs,
+    playlists: searchResults.playlists,
+    artists: searchResults.artists
+  }
   
   const searchInputRef = useRef(null)
   const barRef = useRef(null)
@@ -57,63 +64,14 @@ export default function TopBar({ isMobile = false, onMenuToggle }) {
     }
   }, [pathname])
 
-  // Search logic with 200ms debounce
+  // Show/hide dropdown based on search query (search logic handled by useSearch hook)
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (searchQuery.trim().length > 0) {
-        const q = searchQuery.trim()
-        
-        // 1. Local Filter with Fuse.js (fuzzy matching)
-        const songFuse = new Fuse(masterPlaylistData, {
-          keys: ['title', 'artist'],
-          threshold: 0.4,
-          distance: 100
-        })
-        const localSongs = songFuse.search(q).map(r => r.item).slice(0, 5)
-
-        const playlistFuse = new Fuse(userPlaylists, {
-          keys: ['name'],
-          threshold: 0.4,
-          distance: 100
-        })
-        const localPlaylists = playlistFuse.search(q).map(r => r.item).slice(0, 3)
-
-        const allArtists = Array.from(new Set(masterPlaylistData.map(s => s.artist)))
-        const artistFuse = new Fuse(allArtists.map(a => ({ name: a })), {
-          keys: ['name'],
-          threshold: 0.4,
-          distance: 100
-        })
-        const localArtists = artistFuse.search(q).map(r => r.item.name).slice(0, 3)
-
-        setResults({ songs: localSongs, playlists: localPlaylists, artists: localArtists })
-        setShowSearchDropdown(true)
-
-        // 2. API Fetch (for global YouTube results)
-        try {
-          const { searchSongs } = await import('../../utils/api.js')
-          const apiSongs = await searchSongs(searchQuery)
-          
-          // Merge API songs with local songs, unique by videoId
-          const combinedSongs = [...localSongs]
-          apiSongs.forEach(apiS => {
-            if (!combinedSongs.find(s => s.videoId === apiS.videoId)) {
-              combinedSongs.push(apiS)
-            }
-          })
-          
-          setResults(prev => ({ ...prev, songs: combinedSongs.slice(0, 8) }))
-        } catch (err) {
-          console.error('API search failed', err)
-        }
-
-      } else {
-        setShowSearchDropdown(false)
-      }
-    }, 200)
-
-    return () => clearTimeout(timer)
-  }, [searchQuery, masterPlaylistData, userPlaylists])
+    if (searchQuery.trim().length > 0) {
+      setShowSearchDropdown(true)
+    } else {
+      setShowSearchDropdown(false)
+    }
+  }, [searchQuery])
 
   // Close dropdowns on outside click
   useEffect(() => {

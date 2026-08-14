@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { usePlayer } from '../context/PlayerContext.jsx'
-import { FiPlay, FiMusic, FiChevronRight, FiSearch, FiX, FiClock } from 'react-icons/fi'
+import { FiPlay, FiMusic, FiChevronRight, FiSearch, FiX, FiClock, FiUser } from 'react-icons/fi'
 import SongCard from '../components/ui/SongCard.jsx'
-import Fuse from 'fuse.js'
+import { useSearch } from '../hooks/useSearch.js'
 
 const CATEGORIES = [
   { name: 'Pop', color: '#E13300', emoji: '🎤' },
@@ -38,9 +38,10 @@ export default function SearchPage({ isMobile }) {
     userPlaylists
   } = usePlayer()
 
-  const [results, setResults] = useState({ songs: [], playlists: [], artists: [] })
-  const [isSearching, setIsSearching] = useState(false)
   const [recentSongs, setRecentSongs] = useState([])
+
+  // Centralized search hook — handles fuzzy matching, API fetch, and artist grouping
+  const searchResults = useSearch(searchQuery, masterPlaylistData, userPlaylists)
 
   // Load recent songs
   useEffect(() => {
@@ -83,74 +84,9 @@ export default function SearchPage({ isMobile }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [setSearchQuery])
 
-  useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      setIsSearching(true)
-    }
-
-    const timer = setTimeout(async () => {
-      if (searchQuery.trim().length > 0) {
-        const q = searchQuery.trim()
-        
-        // 1. Local Data Filter using Fuse.js (fuzzy matching)
-        const songFuse = new Fuse(masterPlaylistData, {
-          keys: ['title', 'artist'],
-          threshold: 0.4,
-          distance: 100,
-          includeScore: true
-        })
-        const localSongs = songFuse.search(q).map(r => r.item)
-
-        const playlistFuse = new Fuse(userPlaylists, {
-          keys: ['name'],
-          threshold: 0.4,
-          distance: 100
-        })
-        const localPlaylists = playlistFuse.search(q).map(r => r.item)
-
-        const allArtists = Array.from(new Set(masterPlaylistData.map(s => s.artist)))
-        const artistFuse = new Fuse(allArtists.map(a => ({ name: a })), {
-          keys: ['name'],
-          threshold: 0.4,
-          distance: 100
-        })
-        const localArtists = artistFuse.search(q).map(r => r.item.name)
-
-        // Show local results immediately
-        if (localSongs.length > 0) {
-          setResults({ songs: localSongs, playlists: localPlaylists, artists: localArtists })
-        }
-
-        // 2. API Data Fetch
-        try {
-          const { searchSongs } = await import('../utils/api.js')
-          const apiSongs = await searchSongs(searchQuery)
-          
-          const combinedSongs = [...localSongs]
-          apiSongs.forEach(apiS => {
-            if (!combinedSongs.find(s => s.videoId === apiS.videoId)) {
-              combinedSongs.push(apiS)
-            }
-          })
-
-          setResults({ songs: combinedSongs, playlists: localPlaylists, artists: localArtists })
-          setIsSearching(true)
-
-        } catch (err) {
-          console.error('Search API error:', err)
-          setResults({ songs: localSongs, playlists: localPlaylists, artists: localArtists })
-          setIsSearching(true)
-        }
-      } else {
-        setIsSearching(false)
-        setResults({ songs: [], playlists: [], artists: [] })
-      }
-    }, 200)
-
-    return () => clearTimeout(timer)
-  }, [searchQuery, masterPlaylistData, userPlaylists])
-
   const isEmpty = searchQuery.trim().length === 0
+  const displaySongs = searchResults.isArtistMatch ? searchResults.artistSongs : searchResults.songs
+  const hasResults = displaySongs.length > 0
 
   return (
     <div style={{ padding: isMobile ? '16px' : '24px 32px', minHeight: '100%' }}>
@@ -257,13 +193,44 @@ export default function SearchPage({ isMobile }) {
       {!isEmpty && (
         <div className="results-container" style={{ opacity: 1, transition: 'opacity 0.2s ease' }}>
 
-          {results.songs.length > 0 ? (
+          {/* Artist-Grouped Header */}
+          {searchResults.isArtistMatch && searchResults.matchedArtist && hasResults && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '16px 18px', marginBottom: 20, borderRadius: 14,
+              background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(0, 210, 255, 0.02))',
+              border: '1px solid rgba(0, 210, 255, 0.1)',
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(0, 210, 255, 0.1))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <FiUser size={20} style={{ color: 'var(--accent, #00d2ff)' }} />
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', margin: 0, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                  Songs by
+                </p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
+                  {searchResults.matchedArtist}
+                </p>
+              </div>
+              <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.25)' }}>
+                {displaySongs.length} {displaySongs.length === 1 ? 'song' : 'songs'}
+              </span>
+            </div>
+          )}
+
+          {hasResults ? (
             <div style={{ animation: 'staggerIn 0.25s ease forwards' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '20px' }}>Songs</h2>
+              {!searchResults.isArtistMatch && (
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '20px' }}>Songs</h2>
+              )}
               {isMobile ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {results.songs.map((song, i) => (
-                    <SongCard key={song.videoId} song={song} songs={results.songs} index={i} showDuration={true} onPlay={(s) => saveToRecent(s)} />
+                  {displaySongs.map((song, i) => (
+                    <SongCard key={song.videoId} song={song} songs={displaySongs} index={i} showDuration={true} onPlay={(s) => saveToRecent(s)} />
                   ))}
                 </div>
               ) : (
@@ -272,9 +239,9 @@ export default function SearchPage({ isMobile }) {
                   gridTemplateColumns: 'repeat(3, 1fr)', 
                   gap: '20px'
                 }}>
-                  {results.songs.map((song, i) => (
+                  {displaySongs.map((song, i) => (
                     <div key={song.videoId} className="search-song-card" 
-                      onClick={() => { saveToRecent(song); playSong(song, results.songs, i) }} 
+                      onClick={() => { saveToRecent(song); playSong(song, displaySongs, i) }} 
                       onContextMenu={(e) => {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('open-context-menu', {
@@ -306,10 +273,25 @@ export default function SearchPage({ isMobile }) {
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <p className="truncate" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#fff' }}>{song.title}</p>
-                        <p className="truncate" style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#b3b3b3' }}>{song.artist}</p>
+                        <p className="truncate" style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#b3b3b3' }}>
+                          {song.artist || song.channelTitle || 'Unknown'}
+                          {song.album && song.album !== 'Unknown' && ` · ${song.album}`}
+                        </p>
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Loading spinner when API results are still coming */}
+              {searchResults.loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.1)',
+                    borderTopColor: 'rgba(255,255,255,0.4)',
+                    animation: 'spin 0.6s linear infinite'
+                  }} />
                 </div>
               )}
             </div>
@@ -343,6 +325,9 @@ export default function SearchPage({ isMobile }) {
         @keyframes staggerIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

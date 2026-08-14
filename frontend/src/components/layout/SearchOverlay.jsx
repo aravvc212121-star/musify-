@@ -8,15 +8,15 @@
  * - Browse categories: no blur, no box-shadow on scroll
  * - touch-action: manipulation on buttons
  * - overscroll-behavior: contain on scroll areas
+ * - Uses centralized useSearch hook for fuzzy matching + artist grouping
  */
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiSearch, FiX } from 'react-icons/fi'
+import { FiSearch, FiX, FiMusic, FiUser } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../../context/PlayerContext.jsx'
-import { searchSongs } from '../../utils/api.js'
-import Fuse from 'fuse.js'
+import { useSearch } from '../../hooks/useSearch.js'
 
 const BROWSE_CATEGORIES = [
   { name: 'Podcasts', color: '#E13300' },
@@ -41,62 +41,44 @@ const BROWSE_CATEGORIES = [
 
 export default function SearchOverlay() {
   const navigate = useNavigate()
-  const { isSearchOpen, setIsSearchOpen, playSong, masterPlaylistData } = usePlayer()
+  const { isSearchOpen, setIsSearchOpen, playSong, masterPlaylistData, userPlaylists } = usePlayer()
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
   const inputRef = useRef(null)
+
+  // Use the centralized search hook
+  const searchResults = useSearch(query, masterPlaylistData, userPlaylists)
 
   useEffect(() => {
     if (isSearchOpen && inputRef.current) inputRef.current.focus()
   }, [isSearchOpen])
 
-  useEffect(() => {
-    if (query.trim().length < 1) {
-      setResults([])
-      return
-    }
-
-    // Instant local fuzzy results
-    const fuse = new Fuse(masterPlaylistData, {
-      keys: ['title', 'artist'],
-      threshold: 0.4,
-      distance: 100,
-      includeScore: true
-    })
-    const localResults = fuse.search(query.trim()).map(r => r.item)
-    if (localResults.length > 0) {
-      setResults(localResults.slice(0, 15))
-    }
-
-    // Then fetch API results
-    const delay = setTimeout(async () => {
-      setLoading(true)
-      try {
-        const data = await searchSongs(query)
-        const combined = [...localResults]
-        data.forEach(s => {
-          if (!combined.find(c => c.videoId === s.videoId)) {
-            combined.push(s)
-          }
-        })
-        setResults(combined.slice(0, 15))
-      } catch (err) { console.error(err) }
-      setLoading(false)
-    }, 200)
-    return () => clearTimeout(delay)
-  }, [query, masterPlaylistData])
-
   const handleClose = () => {
     setIsSearchOpen(false)
     setQuery('')
-    setResults([])
   }
 
   const handleCategorySearch = (name) => {
     setIsSearchOpen(false)
     navigate('/search', { state: { query: `${name} top songs` } })
   }
+
+  const handleSongPlay = (song, songList, index) => {
+    const songData = { 
+      videoId: song.videoId, 
+      title: song.title || 'Unknown', 
+      artist: song.artist || song.channelTitle || 'Unknown',
+      thumbnail: song.albumArt || song.thumbnail || ''
+    }
+    const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
+    let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
+    localStorage.setItem('rhym_recent_searches', JSON.stringify(updated.slice(0, 10)))
+    playSong(song, songList, index)
+    handleClose()
+  }
+
+  // Determine what to display
+  const displaySongs = searchResults.isArtistMatch ? searchResults.artistSongs : searchResults.songs
+  const hasResults = displaySongs.length > 0
 
   return (
     <AnimatePresence>
@@ -182,31 +164,53 @@ export default function SearchOverlay() {
             ) : (
               /* Search Results */
               <div>
-                <p className="section-heading" style={{ padding: '8px 4px' }}>Top Matches</p>
-                {loading ? (
+                {/* Artist-Grouped Header */}
+                {searchResults.isArtistMatch && searchResults.matchedArtist && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', marginBottom: 8, borderRadius: 12,
+                    background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(0, 210, 255, 0.02))',
+                    border: '1px solid rgba(0, 210, 255, 0.12)',
+                  }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(0, 210, 255, 0.1))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <FiUser size={16} style={{ color: 'var(--accent, #00d2ff)' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', margin: 0, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                        Songs by
+                      </p>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0 }}>
+                        {searchResults.matchedArtist}
+                      </p>
+                    </div>
+                    <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.25)' }}>
+                      {displaySongs.length} {displaySongs.length === 1 ? 'song' : 'songs'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Section Heading */}
+                {!searchResults.isArtistMatch && (
+                  <p className="section-heading" style={{ padding: '8px 4px' }}>Top Matches</p>
+                )}
+
+                {/* Loading Skeleton */}
+                {searchResults.loading && !hasResults ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {[1, 2, 3, 4, 5, 6].map(i => (
                       <div key={i} className="skeleton-pulse" style={{ height: 64, borderRadius: 12 }} />
                     ))}
                   </div>
-                ) : results.length > 0 ? (
+                ) : hasResults ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {results.map((song) => (
+                    {displaySongs.map((song, idx) => (
                       <div
                         key={song.videoId}
-                        onClick={() => { 
-                          const songData = { 
-                            videoId: song.videoId, 
-                            title: song.title || 'Unknown', 
-                            artist: song.artist || song.channelTitle || 'Unknown',
-                            thumbnail: song.albumArt || song.thumbnail || ''
-                          }
-                          const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
-                          let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
-                          localStorage.setItem('rhym_recent_searches', JSON.stringify(updated.slice(0, 10)))
-                          playSong(song); 
-                          handleClose() 
-                        }}
+                        onClick={() => handleSongPlay(song, displaySongs, idx)}
                         className="song-item"
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,
@@ -218,12 +222,27 @@ export default function SearchOverlay() {
                       >
                         <img src={song.thumbnail} alt="" width={40} height={40} loading="lazy" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.title}</p>
-                          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.artist}</p>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{song.title}</p>
+                          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                            {song.artist || song.channelTitle || 'Unknown'}
+                            {song.album && song.album !== 'Unknown' && ` · ${song.album}`}
+                          </p>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>{song.duration}</span>
                       </div>
                     ))}
+
+                    {/* Loading indicator when API results are still coming */}
+                    {searchResults.loading && (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '50%',
+                          border: '2px solid rgba(255,255,255,0.1)',
+                          borderTopColor: 'rgba(255,255,255,0.4)',
+                          animation: 'spin 0.6s linear infinite'
+                        }} />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.2)', fontSize: 14, fontWeight: 600 }}>No results found</div>
@@ -231,6 +250,12 @@ export default function SearchOverlay() {
               </div>
             )}
           </div>
+
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </motion.div>
       )}
     </AnimatePresence>
