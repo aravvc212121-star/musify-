@@ -191,7 +191,7 @@ export default function Player() {
         <div style={{ position: 'absolute', bottom: 0, left: '12px', right: '12px', height: '2px', background: 'rgba(255,255,255,0.1)', borderRadius: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
           <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.2s linear' }} />
         </div>
-      </motion.div>
+      </div>
     )
   }
 
