@@ -7,19 +7,17 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FiHome, FiSearch, FiBook, FiUser } from 'react-icons/fi'
+import { FiHome, FiSearch, FiBook } from 'react-icons/fi'
 import { haptics } from '../../utils/haptics.js'
 
 const TABS = [
   { path: '/', label: 'Home', Icon: FiHome },
   { path: '/search', label: 'Search', Icon: FiSearch },
   { path: '/library', label: 'Library', Icon: FiBook },
-  { path: '/auth', label: 'Profile', Icon: FiUser },
 ]
 
-// Nav bar height exported so Player.jsx can position above it
-export const NAV_BAR_HEIGHT = 58
-export const NAV_BAR_BOTTOM_MARGIN = 6 // px above safe-area
+export const NAV_BAR_HEIGHT = 56
+export const NAV_BAR_BOTTOM_MARGIN = 2 // px above safe-area
 
 export default function MobileNav() {
   const navigate = useNavigate()
@@ -43,8 +41,9 @@ export default function MobileNav() {
     const navRect = nav.getBoundingClientRect()
     const tabRect = tab.getBoundingClientRect()
     setCapsuleStyle({
-      left: tabRect.left - navRect.left,
-      width: tabRect.width,
+      // Inset the capsule by 16px on each side so it's a tight pill instead of a wide rectangle
+      left: (tabRect.left - navRect.left) + 16,
+      width: Math.max(tabRect.width - 32, 40),
     })
   }, [])
 
@@ -129,14 +128,13 @@ export default function MobileNav() {
         left: '16px',
         right: '16px',
         height: `${NAV_BAR_HEIGHT}px`,
-        // ─── Ultra-Premium Glass ───
-        background: 'rgba(20, 20, 20, 0.4)',
-        backdropFilter: 'blur(32px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        // 3D inner highlight for the bar itself
-        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 40px rgba(0, 0, 0, 0.6)',
-        borderRadius: '24px',
+        // ─── Exact mini-player glass values ───
+        background: 'rgba(32, 32, 32, 0.3)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
+        borderRadius: '16px',
         // Layout
         display: 'flex',
         alignItems: 'center',
@@ -148,24 +146,29 @@ export default function MobileNav() {
         userSelect: 'none',
         WebkitUserSelect: 'none',
         overflow: 'hidden',
+        // GPU acceleration for zero jitter
+        willChange: 'transform',
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
       }}
     >
-      {/* Premium Glass Sliding capsule indicator */}
+      {/* Sliding capsule indicator */}
       <div style={{
         position: 'absolute',
         top: '50%',
         left: capsuleStyle.left,
         width: capsuleStyle.width,
-        height: '44px', // slightly taller for a better pill shape
+        height: '40px',
         transform: 'translateY(-50%)',
-        borderRadius: '22px', // perfectly rounded
-        // Gradient shine for a 3D pill look
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.03) 100%)',
-        boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.2), inset 0 -1px 1px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.2)',
+        borderRadius: '12px',
+        background: 'rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 0 16px rgba(0, 210, 255, 0.08)',
         // Smooth spring-like slide between tabs
         transition: isDragging
           ? 'left 0.1s ease-out, width 0.1s ease-out'
-          : 'left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease',
+          : 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease',
         pointerEvents: 'none',
         zIndex: 0,
       }} />
@@ -192,28 +195,26 @@ export default function MobileNav() {
               background: 'none',
               border: 'none',
               flex: 1,
-              height: '44px',
+              height: '40px',
               cursor: 'pointer',
               touchAction: 'none',
               WebkitTapHighlightColor: 'transparent',
               position: 'relative',
               zIndex: 1,
               // Tap spring animation
-              transform: isPressed ? 'scale(0.85)' : 'scale(1)',
+              transform: isPressed ? 'scale(0.82)' : 'scale(1)',
               transition: isPressed
                 ? 'transform 0.1s ease-out'
-                : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
             }}
           >
             <Icon
-              size={28}
+              size={30}
               style={{
-                strokeWidth: isActive ? 1.5 : 1.25,
-                color: isActive ? '#fff' : 'rgba(255, 255, 255, 0.75)',
-                filter: isActive ? 'drop-shadow(0 4px 8px rgba(255, 255, 255, 0.3))' : 'none',
-                // Active icons swell up slightly, inactive icons shrink slightly for depth
-                transform: isActive ? 'scale(1.1) translateY(-2px)' : 'scale(0.95) translateY(0)',
-                transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                strokeWidth: 1.5,
+                color: '#fff', // Pure white always
+                filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 210, 255, 0.35))' : 'none',
+                transition: 'color 0.3s ease, filter 0.3s ease, stroke-width 0.3s ease',
               }}
             />
           </button>

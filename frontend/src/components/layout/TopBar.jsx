@@ -57,12 +57,12 @@ export default function TopBar({ isMobile = false }) {
     }
   }
 
-  // Auto-focus search input on Search page
+  // Auto-focus search input on Search page (desktop only, to prevent unwanted keyboard popup on mobile)
   useEffect(() => {
-    if (pathname === '/search') {
+    if (pathname === '/search' && !isMobile) {
       setTimeout(() => searchInputRef.current?.focus(), 100)
     }
-  }, [pathname])
+  }, [pathname, isMobile])
 
   // Show/hide dropdown based on search query (search logic handled by useSearch hook)
   useEffect(() => {

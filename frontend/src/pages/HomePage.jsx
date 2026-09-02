@@ -372,9 +372,11 @@ export default function HomePage() {
         bottom: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        contain: 'strict',
+        willChange: 'auto',
       }}>
-        {/* Aurora Orbs */}
+        {/* Aurora Orbs — GPU-promoted for zero jitter */}
         <div className="aurora-orb aurora-orb-1" style={{
           position: 'absolute',
           width: isMobile ? '300px' : '600px',
@@ -384,7 +386,10 @@ export default function HomePage() {
           filter: 'blur(60px)',
           top: '10%',
           left: '20%',
-          animation: 'aurora-float-1 20s ease-in-out infinite'
+          animation: 'aurora-float-1 20s ease-in-out infinite',
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
         }} />
         
         <div className="aurora-orb aurora-orb-2" style={{
@@ -396,7 +401,10 @@ export default function HomePage() {
           filter: 'blur(50px)',
           top: '50%',
           right: '15%',
-          animation: 'aurora-float-2 25s ease-in-out infinite'
+          animation: 'aurora-float-2 25s ease-in-out infinite',
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
         }} />
         
         <div className="aurora-orb aurora-orb-3" style={{
@@ -408,7 +416,10 @@ export default function HomePage() {
           filter: 'blur(55px)',
           bottom: '15%',
           left: '10%',
-          animation: 'aurora-float-3 22s ease-in-out infinite'
+          animation: 'aurora-float-3 22s ease-in-out infinite',
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
         }} />
         
         <div className="aurora-orb aurora-orb-4" style={{
@@ -420,7 +431,10 @@ export default function HomePage() {
           filter: 'blur(45px)',
           top: '70%',
           right: '25%',
-          animation: 'aurora-float-4 18s ease-in-out infinite'
+          animation: 'aurora-float-4 18s ease-in-out infinite',
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
         }} />
       </div>
       
@@ -467,7 +481,7 @@ export default function HomePage() {
                 <img 
                   src={song.thumbnail} 
                   alt={song.title}
-                  loading="lazy"
+                  loading="eager"
                   decoding="async"
                   style={{
                     position: 'absolute',

@@ -36,6 +36,13 @@
   user-select: none;
 }
 
+/* ─── Global smooth rendering ─── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
 /* Allow text selection for inputs and text areas */
 input, textarea, [contenteditable] {
   -webkit-user-select: text;
@@ -137,6 +144,9 @@ body::before {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; /* Momentum scroll on iOS */
   overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  /* GPU hint — do NOT use transform here as it breaks position:sticky on TopBar */
+  will-change: scroll-position;
   box-shadow: 
     inset 0 0 80px rgba(0, 210, 255, 0.03),
     inset 0 0 40px rgba(138, 43, 226, 0.02);
@@ -226,9 +236,13 @@ button, a, .song-row, .song-item, .song-card, .vertical-card, .playlist-quick-ca
   touch-action: manipulation; /* Kill 300ms tap delay */
 }
 
-/* ─── Containment for scroll performance ─── */
+/* ─── Containment & GPU layers for scroll performance ─── */
 .song-row, .song-item, .song-card, .vertical-card, .premium-song-row, .search-song-card {
   contain: layout style;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 button:hover, a:hover {
@@ -403,6 +417,9 @@ body.mobile-sidebar-open {
   /* Clearance for floating pill nav bar + mini-player stacked above it */
   .center-panel {
     padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
+    /* Buttery smooth momentum scrolling on mobile */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
   .responsive-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -412,6 +429,29 @@ body.mobile-sidebar-open {
   ::-webkit-scrollbar {
     width: 0;
     height: 0;
+  }
+  /* GPU-promote all animated/fixed elements to eliminate jitter */
+  nav, .mini-player, .bottom-bar {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+  }
+  /* Smooth all images during scroll */
+  img {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+}
+
+/* ─── Respect reduced motion preferences ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

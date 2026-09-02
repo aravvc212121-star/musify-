@@ -128,10 +128,10 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          // Dock above the floating nav bar: nav height (58px) + nav bottom margin (12px) + gap (4px)
-          bottom: 'calc(74px + env(safe-area-inset-bottom, 0px))',
-          left: '16px',
-          right: '16px',
+          // Dock above the floating nav bar: nav height (56px) + nav bottom margin (2px) + gap (8px)
+          bottom: 'calc(66px + env(safe-area-inset-bottom, 0px))',
+          left: '24px',
+          right: '24px',
           height: heightValue,
           background: 'rgba(32, 32, 32, 0.3)',
           backdropFilter: 'blur(24px) saturate(180%)',
