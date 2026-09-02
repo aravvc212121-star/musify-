@@ -67,12 +67,12 @@ export default function GlobalModals() {
     
     window.addEventListener('open-context-menu', handleOpen)
     window.addEventListener('click', handleClose)
-    window.addEventListener('scroll', handleClose, true)
+    window.addEventListener('scroll', handleClose, { capture: true, passive: true })
 
     return () => {
       window.removeEventListener('open-context-menu', handleOpen)
       window.removeEventListener('click', handleClose)
-      window.removeEventListener('scroll', handleClose, true)
+      window.removeEventListener('scroll', handleClose, { capture: true })
     }
   }, [])
 

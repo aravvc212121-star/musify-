@@ -91,6 +91,7 @@ const SongCard = memo(({
       <div style={{
         width: 40, height: 40, borderRadius: isArtist ? '50%' : 8,
         overflow: 'hidden', flexShrink: 0, position: 'relative',
+        aspectRatio: '1/1',
       }}>
         <img
           src={displayImage}
@@ -98,6 +99,7 @@ const SongCard = memo(({
           width={40}
           height={40}
           loading="lazy"
+          decoding="async"
           onError={() => setImgError(true)}
           style={{ width: 40, height: 40, objectFit: 'cover', display: 'block' }}
         />

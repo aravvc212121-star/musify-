@@ -24,8 +24,27 @@ const DES_KEY = '38346591';
 async function fetchWithTimeout(url, options = {}, timeout = 8000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
+  
+  // Use an Indian IP to bypass JioSaavn's geo-blocking on international (Vercel) servers
+  // which hides songs like "Die For You - The Weeknd"
+  const defaultHeaders = {
+    'X-Forwarded-For': '103.212.158.118', // Random Indian IP
+    'True-Client-IP': '103.212.158.118',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*'
+  };
+
+  const mergedOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {})
+    },
+    signal: controller.signal
+  };
+
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, mergedOptions);
     clearTimeout(id);
     return response;
   } catch (error) {

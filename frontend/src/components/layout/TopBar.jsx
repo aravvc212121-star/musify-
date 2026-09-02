@@ -4,7 +4,7 @@ import { FiSearch, FiX, FiUser, FiSettings, FiLogOut, FiArrowLeft, FiArrowRight,
 import { usePlayer } from '../../context/PlayerContext.jsx'
 import { useSearch } from '../../hooks/useSearch.js'
 
-export default function TopBar({ isMobile = false, onMenuToggle }) {
+export default function TopBar({ isMobile = false }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { id: playlistId } = useParams()
@@ -150,23 +150,8 @@ export default function TopBar({ isMobile = false, onMenuToggle }) {
     }}>
       
       {/* Left — Hamburger (mobile) or Nav arrows (desktop) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        {isMobile ? (
-          <button onClick={onMenuToggle} style={{
-            background: 'rgba(32, 32, 32, 0.3)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255,255,255,0.05)',
-            color: '#fff',
-            width: '40px', height: '40px', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', flexShrink: 0,
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-          }}>
-            <FiSidebar size={22} />
-          </button>
-        ) : (
+      {!isMobile && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)} style={{
               background: 'rgba(32, 32, 32, 0.3)',
@@ -205,8 +190,8 @@ export default function TopBar({ isMobile = false, onMenuToggle }) {
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Center Title (only when no search bar, desktop only) */}
       {!isMobile && (
@@ -220,7 +205,7 @@ export default function TopBar({ isMobile = false, onMenuToggle }) {
       )}
 
       {/* Right Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flex: isMobile ? 1 : 'none', marginLeft: isMobile ? '8px' : '0', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flex: isMobile ? 1 : 'none', marginLeft: '0', minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
         
         {/* Search Bar */}
         {(isSearchPage || pathname === '/') && (

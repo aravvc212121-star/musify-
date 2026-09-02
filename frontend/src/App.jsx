@@ -109,60 +109,28 @@ import FullScreenPlayer from './components/layout/FullScreenPlayer.jsx'
 function AppShell({ location }) {
   const { isRightSidebarOpen, isFullScreenPlayer, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed, currentSong } = usePlayer()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
-  const [touchStart, setTouchStart] = useState(0)
-  const [touchEnd, setTouchEnd] = useState(0)
 
-  // Minimum swipe distance (in px) to trigger close
-  const minSwipeDistance = 50
 
-  const handleTouchStart = (e) => {
-    setTouchEnd(0) // Reset
-    setTouchStart(e.targetTouches[0].clientX)
-  }
-
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX)
-  }
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > minSwipeDistance
-    
-    // Close sidebar on left swipe
-    if (isLeftSwipe) {
-      setIsMobileSidebarOpen(false)
-    }
-  }
-
-  // Lock body scroll when mobile sidebar is open
-  useEffect(() => {
-    if (isMobileSidebarOpen) {
-      document.body.classList.add('mobile-sidebar-open')
-    } else {
-      document.body.classList.remove('mobile-sidebar-open')
-    }
-    return () => document.body.classList.remove('mobile-sidebar-open')
-  }, [isMobileSidebarOpen])
-
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setIsMobileSidebarOpen(false)
-  }, [location.pathname])
 
   useEffect(() => {
+    let rafId = null
     const handleResize = () => {
-      const w = window.innerWidth
-      setIsMobile(w < 768)
-      if (w >= 768 && w <= 1024) {
-        setIsLeftSidebarCollapsed(true)
-      }
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const w = window.innerWidth
+        setIsMobile(w < 768)
+        if (w >= 768 && w <= 1024) {
+          setIsLeftSidebarCollapsed(true)
+        }
+      })
     }
     handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    window.addEventListener('resize', handleResize, { passive: true })
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [])
 
   return (
@@ -190,27 +158,9 @@ function AppShell({ location }) {
       >
         {!isMobile && <LeftSidebar />}
 
-        {/* Mobile Sidebar Drawer */}
-        {isMobile && (
-          <>
-            <div
-              className={`mobile-sidebar-backdrop ${isMobileSidebarOpen ? 'open' : ''}`}
-              onClick={() => setIsMobileSidebarOpen(false)}
-            />
-            <div 
-              className={`mobile-sidebar-drawer ${isMobileSidebarOpen ? 'open' : ''}`}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              <LeftSidebar isMobile onClose={() => setIsMobileSidebarOpen(false)} />
-            </div>
-          </>
-        )}
-
         {/* Center Panel (Scrollable content area) */}
         <div className="center-panel" style={{ margin: isMobile ? '0' : '8px 0', borderRadius: isMobile ? '0' : '8px' }}>
-          <TopBar isMobile={isMobile} onMenuToggle={() => setIsMobileSidebarOpen(v => !v)} />
+          <TopBar isMobile={isMobile} />
           <PageWrapper key={location.pathname}>
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
@@ -228,6 +178,9 @@ function AppShell({ location }) {
         {!isMobile && <RightSidebar />}
         <Player />
       </div>
+
+      {/* Floating pill nav bar for mobile */}
+      {isMobile && !isFullScreenPlayer && <MobileNav />}
 
       <FullScreenPlayer />
       <GlobalModals />

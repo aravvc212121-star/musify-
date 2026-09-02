@@ -124,9 +124,13 @@ function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick, is
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }}
     className="vertical-card">
-      <div style={{ position: 'relative', width: `${imgSize}px`, height: `${imgSize}px`, marginBottom: isMobile ? '8px' : '16px', background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', borderRadius: isArtist ? '50%' : '4px' }}>
+      <div style={{ position: 'relative', width: `${imgSize}px`, height: `${imgSize}px`, marginBottom: isMobile ? '8px' : '16px', background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', borderRadius: isArtist ? '50%' : '4px', aspectRatio: '1/1' }}>
         <img
           src={song.thumbnail || song.img} alt={song.title || song.name}
+          width={imgSize}
+          height={imgSize}
+          loading="lazy"
+          decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: isArtist ? '50%' : '4px' }}
         />
         {isNewRelease && (
@@ -289,22 +293,38 @@ export default function HomePage() {
     getDailySongs()
   }, [])
 
-  // Track scroll position for poster dots
+  // Track scroll position for poster dots — rAF-debounced to avoid layout thrashing
   useEffect(() => {
     const scrollContainer = postersScrollRef.current
     if (!scrollContainer || dailySongs.length <= 1) return
 
+    // Cache offsetWidth outside the scroll handler to avoid forced reflow per frame
+    let cachedItemWidth = scrollContainer.querySelector('.aesthetic-poster')?.offsetWidth || 0
+    const gap = isMobile ? 12 : 20
+    let rafId = null
+
     const handleScroll = () => {
-      const scrollLeft = scrollContainer.scrollLeft
-      const itemWidth = scrollContainer.querySelector('.aesthetic-poster')?.offsetWidth || 0
-      const gap = isMobile ? 12 : 20
-      const totalWidth = itemWidth + gap
-      const index = Math.round(scrollLeft / totalWidth)
-      setActivePosterIndex(Math.min(Math.max(index, 0), dailySongs.length - 1))
+      if (rafId) return // Already scheduled
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const scrollLeft = scrollContainer.scrollLeft
+        // Re-measure only if cached width is 0 (e.g. first load)
+        if (cachedItemWidth === 0) {
+          cachedItemWidth = scrollContainer.querySelector('.aesthetic-poster')?.offsetWidth || 0
+        }
+        const totalWidth = cachedItemWidth + gap
+        if (totalWidth > 0) {
+          const index = Math.round(scrollLeft / totalWidth)
+          setActivePosterIndex(Math.min(Math.max(index, 0), dailySongs.length - 1))
+        }
+      })
     }
 
-    scrollContainer.addEventListener('scroll', handleScroll)
-    return () => scrollContainer.removeEventListener('scroll', handleScroll)
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [dailySongs.length, isMobile])
 
   useEffect(() => {
@@ -447,6 +467,8 @@ export default function HomePage() {
                 <img 
                   src={song.thumbnail} 
                   alt={song.title}
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     position: 'absolute',
                     width: '100%',

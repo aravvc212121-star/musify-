@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi'
 import { getLyrics } from '../../utils/api.js'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { haptics } from '../../utils/haptics.js'
 
 /* ─── Time Formatter ─── */
 function fmt(s) {
@@ -127,7 +128,8 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          bottom: 'max(16px, env(safe-area-inset-bottom, 0px))',
+          // Dock above the floating nav bar: nav height (58px) + nav bottom margin (12px) + gap (4px)
+          bottom: 'calc(74px + env(safe-area-inset-bottom, 0px))',
           left: '16px',
           right: '16px',
           height: heightValue,
@@ -172,7 +174,7 @@ export default function Player() {
         </div>
 
         <button
-          onClick={(e) => { e.stopPropagation(); toggleSavedSong(currentSong) }}
+          onClick={(e) => { e.stopPropagation(); haptics.light(); toggleSavedSong(currentSong) }}
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={{
@@ -189,7 +191,7 @@ export default function Player() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', pointerEvents: 'auto' }}>
           <button
-            onClick={(e) => { e.stopPropagation(); playPrevious() }}
+            onClick={(e) => { e.stopPropagation(); haptics.light(); playPrevious() }}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer', pointerEvents: 'auto', WebkitTapHighlightColor: 'transparent' }}
@@ -197,7 +199,7 @@ export default function Player() {
             <FiSkipBack size={20} />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); togglePlay() }}
+            onClick={(e) => { e.stopPropagation(); haptics.medium(); togglePlay() }}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer', pointerEvents: 'auto', WebkitTapHighlightColor: 'transparent' }}
@@ -205,7 +207,7 @@ export default function Player() {
             {isPlaying ? <FiPause size={24} /> : <FiPlay size={24} />}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); playNext() }}
+            onClick={(e) => { e.stopPropagation(); haptics.light(); playNext() }}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             style={{ background: 'none', border: 'none', color: '#fff', padding: '8px', cursor: 'pointer', pointerEvents: 'auto', WebkitTapHighlightColor: 'transparent' }}
@@ -251,7 +253,7 @@ export default function Player() {
           </p>
         </div>
         <button
-          onClick={(e) => { e.stopPropagation(); toggleSavedSong(currentSong) }}
+          onClick={(e) => { e.stopPropagation(); haptics.light(); toggleSavedSong(currentSong) }}
           style={{
             background: 'none', border: 'none', padding: '8px', cursor: 'pointer',
             color: saved ? 'var(--accent)' : 'var(--text-secondary)',
@@ -315,7 +317,7 @@ export default function Player() {
               type="range" min={0} max={duration || 100} value={currentTime}
               onChange={(e) => seekTo(Number(e.target.value))}
               className="spotify-slider"
-              style={{ position: 'absolute', zIndex: 2, width: '100%', opacity: 0, cursor: 'pointer' }}
+              style={{ position: 'absolute', zIndex: 2, width: '100%', opacity: 0, cursor: 'pointer', touchAction: 'none' }}
             />
             <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', position: 'relative' }}>
               <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--accent)', borderRadius: '2px' }} />

@@ -73,29 +73,29 @@ export default function ArtistPage() {
           )}
         </div>
         <div className="artist-info" style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#3d91ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+            <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#3d91ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
             </div>
-            <p style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', margin: 0, color: '#fff' }}>Verified Artist</p>
+            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', margin: 0, color: '#fff' }}>Verified Artist</p>
           </div>
           <h1 className="artist-title truncate" style={{ 
             fontWeight: 900, 
-            margin: '0 0 16px 0', 
+            margin: '0 0 6px 0', 
             color: '#fff', 
             lineHeight: 1 
           }}>
             {artist?.name || id}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', flexWrap: 'wrap' }}>
             <span style={{ color: '#fff', fontWeight: 700 }}>Rhym Premium</span>
-            <span style={{ color: 'rgba(255,255,255,0.7)' }}>• {songs.length * 1234} monthly listeners</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>• {songs.length * 1234} listeners</span>
           </div>
         </div>
       </div>
 
       {/* ─── Controls Row ─── */}
-      <div style={{ padding: '24px 32px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button 
           onClick={() => songs.length > 0 && playSong(songs[0], songs, 0)}
           style={{
@@ -192,25 +192,29 @@ export default function ArtistPage() {
 
         @media (max-width: 768px) {
           .artist-hero {
-            padding: 72px 16px 24px;
-            flex-direction: column;
-            align-items: flex-start;
+            padding: 48px 16px 16px;
+            flex-direction: row;
+            align-items: center;
             text-align: left;
-            gap: 16px;
+            gap: 14px;
           }
           .artist-info {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+            min-width: 0;
           }
           .artist-cover {
-            width: 140px;
-            height: 140px;
+            width: 90px;
+            height: 90px;
           }
           .artist-title {
-            font-size: 32px;
-            letter-spacing: -1px;
-            white-space: normal;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
           }
           .song-list-container {
             padding: 0 16px !important;

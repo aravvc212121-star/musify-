@@ -10,6 +10,8 @@ import toast from 'react-hot-toast'
 import { getLyrics } from '../../utils/api.js'
 import { Reorder, motion, AnimatePresence, animate, useMotionValue, useTransform } from 'framer-motion'
 import html2canvas from 'html2canvas'
+import { haptics } from '../../utils/haptics.js'
+import { useScrollBounce } from '../../hooks/useScrollBounce.js'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -161,6 +163,11 @@ export default function FullScreenPlayer() {
   const touchStartY = useRef(0)
   const lyricsContainerRef = useRef(null)
   const captureRef = useRef(null)
+  const queueScrollRef = useRef(null)
+
+  // iOS-style bounce on queue and lyrics scroll
+  useScrollBounce(queueScrollRef, { axis: 'y', maxBounce: 60 })
+  useScrollBounce(lyricsContainerRef, { axis: 'y', maxBounce: 40 })
 
   const [selectedLines, setSelectedLines] = useState([])
   const [selectedColorIdx, setSelectedColorIdx] = useState(0)
@@ -433,6 +440,7 @@ export default function FullScreenPlayer() {
     
     if (Math.abs(diffX) > Math.abs(diffY)) {
       if (Math.abs(diffX) > 70) {
+        haptics.medium() // Haptic on swipe-to-skip
         if (diffX > 0) {
           setSwipeDirection(1)
           playNext()
@@ -636,7 +644,8 @@ export default function FullScreenPlayer() {
           }} style={{ background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer', padding: '4px' }}><FiX size={24} /></button>
         </div>
         <div 
-          style={{ flex: 1, overflowY: 'auto', padding: '8px 0', overscrollBehavior: 'contain' }} 
+          ref={queueScrollRef}
+          style={{ flex: 1, overflowY: 'auto', padding: '8px 0', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }} 
           className="hide-scrollbar"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
@@ -776,7 +785,7 @@ export default function FullScreenPlayer() {
                   transition: 'transform 0.8s cubic-bezier(0.4,0,0.2,1)', transform: isFlipped ? 'rotateY(-180deg)' : 'rotateY(0deg)'
                 }}>
                   <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 20px 80px rgba(0,0,0,0.6)' }}>
-                    <img src={thumb} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                    <img src={thumb} loading="lazy" decoding="async" style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
                   </div>
                   <div 
                     ref={lyricsContainerRef}
@@ -977,7 +986,7 @@ export default function FullScreenPlayer() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <button onClick={() => toggleSavedSong(currentSong)} style={{ background: 'none', border: 'none', color: saved ? 'var(--accent)' : '#fff', cursor: 'pointer', padding: '6px' }}>
+              <button onClick={() => { haptics.light(); toggleSavedSong(currentSong) }} style={{ background: 'none', border: 'none', color: saved ? 'var(--accent)' : '#fff', cursor: 'pointer', padding: '6px', touchAction: 'manipulation' }}>
                 <FiHeart size={isMobile ? 18 : 20} style={{ fill: saved ? 'var(--accent)' : 'none', opacity: saved ? 1 : 0.4 }} />
               </button>
               {isMobile && (
@@ -991,7 +1000,7 @@ export default function FullScreenPlayer() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '4px 0' }}>
               <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px' }}>{fmt(currentTime)}</span>
               <div style={{ flex: 1, position: 'relative', height: '12px', display: 'flex', alignItems: 'center' }}>
-                <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer' }} />
+                <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer', touchAction: 'none' }} />
               </div>
               <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px', textAlign: 'right' }}>{fmt(duration)}</span>
             </div>
@@ -999,11 +1008,11 @@ export default function FullScreenPlayer() {
 
           {/* Center: Playback Controls */}
           <div style={{ width: isMobile ? '100%' : 'auto', flex: isMobile ? 'none' : 1, display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'center', gap: isMobile ? '0' : '20px' }}>
-            <button onClick={() => setShuffle(!shuffle)} style={{ background: 'none', border: 'none', color: shuffle ? 'var(--accent)' : '#fff', opacity: shuffle ? 1 : 0.4, cursor: 'pointer', padding: '6px' }}><FiShuffle size={16} /></button>
-            <button onClick={() => { setSwipeDirection(-1); playPrevious() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px' }}><FiSkipBack size={20} /></button>
-            <button onClick={togglePlay} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>{isPlaying ? <FiPause size={20} color="#000" /> : <FiPlay size={20} color="#000" style={{ marginLeft: 3 }} />}</button>
-            <button onClick={() => { setSwipeDirection(1); playNext() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px' }}><FiSkipForward size={20} /></button>
-            <button onClick={() => setRepeat(repeat === 'none' ? 'context' : 'none')} style={{ background: 'none', border: 'none', color: repeat !== 'none' ? 'var(--accent)' : '#fff', opacity: repeat !== 'none' ? 1 : 0.4, cursor: 'pointer', padding: '6px' }}><FiRepeat size={16} /></button>
+            <button onClick={() => { haptics.light(); setShuffle(!shuffle) }} style={{ background: 'none', border: 'none', color: shuffle ? 'var(--accent)' : '#fff', opacity: shuffle ? 1 : 0.4, cursor: 'pointer', padding: '6px', touchAction: 'manipulation' }}><FiShuffle size={16} /></button>
+            <button onClick={() => { haptics.light(); setSwipeDirection(-1); playPrevious() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px', touchAction: 'manipulation' }}><FiSkipBack size={20} /></button>
+            <button onClick={() => { haptics.medium(); togglePlay() }} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', touchAction: 'manipulation' }}>{isPlaying ? <FiPause size={20} color="#000" /> : <FiPlay size={20} color="#000" style={{ marginLeft: 3 }} />}</button>
+            <button onClick={() => { haptics.light(); setSwipeDirection(1); playNext() }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px', touchAction: 'manipulation' }}><FiSkipForward size={20} /></button>
+            <button onClick={() => { haptics.light(); setRepeat(repeat === 'none' ? 'context' : 'none') }} style={{ background: 'none', border: 'none', color: repeat !== 'none' ? 'var(--accent)' : '#fff', opacity: repeat !== 'none' ? 1 : 0.4, cursor: 'pointer', padding: '6px', touchAction: 'manipulation' }}><FiRepeat size={16} /></button>
           </div>
 
           {/* Right: Utility Controls (Desktop Only) */}
@@ -1026,7 +1035,7 @@ export default function FullScreenPlayer() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px' }}>{fmt(currentTime)}</span>
             <div style={{ flex: 1, position: 'relative', height: '12px', display: 'flex', alignItems: 'center' }}>
-              <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer' }} />
+              <input type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek} className="fs-seek-slider" style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', outline: 'none', background: `linear-gradient(to right, #fff ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 100)) * 100}%)`, cursor: 'pointer', touchAction: 'none' }} />
             </div>
             <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 700, width: '35px', textAlign: 'right' }}>{fmt(duration)}</span>
           </div>

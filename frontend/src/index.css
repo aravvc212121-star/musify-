@@ -45,6 +45,10 @@ input, textarea, [contenteditable] {
 }
 
 /* ─── Body — fixed layout, no outer scrollbars ─── */
+html, body {
+  overscroll-behavior-y: contain; /* Prevent PWA pull-to-refresh fighting with custom bounce */
+}
+
 body {
   background: #000000;
   margin: 0;
@@ -131,6 +135,8 @@ body::before {
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Momentum scroll on iOS */
+  overscroll-behavior-y: contain;
   box-shadow: 
     inset 0 0 80px rgba(0, 210, 255, 0.03),
     inset 0 0 40px rgba(138, 43, 226, 0.02);
@@ -144,6 +150,9 @@ body::before {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  contain: layout style paint;
 }
 
 .bottom-bar {
@@ -152,6 +161,7 @@ body::before {
   height: var(--bottom-bar-h);
   z-index: 100;
   margin: 0 12px 12px 12px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   border-radius: 12px;
   border: none;
   box-shadow: 0 -8px 32px rgba(0,0,0,0.3);
@@ -193,6 +203,7 @@ body::before {
 img {
   display: block;
   object-fit: cover;
+  content-visibility: auto; /* Skip rendering off-screen images */
 }
 
 /* ─── Inputs ─── */
@@ -209,9 +220,15 @@ input::placeholder {
 
 /* ─── Transitions & Global Hover ─── */
 button, a, .song-row, .song-item, .song-card, .vertical-card, .playlist-quick-card, .lib-card, .search-song-card, .category-card, .podcast-card-premium, .hover-bg-card, .zoom-hover, .premium-song-row, .nav-arrow-btn, .search-bar-container {
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* Kill 300ms tap delay */
+}
+
+/* ─── Containment for scroll performance ─── */
+.song-row, .song-item, .song-card, .vertical-card, .premium-song-row, .search-song-card {
+  contain: layout style;
 }
 
 button:hover, a:hover {
@@ -243,6 +260,7 @@ input[type=range].spotify-slider {
   border-radius: 2px;
   outline: none;
   cursor: pointer;
+  touch-action: none; /* Prevent page scroll during scrub */
 }
 input[type=range].spotify-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -364,6 +382,8 @@ input[type=range].spotify-slider:hover::-webkit-slider-thumb {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
 }
 .mobile-sidebar-drawer.open {
@@ -379,6 +399,10 @@ body.mobile-sidebar-open {
   #app-container {
     gap: 0 !important;
     padding: 0 !important;
+  }
+  /* Clearance for floating pill nav bar + mini-player stacked above it */
+  .center-panel {
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
   }
   .responsive-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -399,7 +423,13 @@ body.mobile-sidebar-open {
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; /* Snap but allow free-scrolling */
 }
 .h-scroll::-webkit-scrollbar {
   display: none;
+}
+.h-scroll > * {
+  scroll-snap-align: start;
 }

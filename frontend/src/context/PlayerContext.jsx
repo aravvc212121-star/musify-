@@ -703,10 +703,8 @@ export function PlayerProvider({ children }) {
     setSavedSongs(prev => {
       const exists = prev.some(s => s.videoId === song.videoId)
       if (exists) {
-        toast.success('Removed from liked')
         return prev.filter(s => s.videoId !== song.videoId)
       } else {
-        toast.success('Added to liked')
         return [song, ...prev]
       }
     })

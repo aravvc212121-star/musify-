@@ -116,19 +116,19 @@ export default function PlaylistPage() {
           {isLikedPlaylist ? '💜' : '🎵'}
         </div>
         <div className="playlist-info" style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>Playlist</p>
-          <h1 className="playlist-title truncate" style={{ fontWeight: 900, margin: '0 0 16px 0', color: '#fff', lineHeight: 1 }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Playlist</p>
+          <h1 className="playlist-title truncate" style={{ fontWeight: 900, margin: '0 0 6px 0', color: '#fff', lineHeight: 1 }}>
             {playlistName}
           </h1>
-          <div className="playlist-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="playlist-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
             <span style={{ color: '#fff', fontWeight: 700 }}>Rhym</span>
-            <span style={{ color: 'rgba(255,255,255,0.7)' }}>• {songs.length} {songs.length === 1 ? 'song' : 'songs'}</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>• {songs.length} {songs.length === 1 ? 'song' : 'songs'}</span>
           </div>
         </div>
       </div>
 
       {/* ─── Controls Row ─── */}
-      <div style={{ padding: '24px 32px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button 
           onClick={() => songs.length > 0 && playSong(songs[0], songs, 0)}
           style={{
@@ -290,26 +290,30 @@ export default function PlaylistPage() {
         @media (max-width: 768px) {
           .col-album { display: none !important; }
           .playlist-hero {
-            padding: 72px 16px 24px;
-            flex-direction: column;
-            align-items: flex-start;
+            padding: 48px 16px 16px;
+            flex-direction: row;
+            align-items: center;
             text-align: left;
-            gap: 16px;
+            gap: 14px;
           }
           .playlist-info {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+            min-width: 0;
           }
           .playlist-cover {
-            width: 140px;
-            height: 140px;
-            font-size: 56px;
+            width: 90px;
+            height: 90px;
+            font-size: 36px;
           }
           .playlist-title {
-            font-size: 32px;
-            letter-spacing: -1px;
-            white-space: normal;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
           }
           .song-list-container {
             padding: 0 16px;

@@ -233,7 +233,7 @@ export default function RightSidebar() {
             </div>
           </div>
 
-          <div style={{ padding: '0 20px 20px', overflowY: 'auto' }} className="hide-scrollbar" ref={sidebarScrollRef}>
+          <div style={{ padding: '0 20px 20px', overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', contain: 'layout style paint' }} className="hide-scrollbar" ref={sidebarScrollRef}>
             {currentSong ? (
               <>
                 <style>{`
