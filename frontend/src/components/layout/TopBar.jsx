@@ -144,7 +144,7 @@ export default function TopBar({ isMobile = false }) {
       border: 'none',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: isMobile ? '0 12px' : '0 24px',
-      paddingTop: isMobile ? '12px' : '16px',
+      paddingTop: isMobile ? 'calc(12px + env(safe-area-inset-top, 0px))' : '16px',
       borderRadius: isMobile ? '0' : '12px',
       background: 'transparent'
     }}>

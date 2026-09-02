@@ -504,7 +504,9 @@ export default function FullScreenPlayer() {
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.2s ease',
         touchAction: 'none',
-        WebkitUserSelect: 'none'
+        WebkitUserSelect: 'none',
+        // Push below notch/status bar in PWA standalone mode
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

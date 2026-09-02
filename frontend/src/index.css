@@ -60,6 +60,8 @@ body {
   background: #000000;
   margin: 0;
   padding: 0;
+  /* Push content below the notch/status bar in PWA standalone mode */
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   justify-content: center;
   font-family: var(--font);
@@ -95,7 +97,9 @@ body::before {
 /* ─── App Shell Layout ─── */
 #app-container {
   width: 100vw;
+  /* Fallback for older browsers, then override with dvh for iOS PWA */
   height: 100vh;
+  height: 100dvh;
   background: #000000;
   display: grid;
   grid-template-columns: var(--left-w, 180px) 1fr var(--right-w, 240px);
