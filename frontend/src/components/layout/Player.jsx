@@ -95,31 +95,7 @@ export default function Player() {
 
   if (isMobile) {
     return (
-      <motion.div 
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0}
-        dragMomentum={false}
-        dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
-        onDrag={(event, info) => {
-          // Update motion value for smooth stretching
-          if (info.offset.y < 0) {
-            dragY.set(info.offset.y)
-          }
-        }}
-        onDragEnd={(event, info) => {
-          // Only open fullscreen if stretched beyond 200px
-          if (info.offset.y < -200) {
-            setIsFullScreenPlayer(true)
-          }
-          // Always reset stretch
-          animate(dragY, 0, { 
-            type: "spring",
-            stiffness: 500,
-            damping: 35,
-            mass: 0.5
-          })
-        }}
+      <div 
         onClick={(e) => {
           // Only open fullscreen if clicking on non-interactive areas
           if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
@@ -132,11 +108,11 @@ export default function Player() {
           bottom: 'calc(66px + env(safe-area-inset-bottom, 0px))',
           left: '24px',
           right: '24px',
-          height: heightValue,
+          height: '64px', // Fixed height
           background: 'rgba(32, 32, 32, 0.3)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRadius: borderRadiusValue,
+          borderRadius: '12px', // Fixed radius
           display: 'flex',
           alignItems: 'center',
           padding: '0 12px',
@@ -145,16 +121,11 @@ export default function Player() {
           boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
           border: '1px solid rgba(255,255,255,0.05)',
           cursor: 'pointer',
-          scale: scaleValue,
-          touchAction: 'pan-y',
-          willChange: 'height, border-radius, transform',
-          y: 0,
-          WebkitTransform: 'translateZ(0)',
+          touchAction: 'manipulation',
           transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          perspective: 1000,
-          WebkitPerspective: 1000,
           WebkitTapHighlightColor: 'transparent',
           userSelect: 'none',
           WebkitUserSelect: 'none'

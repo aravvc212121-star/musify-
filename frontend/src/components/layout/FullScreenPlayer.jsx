@@ -175,12 +175,6 @@ export default function FullScreenPlayer() {
   const [isShareMode, setIsShareMode] = useState(false)
   const [vibrantColor, setVibrantColor] = useState('#1a1a1a')
   const isMobile = useIsMobile()
-  
-  // Motion value for drag
-  const dragY = useMotionValue(0)
-  const bgOpacity = useTransform(dragY, [0, 300], [1, 0])
-  const contentScale = useTransform(dragY, [0, 300], [1, 0.92])
-  const dismissRadius = useTransform(dragY, [0, 100], [0, 24])
 
   useEffect(() => {
     setHintSeen(localStorage.getItem('lyricsHintSeen') === 'true')
@@ -449,10 +443,6 @@ export default function FullScreenPlayer() {
           playPrevious()
         }
       }
-    } else {
-      if (diffY < -70) { // Swiped down
-        handleClose()
-      }
     }
   }
 
@@ -479,10 +469,6 @@ export default function FullScreenPlayer() {
           playPrevious()
         }
       }
-    } else {
-      if (diffY < -100) {
-        handleClose()
-      }
     }
   }
 
@@ -505,97 +491,21 @@ export default function FullScreenPlayer() {
   if (!isFullScreenPlayer && !visible) return null
 
   return (
-    <motion.div 
-      drag="y"
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0, bottom: 0.3 }}
-      dragMomentum={false}
-      dragTransition={{ 
-        bounceStiffness: 300, 
-        bounceDamping: 40,
-        power: 0.2,
-        timeConstant: 200
-      }}
-      onDrag={(event, info) => {
-        // Allow dragging down only
-        if (info.offset.y > 0) {
-          dragY.set(info.offset.y)
-          // Animate underlying content — crossfade reveal
-          const el = document.getElementById('app-main-content')
-          if (el) {
-            const progress = Math.min(info.offset.y / 300, 1)
-            el.style.transition = 'none'
-            el.style.opacity = `${0.3 + progress * 0.7}`
-            el.style.transform = `scale(${0.92 + progress * 0.08})`
-            el.style.filter = `blur(${Math.max(0, (1 - progress) * 4)}px)`
-            el.style.borderRadius = `${Math.max(0, (1 - progress) * 16)}px`
-          }
-        }
-      }}
-      onDragEnd={(event, info) => {
-        const el = document.getElementById('app-main-content')
-
-        // Close if dragged down more than 150px
-        if (info.offset.y > 150) {
-          // Animate content to full visibility
-          if (el) {
-            el.style.transition = 'all 0.35s cubic-bezier(0.4,0,0.2,1)'
-            el.style.opacity = '1'
-            el.style.transform = 'scale(1)'
-            el.style.filter = 'none'
-            el.style.borderRadius = '0px'
-          }
-          animate(dragY, window.innerHeight, {
-            type: "spring",
-            stiffness: 300,
-            damping: 30,
-            duration: 0.3
-          }).then(() => {
-            setIsFullScreenPlayer(false)
-          })
-        } else {
-          // Cancelled — restore content to dimmed state
-          if (el) {
-            el.style.transition = 'all 0.35s cubic-bezier(0.4,0,0.2,1)'
-            el.style.opacity = '0.3'
-            el.style.transform = 'scale(0.92)'
-            el.style.filter = 'blur(4px)'
-            el.style.borderRadius = '16px'
-          }
-          // Reset player position
-          animate(dragY, 0, {
-            type: "spring",
-            stiffness: 400,
-            damping: 35,
-            mass: 0.8
-          })
-        }
-      }}
-      initial={{ y: window.innerHeight }}
-      animate={{ y: 0 }}
-      exit={{ y: window.innerHeight }}
-      transition={{
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
-        mass: 0.8
-      }}
+    <div 
       style={{
-      position: 'fixed', inset: 0, zIndex: 9998,
-      display: isFullScreenPlayer ? 'flex' : 'none',
-      flexDirection: 'column',
-      color: '#fff',
-      overflow: 'hidden',
-      background: 'transparent',
-      userSelect: 'none',
-      pointerEvents: isFullScreenPlayer ? 'auto' : 'none',
-      y: dragY,
-      opacity: bgOpacity,
-      scale: contentScale,
-      borderRadius: dismissRadius,
-      touchAction: 'none',
-      WebkitUserSelect: 'none'
-    }}
+        position: 'fixed', inset: 0, zIndex: 9998,
+        display: isFullScreenPlayer ? 'flex' : 'none',
+        flexDirection: 'column',
+        color: '#fff',
+        overflow: 'hidden',
+        background: 'transparent',
+        userSelect: 'none',
+        pointerEvents: isFullScreenPlayer ? 'auto' : 'none',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.2s ease',
+        touchAction: 'none',
+        WebkitUserSelect: 'none'
+      }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleMouseDown}
@@ -714,11 +624,14 @@ export default function FullScreenPlayer() {
       {/* Top Bar (Floating controls) */}
       <div style={{ 
         position: 'absolute', top: 0, right: 0, left: 0, zIndex: 50,
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', 
-        padding: isMobile ? '8px 12px' : '24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+        padding: isMobile ? '12px 16px' : '24px',
         background: 'transparent', pointerEvents: 'none'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px', pointerEvents: 'auto' }}>
+        <button onClick={handleClose} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', backdropFilter: 'blur(12px)' }}>
+          <FiChevronDown size={22} />
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '8px', pointerEvents: 'auto' }}>
           {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiDisc size={18} /></button>}
           {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiYoutube size={18} /></button>}
           {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiUser size={18} /></button>}
@@ -1058,6 +971,6 @@ export default function FullScreenPlayer() {
           100% { background-position: 0% 50%; }
         }
       `}</style>
-    </motion.div>
+    </div>
   )
 }
