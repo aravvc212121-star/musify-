@@ -149,8 +149,8 @@ export default function MobileNav() {
         right: 0,
         height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        // ─── Solid background for performance (Fix #5) ───
-        background: 'rgba(0, 0, 0, 0.75)',
+        // ─── Transparent and black tinted ───
+        background: 'rgba(0, 0, 0, 0.6)',
         backdropFilter: 'none',
         WebkitBackdropFilter: 'none',
         border: 'none',

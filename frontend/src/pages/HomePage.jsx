@@ -354,7 +354,7 @@ export default function HomePage() {
   const recentTracks = madeForYou.slice(0, 10)
 
   return (
-    <div style={{ position: 'relative', padding: isMobile ? '12px 0 120px' : '16px 32px 120px', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', padding: isMobile ? '12px 8px 20px' : '16px 32px 40px', overflow: 'hidden' }}>
       {/* ─── Ambient Aurora Background Effect ─── */}
       {!isMobile && (
         <div style={{
@@ -432,7 +432,12 @@ export default function HomePage() {
       <div style={{ marginTop: isMobile ? '16px' : '24px', marginBottom: isMobile ? '20px' : '40px' }}>
 
         <div className="ambient-box">
-          <div className="playlists-grid" style={{ padding: isMobile ? '0 16px' : '0 20px' }}>
+          <div className="playlists-grid" style={{
+            paddingLeft: 0,
+            paddingRight: isMobile ? '16px' : 0,
+            paddingTop: 0,
+            paddingBottom: isMobile ? '8px' : 0
+          }}>
             {userPlaylists.slice(0, 10).map((playlist, i) => {
               const isLiked = playlist.name === 'Liked Songs'
               return (
@@ -829,7 +834,7 @@ export default function HomePage() {
 
       {/* ─── 11. Top Hindi Rap ─── */}
       {loading ? <SkeletonRow /> : recommendations.length > 0 && (
-        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div>
           <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Hindi Rap" scrollRef={hindiRapRef} isMobile={isMobile} />
           </div>
@@ -891,17 +896,17 @@ export default function HomePage() {
         
         .playlists-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+          gap: 14px;
           max-height: 176px;
           overflow: hidden;
         }
 
         @media (max-width: 1400px) {
-          .playlists-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+          .playlists-grid { grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); }
         }
         @media (max-width: 1200px) {
-          .playlists-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+          .playlists-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
         }
         @media (max-width: 768px) {
           .recently-grid { grid-template-columns: repeat(2, 1fr); }
@@ -909,7 +914,8 @@ export default function HomePage() {
             grid-template-columns: none; 
             grid-template-rows: repeat(2, 1fr); 
             grid-auto-flow: column; 
-            grid-auto-columns: calc(65vw - 12px); 
+            grid-auto-columns: calc(52vw - 10px); 
+            gap: 10px;
             overflow-x: auto; 
             overflow-y: hidden;
             scrollbar-width: none;
