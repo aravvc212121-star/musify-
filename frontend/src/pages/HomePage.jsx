@@ -1,19 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { searchSongs, getTrending } from '../utils/api.js'
 import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle } from 'react-icons/fi'
-import { useRef } from 'react'
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-  useEffect(() => {
-    const h = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', h)
-    return () => window.removeEventListener('resize', h)
-  }, [])
-  return isMobile
-}
+import { useIsMobile } from '../hooks/useIsMobile.js'
 
 /* ─── Greeting based on time ─── */
 // Keeping for future use
@@ -100,10 +90,10 @@ function HoverPlayButton({ style }) {
 
 /* ─── Vertical Card (Responsive) ─── */
 function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick, isMobile }) {
-  const cardW = isMobile ? 125 : 200
-  const cardH = isMobile ? 155 : 220
-  const imgSize = isMobile ? 105 : 168
-  const pad = isMobile ? 10 : 16
+  const cardW = isMobile ? 125 : 168
+  const cardH = isMobile ? 160 : 200
+  const imgSize = isMobile ? 125 : 168
+  const pad = 0
 
   return (
     <div 
@@ -145,13 +135,15 @@ function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick, is
         )}
         {!isMobile && <HoverPlayButton style={{ bottom: '8px', right: '8px' }} />}
       </div>
-      <div style={{ width: '100%' }}>
-        <p className="truncate" style={{ fontSize: isMobile ? '11px' : '14px', fontWeight: 700, color: '#ffffff', marginBottom: '2px' }}>
+      <div style={{ width: '100%', textAlign: isArtist ? 'center' : 'left' }}>
+        <p className="truncate" style={{ fontSize: isArtist ? (isMobile ? '13px' : '16px') : (isMobile ? '11px' : '14px'), fontWeight: 700, color: '#ffffff', marginBottom: isArtist ? '0' : '2px', marginTop: isArtist ? '6px' : '0' }}>
           {song.title || song.name}
         </p>
-        <p className="truncate" style={{ fontSize: isMobile ? '10px' : '14px', color: isRecommended ? 'var(--accent-hover)' : '#b3b3b3' }}>
-          {isArtist ? 'Artist' : (isRecommended ? song.genre || 'Electronic' : song.artist)}
-        </p>
+        {!isArtist && (
+          <p className="truncate" style={{ fontSize: isMobile ? '10px' : '14px', color: isRecommended ? 'var(--accent-hover)' : '#b3b3b3' }}>
+            {isRecommended ? song.genre || 'Electronic' : song.artist}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -362,334 +354,84 @@ export default function HomePage() {
   const recentTracks = madeForYou.slice(0, 10)
 
   return (
-    <div style={{ position: 'relative', padding: isMobile ? '12px 12px 120px' : '16px 32px 120px', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', padding: isMobile ? '12px 0 120px' : '16px 32px 120px', overflow: 'hidden' }}>
       {/* ─── Ambient Aurora Background Effect ─── */}
-      <div className="aurora-background" style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 0,
-        pointerEvents: 'none',
-        overflow: 'hidden',
-        contain: 'strict',
-        willChange: 'auto',
-      }}>
-        {/* Aurora Orbs — GPU-promoted for zero jitter */}
-        <div className="aurora-orb aurora-orb-1" style={{
-          position: 'absolute',
-          width: isMobile ? '300px' : '600px',
-          height: isMobile ? '300px' : '600px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0, 210, 255, 0.05) 40%, transparent 70%)',
-          filter: 'blur(60px)',
-          top: '10%',
-          left: '20%',
-          animation: 'aurora-float-1 20s ease-in-out infinite',
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-        }} />
-        
-        <div className="aurora-orb aurora-orb-2" style={{
-          position: 'absolute',
-          width: isMobile ? '250px' : '500px',
-          height: isMobile ? '250px' : '500px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(138, 43, 226, 0.12) 0%, rgba(138, 43, 226, 0.04) 40%, transparent 70%)',
-          filter: 'blur(50px)',
-          top: '50%',
-          right: '15%',
-          animation: 'aurora-float-2 25s ease-in-out infinite',
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-        }} />
-        
-        <div className="aurora-orb aurora-orb-3" style={{
-          position: 'absolute',
-          width: isMobile ? '280px' : '550px',
-          height: isMobile ? '280px' : '550px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255, 94, 91, 0.1) 0%, rgba(255, 94, 91, 0.03) 40%, transparent 70%)',
-          filter: 'blur(55px)',
-          bottom: '15%',
-          left: '10%',
-          animation: 'aurora-float-3 22s ease-in-out infinite',
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-        }} />
-        
-        <div className="aurora-orb aurora-orb-4" style={{
-          position: 'absolute',
-          width: isMobile ? '200px' : '400px',
-          height: isMobile ? '200px' : '400px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(29, 185, 84, 0.08) 0%, rgba(29, 185, 84, 0.02) 40%, transparent 70%)',
-          filter: 'blur(45px)',
-          top: '70%',
-          right: '25%',
-          animation: 'aurora-float-4 18s ease-in-out infinite',
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-        }} />
-      </div>
+      {!isMobile && (
+        <div style={{
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          contain: 'strict',
+          willChange: 'auto',
+        }}>
+          {/* Aurora Orbs — GPU-promoted for zero jitter */}
+          <div className="aurora-orb aurora-orb-1" style={{
+            position: 'absolute',
+            width: isMobile ? '300px' : '600px',
+            height: isMobile ? '300px' : '600px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0, 210, 255, 0.05) 40%, transparent 70%)',
+            filter: 'blur(60px)',
+            top: '10%',
+            left: '20%',
+            animation: 'aurora-float-1 20s ease-in-out infinite',
+            willChange: 'transform, opacity',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+          }} />
+          
+          <div className="aurora-orb aurora-orb-2" style={{
+            position: 'absolute',
+            width: isMobile ? '250px' : '500px',
+            height: isMobile ? '250px' : '500px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(138, 43, 226, 0.12) 0%, rgba(138, 43, 226, 0.04) 40%, transparent 70%)',
+            filter: 'blur(50px)',
+            top: '50%',
+            right: '15%',
+            animation: 'aurora-float-2 25s ease-in-out infinite',
+            willChange: 'transform, opacity',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+          }} />
+          
+          <div className="aurora-orb aurora-orb-3" style={{
+            position: 'absolute',
+            width: isMobile ? '280px' : '550px',
+            height: isMobile ? '280px' : '550px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255, 94, 91, 0.1) 0%, rgba(255, 94, 91, 0.03) 40%, transparent 70%)',
+            filter: 'blur(55px)',
+            bottom: '15%',
+            left: '10%',
+            animation: 'aurora-float-3 22s ease-in-out infinite',
+            willChange: 'transform, opacity',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+          }} />
+          
+          <div className="aurora-orb aurora-orb-4" style={{
+            position: 'absolute',
+            width: isMobile ? '200px' : '400px',
+            height: isMobile ? '200px' : '400px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(29, 185, 84, 0.08) 0%, rgba(29, 185, 84, 0.02) 40%, transparent 70%)',
+            filter: 'blur(45px)',
+            top: '70%',
+            right: '25%',
+            animation: 'aurora-float-4 18s ease-in-out infinite',
+            willChange: 'transform, opacity',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+          }} />
+        </div>
+      )}
       
       {/* Content Container with relative positioning */}
       <div style={{ position: 'relative', zIndex: 1 }}>
-      {/* ─── Daily Songs Carousel (Aesthetic & Scrollable) ─── */}
-      {dailySongs.length > 0 && (
-        <div style={{
-          marginBottom: isMobile ? '20px' : '32px',
-          position: 'relative'
-        }}>
-          <div 
-            ref={postersScrollRef}
-            className="posters-scroll"
-            style={{
-              display: 'flex',
-              gap: isMobile ? '12px' : '20px',
-              overflowX: 'auto',
-              scrollSnapType: 'x mandatory',
-              scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: '8px'
-            }}
-          >
-            {dailySongs.map((song, idx) => (
-              <div
-                key={song.videoId || idx}
-                onClick={() => handlePlaySong(song, dailySongs, idx)}
-                style={{
-                  position: 'relative',
-                  width: isMobile ? '85vw' : '480px',
-                  height: isMobile ? '180px' : '280px',
-                  borderRadius: isMobile ? '12px' : '16px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  scrollSnapAlign: 'start',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-                }}
-                className="aesthetic-poster"
-              >
-                {/* Background Image */}
-                <img 
-                  src={song.thumbnail} 
-                  alt={song.title}
-                  loading="eager"
-                  decoding="async"
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                />
-                
-                {/* Gradient overlay for text readability */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0, left: 0, right: 0, bottom: 0,
-                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)'
-                }} />
-                
-                {/* Song Title at Bottom */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  padding: isMobile ? '12px' : '20px',
-                  zIndex: 2
-                }}>
-                  <h3 style={{
-                    fontSize: isMobile ? '14px' : '18px',
-                    fontWeight: 700,
-                    color: '#fff',
-                    margin: 0,
-                    lineHeight: 1.3,
-                    textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical'
-                  }}>
-                    {song.title}
-                  </h3>
-                  {song.artist && (
-                    <p style={{
-                      fontSize: isMobile ? '12px' : '14px',
-                      color: 'rgba(255,255,255,0.85)',
-                      fontWeight: 500,
-                      margin: '4px 0 0 0',
-                      textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {song.artist}
-                    </p>
-                  )}
-                </div>
-                
-                {/* Hover play icon overlay */}
-                <div 
-                  className="poster-play-overlay"
-                  style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(0,0,0,0.4)',
-                    backdropFilter: 'blur(8px)',
-                    opacity: 0,
-                    transition: 'opacity 0.3s ease'
-                  }}
-                >
-                  <div style={{
-                    width: isMobile ? '56px' : '80px',
-                    height: isMobile ? '56px' : '80px',
-                    borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.95)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                    transform: 'scale(0.9)',
-                    transition: 'transform 0.3s ease'
-                  }}
-                  className="poster-play-icon"
-                  >
-                    <FiPlay 
-                      size={isMobile ? 24 : 32} 
-                      fill="currentColor" 
-                      style={{ color: '#000', marginLeft: '4px' }} 
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* Static Dots Navigation - Outside carousel */}
-          {dailySongs.length > 1 && (
-            <div style={{
-              position: 'absolute',
-              bottom: isMobile ? '12px' : '16px',
-              left: 0,
-              right: 0,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '8px',
-              zIndex: 10,
-              pointerEvents: 'auto'
-            }}>
-              {dailySongs.map((_, dotIdx) => (
-                <button
-                  key={dotIdx}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const scrollContainer = postersScrollRef.current
-                    if (scrollContainer) {
-                      const poster = scrollContainer.querySelector('.aesthetic-poster')
-                      if (poster) {
-                        const posterWidth = poster.offsetWidth
-                        const gap = isMobile ? 12 : 20
-                        scrollContainer.scrollTo({
-                          left: dotIdx * (posterWidth + gap),
-                          behavior: 'smooth'
-                        })
-                      }
-                    }
-                  }}
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: dotIdx === activePosterIndex ? '#fff' : 'rgba(255,255,255,0.4)',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    transform: dotIdx === activePosterIndex ? 'scale(1.2)' : 'scale(1)'
-                  }}
-                  aria-label={`Go to slide ${dotIdx + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ─── 2. Top Radios (Scroll Row) ─── */}
-      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
-          <SectionHeader title="Top Radios" scrollRef={recentRef} isMobile={isMobile} />
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.06)',
-          borderRadius: '16px',
-          padding: isMobile ? '16px 0' : '20px 0',
-          boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.03)'
-        }} className="ambient-box">
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
-            {recentTracks.map((song, i) => (
-              <VerticalCard 
-                key={i} 
-                song={song} 
-                isMobile={isMobile}
-                onClick={() => handlePlaySong(song, recentTracks, i)} 
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ─── 2b. Popular Artists (Scroll Row) ─── */}
-      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
-          <SectionHeader title="Popular Artists" scrollRef={artistsRef} isMobile={isMobile} />
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={artistsRef}>
-            {TOP_ARTISTS.map((artist, i) => (
-              <VerticalCard key={i} song={artist} isArtist isMobile={isMobile} onClick={() => handleArtistClick(artist.name)} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ─── 2c. Recently Listened (Scroll Row) ─── */}
-      {recentlyPlayed && recentlyPlayed.length > 0 && (
-        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
-            <SectionHeader title="Recently Listened" scrollRef={listenRef} isMobile={isMobile} />
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
-            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={listenRef}>
-              {recentlyPlayed.slice(0, 10).map((song, i) => (
-                <VerticalCard key={song.videoId || i} song={song} isMobile={isMobile} onClick={() => handlePlaySong(song, recentlyPlayed, i)} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── 3. Your Playlists (2-row horizontal scroll on mobile) ─── */}
-      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
-          <SectionHeader title="Your Playlists" isMobile={isMobile} />
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+      <div style={{ marginTop: isMobile ? '16px' : '24px', marginBottom: isMobile ? '20px' : '40px' }}>
+
+        <div className="ambient-box">
           <div className="playlists-grid" style={{ padding: isMobile ? '0 16px' : '0 20px' }}>
             {userPlaylists.slice(0, 10).map((playlist, i) => {
               const isLiked = playlist.name === 'Liked Songs'
@@ -741,13 +483,116 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* ─── 2. Top Radios (Scroll Row) ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Top Radios" scrollRef={recentRef} isMobile={isMobile} />
+        </div>
+        <div className="ambient-box">
+          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
+            {recentTracks.map((song, i) => (
+              <VerticalCard 
+                key={i} 
+                song={song} 
+                isMobile={isMobile}
+                onClick={() => handlePlaySong(song, recentTracks, i)} 
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2b. Popular Artists (Scroll Row) ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Popular Artists" scrollRef={artistsRef} isMobile={isMobile} />
+        </div>
+        <div className="ambient-box">
+          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={artistsRef}>
+            {TOP_ARTISTS.map((artist, i) => (
+              <VerticalCard key={i} song={artist} isArtist isMobile={isMobile} onClick={() => handleArtistClick(artist.name)} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2c. Recently Listened (Scroll Row) ─── */}
+      {recentlyPlayed && recentlyPlayed.length > 0 && (
+        <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader title="Recently Listened" scrollRef={listenRef} isMobile={isMobile} />
+          </div>
+          <div className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={listenRef}>
+              {recentlyPlayed.slice(0, 10).map((song, i) => (
+                <VerticalCard key={song.videoId || i} song={song} isMobile={isMobile} onClick={() => handlePlaySong(song, recentlyPlayed, i)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Categories ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Categories" isMobile={isMobile} />
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: isMobile ? '6px' : '16px', // Reduced gap on mobile to make boxes broader
+          padding: isMobile ? '0 8px' : '0 20px' // Reduced padding on mobile to make boxes broader
+        }}>
+          {[
+            { name: 'Pop', color: '#8B5CF6' },
+            { name: 'EDM', color: '#F59E0B' },
+            { name: 'Podcasts', color: '#0EA5E9' },
+            { name: 'Rock', color: '#BE185D' },
+            { name: 'Hip-Hop', color: '#0D9488' },
+            { name: 'Jazz', color: '#EA580C' },
+            { name: 'Classical', color: '#4F46E5' },
+            { name: 'Country', color: '#16A34A' },
+            { name: 'R&B', color: '#E11D48' },
+          ].map((cat) => (
+            <div
+              key={cat.name}
+              onClick={() => navigate(`/search?q=${encodeURIComponent(cat.name + ' music')}`)}
+              style={{
+                background: cat.color,
+                borderRadius: isMobile ? '10px' : '14px',
+                height: isMobile ? '72px' : '100px', // Fixed height ensures equal size
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 4px 16px ${cat.color}44`,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cat.color}66` }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = `0 4px 16px ${cat.color}44` }}
+            >
+              <span style={{
+                color: '#fff',
+                fontSize: isMobile ? '15px' : '18px',
+                fontWeight: 700,
+                textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                letterSpacing: '0.5px'
+              }}>
+                {cat.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
       {/* ─── 5. New Releases (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : trending.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="New Releases" scrollRef={newRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={newRef}>
               {trending.slice(0, 8).map((song) => (
                 <VerticalCard key={song.videoId} song={song} isNewRelease isMobile={isMobile} onClick={() => navigate(`/playlist/New%20Releases`)} />
@@ -760,10 +605,10 @@ export default function HomePage() {
       {/* ─── 5b. Popular Albums (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Popular Albums" scrollRef={popularRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={popularRef}>
               {popularAlbums.slice(0, 10).map((song, i) => (
                 <VerticalCard 
@@ -781,10 +626,10 @@ export default function HomePage() {
       {/* ─── 6. Recommended For You (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : recommendations.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Recommended For You" scrollRef={recomRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recomRef}>
               {recommendations.slice(0, 10).map((song, i) => (
                 <VerticalCard 
@@ -922,10 +767,10 @@ export default function HomePage() {
       {/* ─── 8. Top English Rap ─── */}
       {loading ? <SkeletonRow /> : madeForYou.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top English Rap" scrollRef={rapRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={rapRef}>
               {madeForYou.slice(0, 10).map((song, i) => (
                 <VerticalCard
@@ -943,10 +788,10 @@ export default function HomePage() {
       {/* ─── 9. Top Hollywood ─── */}
       {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Hollywood" scrollRef={hollywoodRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={hollywoodRef}>
               {popularAlbums.slice(0, 10).map((song, i) => (
                 <VerticalCard
@@ -964,10 +809,10 @@ export default function HomePage() {
       {/* ─── 10. Top Bollywood ─── */}
       {loading ? <SkeletonRow /> : trending.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Bollywood" scrollRef={bollywoodRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={bollywoodRef}>
               {trending.slice(0, 10).map((song, i) => (
                 <VerticalCard
@@ -985,10 +830,10 @@ export default function HomePage() {
       {/* ─── 11. Top Hindi Rap ─── */}
       {loading ? <SkeletonRow /> : recommendations.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '0 16px' : '0 20px', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Hindi Rap" scrollRef={hindiRapRef} isMobile={isMobile} />
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: isMobile ? '16px 0' : '20px 0', boxShadow: '0 0 40px rgba(0, 210, 255, 0.08), 0 0 20px rgba(138, 43, 226, 0.06), 0 4px 20px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.03)' }} className="ambient-box">
+          <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={hindiRapRef}>
               {recommendations.slice(0, 10).map((song, i) => (
                 <VerticalCard

@@ -8,6 +8,7 @@ import {
 import { getLyrics } from '../../utils/api.js'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { haptics } from '../../utils/haptics.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 /* ─── Time Formatter ─── */
 function fmt(s) {
@@ -37,6 +38,75 @@ function usePlayerTime() {
   return { currentTime, duration }
 }
 
+/* ─── Dominant Color Extractor ─── */
+export function useDominantColor(thumb) {
+  const [color, setColor] = useState('hsl(260, 75%, 32%)') // fallback
+  useEffect(() => {
+    if (!thumb) return
+    let cancelled = false
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    
+    img.onload = () => {
+      if (cancelled) return
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = 40
+        canvas.height = 40
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, 40, 40)
+        const data = ctx.getImageData(0, 0, 40, 40).data
+        
+        // bucket colors to find the most dominant vibrant color
+        const buckets = {}
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3]
+          if (a < 128) continue
+          const max = Math.max(r, g, b), min = Math.min(r, g, b)
+          const sat = max === 0 ? 0 : (max - min) / max
+          if (sat < 0.2) continue // skip pure greys/blacks/whites
+          
+          const key = `${Math.round(r/32)*32},${Math.round(g/32)*32},${Math.round(b/32)*32}`
+          buckets[key] = (buckets[key] || 0) + 1 + sat // weight by occurrence and saturation
+        }
+        
+        let best = null, bestScore = 0
+        for (const [key, score] of Object.entries(buckets)) {
+          if (score > bestScore) { bestScore = score; best = key }
+        }
+        
+        if (best) {
+          const [r, g, b] = best.split(',').map(Number)
+          // Convert dominant RGB to HSL and boost saturation/set fixed lightness for consistency
+          const max = Math.max(r,g,b)/255, min = Math.min(r,g,b)/255
+          const l = (max+min)/2
+          const h = max===min ? 0 : max===r/255 ? ((g-b)/255/(max-min)+6)%6*60
+            : max===g/255 ? (b-r)/255/(max-min)*60+120
+            : (r-g)/255/(max-min)*60+240
+          
+          setColor(`hsl(${Math.round(h)}, 80%, 32%)`)
+        }
+      } catch(e) {
+        console.warn('Canvas color extraction failed:', e)
+      }
+    }
+    img.onerror = () => {
+      // Fallback to hash-based color if proxy fails
+      if (cancelled) return
+      let hash = 0
+      for (let i = 0; i < thumb.length; i++) hash = thumb.charCodeAt(i) + ((hash << 5) - hash)
+      setColor(`hsl(${Math.abs(hash % 360)}, 80%, 32%)`)
+    }
+    
+    // Proxy the image to avoid canvas CORS taint using wsrv.nl (highly reliable image proxy)
+    const proxyUrl = 'https://wsrv.nl/?url=' + encodeURIComponent(thumb)
+    img.src = proxyUrl
+    
+    return () => { cancelled = true }
+  }, [thumb])
+  return color
+}
+
 export default function Player() {
   const {
     currentSong, isPlaying, togglePlay,
@@ -54,7 +124,7 @@ export default function Player() {
   const [localVolume, setLocalVolume] = useState(1) // 0 to 1
   const [isQueueOpen, setIsQueueOpen] = useState(false)
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const isMobile = useIsMobile()
   const queueRef = useRef(null)
   
   // Motion values for smooth animations
@@ -62,12 +132,6 @@ export default function Player() {
   const heightValue = useTransform(dragY, [-250, 0], [180, 64], { clamp: true })
   const borderRadiusValue = useTransform(dragY, [-250, 0], [28, 12], { clamp: true })
   const scaleValue = useTransform(dragY, [-250, 0], [1.03, 1], { clamp: true })
-  
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
 
   // Set global audio volume
   useEffect(() => {
@@ -87,10 +151,12 @@ export default function Player() {
   }, [isQueueOpen])
 
 
+  const thumb = currentSong?.thumbnail || (currentSong ? `https://i.ytimg.com/vi/${currentSong.videoId}/mqdefault.jpg` : '')
+  const dominantColor = useDominantColor(thumb)
+
   if (!currentSong) return null
 
-  const saved = currentSong ? isSongSaved(currentSong.videoId) : false
-  const thumb = currentSong.thumbnail || `https://i.ytimg.com/vi/${currentSong.videoId}/mqdefault.jpg`
+  const saved = isSongSaved(currentSong.videoId)
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0
 
   if (isMobile) {
@@ -104,15 +170,17 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          // Dock above the floating nav bar: nav height (56px) + nav bottom margin (2px) + gap (8px)
-          bottom: 'calc(66px + env(safe-area-inset-bottom, 0px))',
-          left: '24px',
-          right: '24px',
-          height: '64px', // Fixed height
-          background: 'rgba(32, 32, 32, 0.3)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          // Dock flush against the full-width nav bar (64px)
+          bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+          left: '12px',
+          right: '12px',
+          height: '56px',
+          background: dominantColor,
+          transition: 'background 0.4s ease', // smooth color change between tracks
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
           borderRadius: '12px', // Fixed radius
+          overflow: 'hidden', // Contain the blurred background
           display: 'flex',
           alignItems: 'center',
           padding: '0 12px',
@@ -131,11 +199,14 @@ export default function Player() {
           WebkitUserSelect: 'none'
         }}
       >
-        <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '6px', overflow: 'hidden', flexShrink: 0, pointerEvents: 'none' }}>
+
+
+        {/* Content sits above the blurred background */}
+        <div style={{ position: 'relative', zIndex: 1, width: 40, height: 40, borderRadius: '6px', overflow: 'hidden', flexShrink: 0, pointerEvents: 'none' }}>
           <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         
-        <div style={{ flex: 1, minWidth: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, pointerEvents: 'none' }}>
           <p className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0 }}>
             {currentSong.title}
           </p>
@@ -150,7 +221,7 @@ export default function Player() {
           onTouchStart={(e) => e.stopPropagation()}
           style={{
             background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
-            color: saved ? 'var(--accent)' : 'var(--text-secondary)',
+            color: saved ? 'var(--accent)' : '#fff',
             pointerEvents: 'auto',
             WebkitTapHighlightColor: 'transparent'
           }}

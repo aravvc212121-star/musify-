@@ -175,22 +175,7 @@ export default function LibraryPage() {
         }
       `}</style>
 
-      {/* ─── Header ─── */}
-      <div style={{ padding: '48px 32px 16px' }} className="library-header">
-        {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['Playlists', 'Recently Played', 'Liked Songs'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(filter === f ? 'All' : f)}
-              className={`filter-pill ${filter === f ? 'active' : 'inactive'}`}
-              style={{ border: 'none' }}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ─── Header Removed ─── */}
 
       <div style={{ padding: '0 32px' }} className="library-content">
         {/* ─── Section A: Recently Listened ─── */}

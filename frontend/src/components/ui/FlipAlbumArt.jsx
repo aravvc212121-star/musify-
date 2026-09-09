@@ -147,21 +147,24 @@ export function FlipAlbumArt({ song, currentTime, duration, isPlaying, onExpandL
                 transition: 'transform 400ms ease',
                 position: 'absolute', top: 0, bottom: 0, left: 16, right: 16
               }}>
-                {lines.map((text, idx) => {
-                  const isCurrent = idx === activeLineIdx;
-                  const isVisible = Math.abs(idx - activeLineIdx) <= 2;
+                {visibleLines.map(({ text, idx, isCurrent }) => {
+                  if (text === '') {
+                    return (
+                      <p key={idx} style={{ margin: 0, minHeight: fontSize * 1.4, opacity: 0, pointerEvents: 'none' }} />
+                    )
+                  }
                   
                   return (
                     <p key={idx} style={{
                       textAlign: 'center', fontWeight: isCurrent ? 900 : 700, lineHeight: 1.4,
                       fontSize: isCurrent ? fontSize + 2 : fontSize,
                       color: isCurrent ? '#fff' : 'rgba(255,255,255,0.4)',
-                      opacity: isVisible ? 1 : 0,
+                      opacity: 1,
                       transition: 'color 400ms ease, font-size 400ms ease, opacity 400ms ease',
                       margin: 0, minHeight: fontSize * 1.4,
                       letterSpacing: isCurrent ? '-0.3px' : '0',
                       textShadow: isCurrent ? '0 0 20px rgba(255,255,255,0.3)' : 'none',
-                      pointerEvents: isVisible ? 'auto' : 'none'
+                      pointerEvents: 'auto'
                     }}>
                       {text}
                     </p>

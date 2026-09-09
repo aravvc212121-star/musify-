@@ -7,16 +7,19 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FiHome, FiSearch, FiBook } from 'react-icons/fi'
+import { MdHomeFilled } from 'react-icons/md'
+import { BiSearch } from 'react-icons/bi'
+import { FiBook, FiPlus } from 'react-icons/fi'
 import { haptics } from '../../utils/haptics.js'
 
 const TABS = [
-  { path: '/', label: 'Home', Icon: FiHome },
-  { path: '/search', label: 'Search', Icon: FiSearch },
-  { path: '/library', label: 'Library', Icon: FiBook },
+  { path: '/', label: 'Home', Icon: MdHomeFilled },
+  { path: '/search', label: 'Search', Icon: BiSearch },
+  { action: 'create-playlist', label: 'Create', Icon: FiPlus },
+  { path: '/library', label: 'Your Library', Icon: FiBook },
 ]
 
-export const NAV_BAR_HEIGHT = 56
+export const NAV_BAR_HEIGHT = 64
 export const NAV_BAR_BOTTOM_MARGIN = 2 // px above safe-area
 
 export default function MobileNav() {
@@ -67,7 +70,12 @@ export default function MobileNav() {
   // --- Tap handler ---
   const handleTap = useCallback((idx) => {
     haptics.light()
-    navigate(TABS[idx].path)
+    const tab = TABS[idx]
+    if (tab.action === 'create-playlist') {
+      window.dispatchEvent(new CustomEvent('open-create-playlist'))
+    } else {
+      navigate(tab.path)
+    }
   }, [navigate])
 
   // --- Drag gesture handlers ---
@@ -104,7 +112,12 @@ export default function MobileNav() {
   const handleTouchEnd = useCallback(() => {
     if (isDragging && dragOverIdx >= 0 && dragOverIdx !== activeIndex) {
       haptics.light()
-      navigate(TABS[dragOverIdx].path)
+      const tab = TABS[dragOverIdx]
+      if (tab.action === 'create-playlist') {
+        window.dispatchEvent(new CustomEvent('open-create-playlist'))
+      } else {
+        navigate(tab.path)
+      }
     }
     setIsDragging(false)
     setDragOverIdx(-1)
@@ -114,27 +127,35 @@ export default function MobileNav() {
     }
   }, [isDragging, dragOverIdx, activeIndex, navigate, updateCapsule])
 
+  // Fix #12: Use passive native listener for touchmove
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    nav.addEventListener('touchmove', handleTouchMove, { passive: true })
+    return () => nav.removeEventListener('touchmove', handleTouchMove)
+  }, [handleTouchMove])
+
   const visualActiveIdx = isDragging && dragOverIdx >= 0 ? dragOverIdx : activeIndex
 
   return (
     <nav
       ref={navRef}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{
         position: 'fixed',
-        bottom: `calc(${NAV_BAR_BOTTOM_MARGIN}px + env(safe-area-inset-bottom, 0px))`,
-        left: '16px',
-        right: '16px',
-        height: `${NAV_BAR_HEIGHT}px`,
-        // ─── Exact mini-player glass values ───
-        background: 'rgba(32, 32, 32, 0.3)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
-        borderRadius: '16px',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        // ─── Solid background for performance (Fix #5) ───
+        background: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+        border: 'none',
+        boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.6)',
+        borderRadius: 0,
         // Layout
         display: 'flex',
         alignItems: 'center',
@@ -160,7 +181,7 @@ export default function MobileNav() {
         top: '50%',
         left: capsuleStyle.left,
         width: capsuleStyle.width,
-        height: '40px',
+        height: '48px',
         transform: 'translateY(-50%)',
         borderRadius: '12px',
         background: 'rgba(255, 255, 255, 0.08)',
@@ -173,13 +194,13 @@ export default function MobileNav() {
         zIndex: 0,
       }} />
 
-      {TABS.map(({ path, Icon }, idx) => {
-        const isActive = idx === visualActiveIdx
+      {TABS.map(({ path, action, label, Icon }, idx) => {
+        const isActive = idx === visualActiveIdx && !action
         const isPressed = idx === pressedIdx
 
         return (
           <button
-            key={path}
+            key={path || action}
             ref={el => tabRefs.current[idx] = el}
             onClick={() => {
               if (!isDragging) handleTap(idx)
@@ -190,12 +211,14 @@ export default function MobileNav() {
             onPointerCancel={() => setPressedIdx(-1)}
             style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '4px', // spacing between icon and text
               background: 'none',
               border: 'none',
               flex: 1,
-              height: '40px',
+              height: '48px',
               cursor: 'pointer',
               touchAction: 'none',
               WebkitTapHighlightColor: 'transparent',
@@ -209,14 +232,22 @@ export default function MobileNav() {
             }}
           >
             <Icon
-              size={30}
+              size={action === 'create-playlist' ? 32 : 28} // Make icons larger as requested
               style={{
-                strokeWidth: 1.5,
-                color: '#fff', // Pure white always
-                filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 210, 255, 0.35))' : 'none',
-                transition: 'color 0.3s ease, filter 0.3s ease, stroke-width 0.3s ease',
+                color: isActive ? '#fff' : '#a3a3a3', // Pure white if active, solid opaque gray if not
+                filter: isActive ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))' : 'none',
+                transition: 'color 0.3s ease, filter 0.3s ease',
               }}
             />
+            <span style={{ 
+              fontSize: '11px', 
+              fontWeight: 400, // Very thin, no bold
+              color: isActive ? '#fff' : '#a3a3a3',
+              transition: 'color 0.3s ease',
+              lineHeight: 1
+            }}>
+              {label}
+            </span>
           </button>
         )
       })}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { FiSearch, FiX, FiUser, FiSettings, FiLogOut, FiArrowLeft, FiArrowRight, FiCheck, FiSidebar } from 'react-icons/fi'
+import { FiSearch, FiX, FiUser, FiSettings, FiLogOut, FiArrowLeft, FiArrowRight, FiCheck, FiSidebar, FiPlus } from 'react-icons/fi'
 import { usePlayer } from '../../context/PlayerContext.jsx'
 import { useSearch } from '../../hooks/useSearch.js'
 
@@ -135,9 +135,14 @@ export default function TopBar({ isMobile = false }) {
   const pageTitle = getPageTitle()
   const isSearchPage = pathname === '/search'
 
+  // If mobile and on the home page, the TopBar has no content (since search is removed), so hide it completely to shift content up.
+  if (isMobile && pathname === '/') {
+    return null
+  }
+
   return (
     <div ref={barRef} className="top-bar-sticky" style={{
-      position: 'sticky', top: '0', zIndex: 1000,
+      position: 'relative', top: '0', zIndex: 1000,
       height: isMobile ? '64px' : '80px', 
       width: isMobile ? '100%' : 'calc(100% - 64px)',
       margin: isMobile ? '0 0 12px' : '0 32px 24px',
@@ -146,7 +151,7 @@ export default function TopBar({ isMobile = false }) {
       padding: isMobile ? '0 12px' : '0 24px',
       paddingTop: isMobile ? 'calc(12px + env(safe-area-inset-top, 0px))' : '16px',
       borderRadius: isMobile ? '0' : '12px',
-      background: 'transparent'
+      background: 'transparent',
     }}>
       
       {/* Left — Hamburger (mobile) or Nav arrows (desktop) */}
@@ -154,9 +159,9 @@ export default function TopBar({ isMobile = false }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)} style={{
-              background: 'rgba(32, 32, 32, 0.3)',
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              background: isMobile ? 'rgba(20, 20, 20, 0.95)' : 'rgba(32, 32, 32, 0.3)',
+              backdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
               border: '1px solid rgba(255,255,255,0.05)',
               color: '#fff',
               width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -168,9 +173,9 @@ export default function TopBar({ isMobile = false }) {
             </button>
             <div style={{ 
               display: 'flex', 
-              background: 'rgba(32, 32, 32, 0.3)',
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              background: isMobile ? 'rgba(20, 20, 20, 0.95)' : 'rgba(32, 32, 32, 0.3)',
+              backdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
               borderRadius: '24px', 
               overflow: 'hidden',
               border: '1px solid rgba(255,255,255,0.05)',
@@ -208,15 +213,15 @@ export default function TopBar({ isMobile = false }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flex: isMobile ? 1 : 'none', marginLeft: '0', minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
         
         {/* Search Bar */}
-        {(isSearchPage || pathname === '/') && (
+        {isSearchPage && (
           <div style={{ 
             position: 'relative', 
             width: isMobile ? '100%' : '440px',
             display: 'flex',
             alignItems: 'center',
-            background: 'rgba(32, 32, 32, 0.3)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            background: isMobile ? 'rgba(20, 20, 20, 0.95)' : 'rgba(32, 32, 32, 0.3)',
+            backdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
             borderRadius: '24px',
             padding: '0 12px',
             height: isMobile ? '38px' : '42px',

@@ -261,8 +261,13 @@ export function PlayerProvider({ children }) {
     audio.volume = volume / 100
     audio.preload = 'auto'
 
+    const lastRoundedTimeRef = { current: -1 }
     const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
+      const roundedTime = Math.floor(audio.currentTime)
+      if (roundedTime !== lastRoundedTimeRef.current) {
+        lastRoundedTimeRef.current = roundedTime
+        setCurrentTime(audio.currentTime)
+      }
 
       // Crossfade logic
       const hasNext = (queueIndexRef.current + 1 < queueRef.current.length) || (recommendationsRef.current.length > 0)
@@ -482,18 +487,24 @@ export function PlayerProvider({ children }) {
       navigator.mediaSession.setActionHandler('pause', () => togglePlay())
       navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious())
       navigator.mediaSession.setActionHandler('nexttrack', () => playNext())
-
-      if (duration > 0) {
-        try {
-          navigator.mediaSession.setPositionState({
-            duration: duration,
-            playbackRate: 1,
-            position: Math.min(currentTime, duration)
-          })
-        } catch (e) { /* ignore */ }
-      }
     }
-  }, [currentSong, duration, currentTime])
+  }, [currentSong])
+
+  const lastPositionUpdateRef = useRef(0)
+  useEffect(() => {
+    if ('mediaSession' in navigator && duration > 0) {
+      const now = Date.now()
+      if (now - lastPositionUpdateRef.current < 10000) return
+      lastPositionUpdateRef.current = now
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: duration,
+          playbackRate: 1,
+          position: Math.min(currentTime, duration)
+        })
+      } catch (e) { /* ignore */ }
+    }
+  }, [duration, currentTime])
 
   useEffect(() => {
     if ('mediaSession' in navigator) {
