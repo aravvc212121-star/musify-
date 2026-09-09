@@ -97,7 +97,7 @@ export default function PlaylistPage() {
         <button 
           onClick={() => navigate(-1)}
           style={{
-            position: 'absolute', top: '16px', left: '16px',
+            position: 'absolute', top: 'calc(16px + env(safe-area-inset-top, 0px))', left: '16px',
             background: 'rgba(0,0,0,0.3)', border: 'none', borderRadius: '50%',
             width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', cursor: 'pointer', transition: 'background 0.2s ease'

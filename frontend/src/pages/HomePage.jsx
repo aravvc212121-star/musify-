@@ -17,19 +17,21 @@ function getGreeting() {
 
 /* ─── Top Artists Data ─── */
 const TOP_ARTISTS = [
-  { name: 'Honey Singh', img: 'https://i.ytimg.com/vi/NbyHNASFi6U/mqdefault.jpg' },
-  { name: 'Lata Mangeshkar', img: 'https://i.ytimg.com/vi/TFr6G5zveS8/mqdefault.jpg' },
-  { name: 'The Weeknd', img: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/mqdefault.jpg' },
-  { name: 'Dua Lipa', img: 'https://i.ytimg.com/vi/WHuBW3qKm9g/mqdefault.jpg' },
-  { name: 'Arijit Singh', img: 'https://i.ytimg.com/vi/SxTYjptEzZs/mqdefault.jpg' },
-  { name: 'Drake', img: 'https://i.ytimg.com/vi/uxpDa-c-4Mc/mqdefault.jpg' },
-  { name: 'Seedhe Maut', img: 'https://i.ytimg.com/vi/dm2RHGYRtas/hqdefault.jpg' },
-  { name: 'Taylor Swift', img: 'https://i.ytimg.com/vi/ic8j13piAhQ/mqdefault.jpg' },
-  { name: 'Post Malone', img: 'https://i.ytimg.com/vi/SC4xMk98Pdc/mqdefault.jpg' },
+  { name: 'Seedhe Maut', img: 'https://cdn-images.dzcdn.net/images/artist/dbd4cd0d5c2e3f1000b742542d3d7a07/500x500-000000-80-0-0.jpg' },
+  { name: 'Karan Aujla', img: 'https://cdn-images.dzcdn.net/images/artist/a91a1d5ea91e85e4f0966569b50e8d6a/500x500-000000-80-0-0.jpg' },
+  { name: 'The Weeknd', img: 'https://cdn-images.dzcdn.net/images/artist/581693b4724a7fcfa754455101e13a44/500x500-000000-80-0-0.jpg' },
+  { name: 'Dua Lipa', img: 'https://cdn-images.dzcdn.net/images/artist/877872aaf75694f11d53c318700ab2b5/500x500-000000-80-0-0.jpg' },
+  { name: 'Taylor Swift', img: 'https://cdn-images.dzcdn.net/images/artist/e528e270424103b527f8a27ac625563b/500x500-000000-80-0-0.jpg' },
+  { name: 'Arijit Singh', img: 'https://cdn-images.dzcdn.net/images/artist/ac5350cff290edd5b69fa584b8b1bd4f/500x500-000000-80-0-0.jpg' },
+  { name: 'Diljit Dosanjh', img: 'https://cdn-images.dzcdn.net/images/artist/79b85e695e0ca6529e56bf3b628e92bd/500x500-000000-80-0-0.jpg' },
+  { name: 'Honey Singh', img: 'https://cdn-images.dzcdn.net/images/artist/64af370d73cfbc33006b8adcb2508bce/500x500-000000-80-0-0.jpg' },
+  { name: 'Drake', img: 'https://cdn-images.dzcdn.net/images/artist/70223888f501f4b843142e071abda364/500x500-000000-80-0-0.jpg' },
+  { name: 'Post Malone', img: 'https://cdn-images.dzcdn.net/images/artist/a5a8cca44e7eab2db7d44e039bed2574/500x500-000000-80-0-0.jpg' },
+  { name: 'Lata Mangeshkar', img: 'https://cdn-images.dzcdn.net/images/artist/837d46f90f541736e07817f463317c80/500x500-000000-80-0-0.jpg' },
 ]
 
 /* ─── Section Header ─── */
-function SectionHeader({ title, scrollRef, isMobile }) {
+function SectionHeader({ title, subtitle, poster, scrollRef, isMobile }) {
   const scroll = (dir) => {
     if (scrollRef.current) {
       const amt = dir === 'left' ? -600 : 600;
@@ -42,7 +44,40 @@ function SectionHeader({ title, scrollRef, isMobile }) {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       marginBottom: isMobile ? '10px' : '16px',
     }}>
-      <h2 style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#ffffff' }}>{title}</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '14px' }}>
+        {poster && (
+          <img 
+            src={poster} 
+            alt="" 
+            loading="lazy"
+            decoding="async"
+            style={{
+              width: isMobile ? '40px' : '48px',
+              height: isMobile ? '40px' : '48px',
+              borderRadius: '4px',
+              objectFit: 'cover',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+              flexShrink: 0
+            }} 
+          />
+        )}
+        <div>
+          {subtitle && (
+            <div style={{ 
+              fontSize: isMobile ? '11px' : '13px', 
+              color: '#b3b3b3', 
+              fontWeight: 500,
+              lineHeight: 1.2,
+              marginBottom: '2px'
+            }}>
+              {subtitle}
+            </div>
+          )}
+          <h2 style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#ffffff', margin: 0, lineHeight: 1.2 }}>
+            {title}
+          </h2>
+        </div>
+      </div>
       {!isMobile && scrollRef && (
         <div style={{ display: 'flex', gap: '8px' }}>
           <button 
@@ -490,8 +525,14 @@ export default function HomePage() {
 
       {/* ─── 2. Top Radios (Scroll Row) ─── */}
       <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
-          <SectionHeader title="Top Radios" scrollRef={recentRef} isMobile={isMobile} />
+        <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader 
+            title="Top Radios" 
+            subtitle="More like"
+            poster={recentTracks[0]?.thumbnail || recentTracks[0]?.img || dailySongs[0]?.thumbnail || TOP_ARTISTS[0]?.img}
+            scrollRef={recentRef} 
+            isMobile={isMobile} 
+          />
         </div>
         <div className="ambient-box">
           <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
@@ -509,7 +550,7 @@ export default function HomePage() {
 
       {/* ─── 2b. Popular Artists (Scroll Row) ─── */}
       <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+        <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
           <SectionHeader title="Popular Artists" scrollRef={artistsRef} isMobile={isMobile} />
         </div>
         <div className="ambient-box">
@@ -524,7 +565,7 @@ export default function HomePage() {
       {/* ─── 2c. Recently Listened (Scroll Row) ─── */}
       {recentlyPlayed && recentlyPlayed.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Recently Listened" scrollRef={listenRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">
@@ -539,7 +580,7 @@ export default function HomePage() {
 
       {/* ─── Categories ─── */}
       <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+        <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
           <SectionHeader title="Categories" isMobile={isMobile} />
         </div>
         <div style={{
@@ -594,8 +635,14 @@ export default function HomePage() {
       {/* ─── 5. New Releases (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : trending.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
-            <SectionHeader title="New Releases" scrollRef={newRef} isMobile={isMobile} />
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader 
+              title="New Releases" 
+              subtitle="Latest"
+              poster={trending[0]?.thumbnail || trending[0]?.img}
+              scrollRef={newRef} 
+              isMobile={isMobile} 
+            />
           </div>
           <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={newRef}>
@@ -610,8 +657,14 @@ export default function HomePage() {
       {/* ─── 5b. Popular Albums (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
-            <SectionHeader title="Popular Albums" scrollRef={popularRef} isMobile={isMobile} />
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
+            <SectionHeader 
+              title="Popular Albums" 
+              subtitle="Trending"
+              poster={popularAlbums[0]?.thumbnail || popularAlbums[0]?.img}
+              scrollRef={popularRef} 
+              isMobile={isMobile} 
+            />
           </div>
           <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={popularRef}>
@@ -631,7 +684,7 @@ export default function HomePage() {
       {/* ─── 6. Recommended For You (Scroll Row) ─── */}
       {loading ? <SkeletonRow /> : recommendations.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Recommended For You" scrollRef={recomRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">
@@ -772,7 +825,7 @@ export default function HomePage() {
       {/* ─── 8. Top English Rap ─── */}
       {loading ? <SkeletonRow /> : madeForYou.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top English Rap" scrollRef={rapRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">
@@ -793,7 +846,7 @@ export default function HomePage() {
       {/* ─── 9. Top Hollywood ─── */}
       {loading ? <SkeletonRow /> : popularAlbums.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Hollywood" scrollRef={hollywoodRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">
@@ -814,7 +867,7 @@ export default function HomePage() {
       {/* ─── 10. Top Bollywood ─── */}
       {loading ? <SkeletonRow /> : trending.length > 0 && (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Bollywood" scrollRef={bollywoodRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">
@@ -835,7 +888,7 @@ export default function HomePage() {
       {/* ─── 11. Top Hindi Rap ─── */}
       {loading ? <SkeletonRow /> : recommendations.length > 0 && (
         <div>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 20px 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
             <SectionHeader title="Top Hindi Rap" scrollRef={hindiRapRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">

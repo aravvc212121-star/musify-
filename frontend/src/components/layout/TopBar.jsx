@@ -135,8 +135,8 @@ export default function TopBar({ isMobile = false }) {
   const pageTitle = getPageTitle()
   const isSearchPage = pathname === '/search'
 
-  // If mobile and on the home page, the TopBar has no content (since search is removed), so hide it completely to shift content up.
-  if (isMobile && pathname === '/') {
+  // If mobile and on the home, artist, or playlist page, hide TopBar completely so content starts directly at the top.
+  if (isMobile && (pathname === '/' || pathname.startsWith('/artist/') || pathname.startsWith('/playlist/'))) {
     return null
   }
 
@@ -201,7 +201,7 @@ export default function TopBar({ isMobile = false }) {
       {/* Center Title (only when no search bar, desktop only) */}
       {!isMobile && (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative' }}>
-          {(!isSearchPage && pathname !== '/') && (
+          {(!isSearchPage && pathname !== '/' && !pathname.startsWith('/artist/') && !pathname.startsWith('/playlist/')) && (
             <span style={{ fontSize: '16px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '400px' }}>
               {pageTitle}
             </span>
@@ -274,8 +274,8 @@ export default function TopBar({ isMobile = false }) {
           </div>
         )}
 
-        {/* Mobile page title (when not on search/home) */}
-        {isMobile && !isSearchPage && pathname !== '/' && (
+        {/* Mobile page title (when not on search/home/artist/playlist) */}
+        {isMobile && !isSearchPage && pathname !== '/' && !pathname.startsWith('/artist/') && !pathname.startsWith('/playlist/') && (
           <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
             {pageTitle}
           </span>
