@@ -146,7 +146,7 @@ function AppShell({ location }) {
     }}>
       <div 
         id="app-main-content"
-        style={isFullScreenPlayer ? {
+        style={(!isMobile && isFullScreenPlayer) ? {
           position: 'fixed',
           inset: 0,
           overflow: 'hidden',
@@ -181,7 +181,7 @@ function AppShell({ location }) {
       </div>
 
       {/* Floating pill nav bar for mobile */}
-      {isMobile && !isFullScreenPlayer && <MobileNav />}
+      {isMobile && <MobileNav />}
 
       <FullScreenPlayer />
       <GlobalModals />

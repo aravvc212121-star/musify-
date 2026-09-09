@@ -198,15 +198,33 @@ function SkeletonRow() {
   )
 }
 
+/* ─── Persistent Home Cache (Prevents Top Radios & sections from reloading repeatedly) ─── */
+const HOME_CACHE_KEY = 'rhym_home_sections_cache_v2'
+
+function getInitialHomeCache() {
+  try {
+    const raw = localStorage.getItem(HOME_CACHE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed && Date.now() - (parsed.timestamp || 0) < 4 * 60 * 60 * 1000) {
+        return parsed.data || {}
+      }
+    }
+  } catch {}
+  return {}
+}
+
+let memoryHomeCache = getInitialHomeCache()
+
 /* ═══ HOME PAGE ═══ */
 export default function HomePage() {
   const navigate = useNavigate()
   const { playSong, userPlaylists, recentlyPlayed } = usePlayer()
-  const [trending, setTrending] = useState([])
-  const [madeForYou, setMadeForYou] = useState([])
-  const [popularAlbums, setPopularAlbums] = useState([])
-  const [recommendations, setRecommendations] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [trending, setTrending] = useState(() => memoryHomeCache.trending || [])
+  const [madeForYou, setMadeForYou] = useState(() => memoryHomeCache.madeForYou || [])
+  const [popularAlbums, setPopularAlbums] = useState(() => memoryHomeCache.popularAlbums || [])
+  const [recommendations, setRecommendations] = useState(() => memoryHomeCache.recommendations || [])
+  const [loading, setLoading] = useState(() => !(memoryHomeCache.madeForYou && memoryHomeCache.madeForYou.length > 0))
   const [dailySongs, setDailySongs] = useState([])
   const [activePosterIndex, setActivePosterIndex] = useState(0)
 
@@ -355,6 +373,13 @@ export default function HomePage() {
   }, [dailySongs.length, isMobile])
 
   useEffect(() => {
+    // If we already have fresh data in memory/cache (within 30 min), do not re-fetch on every route visit
+    const hasData = memoryHomeCache.madeForYou && memoryHomeCache.madeForYou.length > 0
+    if (hasData && memoryHomeCache.timestamp && Date.now() - memoryHomeCache.timestamp < 30 * 60 * 1000) {
+      setLoading(false)
+      return
+    }
+
     const load = async () => {
       try {
         const [trendData, mfyData, albumData, recomData] = await Promise.all([
@@ -363,10 +388,24 @@ export default function HomePage() {
           searchSongs('popular pop albums'),
           searchSongs('trending english songs')
         ])
-        setTrending(trendData || [])
-        setMadeForYou(mfyData || [])
-        setPopularAlbums(albumData || [])
-        setRecommendations(recomData || [])
+        if (trendData?.length) setTrending(trendData)
+        if (mfyData?.length) setMadeForYou(mfyData)
+        if (albumData?.length) setPopularAlbums(albumData)
+        if (recomData?.length) setRecommendations(recomData)
+
+        const newData = {
+          trending: trendData || [],
+          madeForYou: mfyData || [],
+          popularAlbums: albumData || [],
+          recommendations: recomData || []
+        }
+        memoryHomeCache = { ...newData, timestamp: Date.now() }
+        try {
+          localStorage.setItem(HOME_CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: newData
+          }))
+        } catch {}
       } catch (e) {
         console.error('Home load error:', e)
       } finally {
@@ -480,7 +519,7 @@ export default function HomePage() {
                   key={i} 
                   onClick={() => navigate(`/playlist/${encodeURIComponent(playlist.name)}`)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
+                    background: 'rgba(255, 255, 255, 0.05)',
                     borderRadius: '8px',
                     padding: isMobile ? '8px' : '12px',
                     display: 'flex',
@@ -529,23 +568,27 @@ export default function HomePage() {
           <SectionHeader 
             title="Top Radios" 
             subtitle="More like"
-            poster={recentTracks[0]?.thumbnail || recentTracks[0]?.img || dailySongs[0]?.thumbnail || TOP_ARTISTS[0]?.img}
+            poster={recentTracks[0]?.thumbnail || recentTracks[0]?.img || TOP_ARTISTS[0]?.img}
             scrollRef={recentRef} 
             isMobile={isMobile} 
           />
         </div>
-        <div className="ambient-box">
-          <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
-            {recentTracks.map((song, i) => (
-              <VerticalCard 
-                key={i} 
-                song={song} 
-                isMobile={isMobile}
-                onClick={() => handlePlaySong(song, recentTracks, i)} 
-              />
-            ))}
+        {loading && recentTracks.length === 0 ? (
+          <SkeletonRow />
+        ) : (
+          <div className="ambient-box">
+            <div className="h-scroll" style={{ paddingBottom: 0 }} ref={recentRef}>
+              {recentTracks.map((song, i) => (
+                <VerticalCard 
+                  key={song.videoId || song.id || `${song.title}-${i}`} 
+                  song={song} 
+                  isMobile={isMobile}
+                  onClick={() => handlePlaySong(song, recentTracks, i)} 
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ─── 2b. Popular Artists (Scroll Row) ─── */}
@@ -987,7 +1030,7 @@ export default function HomePage() {
         }
 
         .playlist-quick-card:hover {
-          background: rgba(255, 255, 255, 0.12) !important;
+          background: rgba(255, 255, 255, 0.10) !important;
           transform: scale(1.03) !important;
         }
         .playlist-quick-card:hover .card-play-btn {

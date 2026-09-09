@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { usePlayer } from '../../context/PlayerContext.jsx'
 import { 
-  FiChevronDown, FiHeart, FiMoreHorizontal, 
+  FiHeart, FiMoreHorizontal, 
   FiShuffle, FiSkipBack, FiPlay, FiPause, FiSkipForward, FiRepeat,
   FiVolume2, FiVolumeX, FiClock, FiMinimize2, FiSliders, FiList, FiX, FiShare2,
   FiYoutube, FiUser, FiMusic, FiMonitor, FiExternalLink, FiMaximize2, FiDisc, FiPlusCircle
@@ -176,6 +176,16 @@ export default function FullScreenPlayer() {
   const captureRef = useRef(null)
   const queueScrollRef = useRef(null)
 
+  // Pull-down gesture refs
+  const playerContainerRef = useRef(null)
+  const dragStartYRef = useRef(0)
+  const dragStartTimeRef = useRef(0)
+  const dragYRef = useRef(0)
+  const isDraggingRef = useRef(false)
+  const isPullFromTopRef = useRef(false)
+  const isMouseDownRef = useRef(false)
+  const isClosingRef = useRef(false)
+
   // iOS-style bounce on queue and lyrics scroll
   useScrollBounce(queueScrollRef, { axis: 'y', maxBounce: 60 })
   useScrollBounce(lyricsContainerRef, { axis: 'y', maxBounce: 40 })
@@ -237,29 +247,58 @@ export default function FullScreenPlayer() {
   }, [isFullScreenPlayer])
 
   useEffect(() => {
-    if (isFullScreenPlayer) setVisible(true)
-    else {
-      const t = setTimeout(() => setVisible(false), 350)
+    if (isFullScreenPlayer) {
+      isClosingRef.current = false
+      setVisible(true)
+      if (playerContainerRef.current) {
+        playerContainerRef.current.style.transition = 'none'
+        playerContainerRef.current.style.transform = `translate3d(0, ${window.innerHeight}px, 0)`
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (playerContainerRef.current) {
+              playerContainerRef.current.style.transition = 'transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1)'
+              playerContainerRef.current.style.transform = 'translate3d(0, 0, 0)'
+            }
+          })
+        })
+      }
+    } else {
+      if (isClosingRef.current || !visible) return
+      isClosingRef.current = true
+      if (playerContainerRef.current) {
+        playerContainerRef.current.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
+        playerContainerRef.current.style.transform = `translate3d(0, ${window.innerHeight}px, 0)`
+      }
+      if (!isMobile) {
+        const el = document.getElementById('app-main-content')
+        if (el) {
+          el.style.transition = 'opacity 0.32s ease, transform 0.32s ease, border-radius 0.32s ease'
+          el.style.transform = 'scale(1)'
+          el.style.opacity = '1'
+          el.style.borderRadius = '0px'
+        }
+      }
+      const t = setTimeout(() => {
+        setVisible(false)
+        isClosingRef.current = false
+      }, 320)
       return () => clearTimeout(t)
     }
   }, [isFullScreenPlayer])
 
-  /* Fix #18: Skip expensive blur on app-main-content on mobile */
+  /* Only shrink app-main-content on desktop */
   useEffect(() => {
+    if (isMobile) return
     const el = document.getElementById('app-main-content')
     if (!el) return
 
     if (isFullScreenPlayer) {
       requestAnimationFrame(() => {
-        el.style.transition = 'opacity 0.4s ease, transform 0.4s ease, border-radius 0.4s ease'
+        el.style.transition = 'opacity 0.4s ease, transform 0.4s ease, border-radius 0.4s ease, filter 0.4s ease'
         el.style.opacity = '0.3'
         el.style.transform = 'scale(0.92)'
         el.style.borderRadius = '16px'
-        // Skip blur on mobile — FSP fully covers the content anyway
-        if (window.innerWidth >= 768) {
-          el.style.transition += ', filter 0.4s ease'
-          el.style.filter = 'blur(4px)'
-        }
+        el.style.filter = 'blur(4px)'
       })
     }
 
@@ -272,7 +311,7 @@ export default function FullScreenPlayer() {
         el.style.borderRadius = ''
       }
     }
-  }, [isFullScreenPlayer])
+  }, [isFullScreenPlayer, isMobile])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -322,7 +361,32 @@ export default function FullScreenPlayer() {
     }
   }, [currentTime, duration, lyricsData, isFlipped, isPlaying, isFullScreenPlayer, isShareMode])
 
-  const handleClose = () => setIsFullScreenPlayer(false)
+  const handleClose = () => {
+    if (isClosingRef.current) return
+    isClosingRef.current = true
+    if (playerContainerRef.current) {
+      playerContainerRef.current.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
+      playerContainerRef.current.style.transform = `translate3d(0, ${window.innerHeight}px, 0)`
+      if (!isMobile) {
+        const el = document.getElementById('app-main-content')
+        if (el) {
+          el.style.transition = 'opacity 0.32s ease, transform 0.32s ease, border-radius 0.32s ease'
+          el.style.transform = 'scale(1)'
+          el.style.opacity = '1'
+          el.style.borderRadius = '0px'
+        }
+      }
+      setTimeout(() => {
+        setVisible(false)
+        setIsFullScreenPlayer(false)
+        isClosingRef.current = false
+      }, 320)
+    } else {
+      setVisible(false)
+      setIsFullScreenPlayer(false)
+      isClosingRef.current = false
+    }
+  }
   const handleSeek = (e) => {
     const audio = document.querySelector('audio') || window.__rhymAudio
     if (audio) audio.currentTime = Number(e.target.value)
@@ -408,11 +472,119 @@ export default function FullScreenPlayer() {
   }
 
   const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
+    if (isFsQueueOpen || isShareMode) return
+    const touch = e.touches[0]
+    touchStartX.current = touch.clientX
+    touchStartY.current = touch.clientY
+    dragStartYRef.current = touch.clientY
+    dragStartTimeRef.current = Date.now()
+    dragYRef.current = 0
+    isDraggingRef.current = false
+
+    // Pull from top: top 480px or touching top bar
+    const inTopArea = touch.clientY < 480
+    const inTopBar = Boolean(e.target.closest && e.target.closest('.fsp-top-bar'))
+    isPullFromTopRef.current = inTopArea || inTopBar
+  }
+
+  const handleTouchMove = (e) => {
+    if (isFsQueueOpen || isShareMode) return
+    const touch = e.touches[0]
+    const currentY = touch.clientY
+    const currentX = touch.clientX
+    const dy = currentY - dragStartYRef.current
+    const dx = currentX - touchStartX.current
+
+    // Don't pull down if user is scrolling lyrics upward
+    if (isFlipped && lyricsContainerRef.current && lyricsContainerRef.current.scrollTop > 5 && dy > 0) {
+      return
+    }
+
+    if (!isDraggingRef.current) {
+      if (isPullFromTopRef.current && dy > 8 && dy > Math.abs(dx)) {
+        isDraggingRef.current = true
+      }
+    }
+
+    if (isDraggingRef.current) {
+      if (e.cancelable) e.preventDefault()
+      const pullY = Math.max(0, dy)
+      dragYRef.current = pullY
+      if (playerContainerRef.current) {
+        playerContainerRef.current.style.transition = 'none'
+        playerContainerRef.current.style.transform = `translate3d(0, ${pullY}px, 0)`
+      }
+      if (!isMobile) {
+        const progress = Math.min(1, pullY / window.innerHeight)
+        const el = document.getElementById('app-main-content')
+        if (el) {
+          el.style.transform = `scale(${0.92 + progress * 0.08})`
+          el.style.opacity = `${0.3 + progress * 0.7}`
+        }
+      }
+    }
   }
 
   const handleTouchEnd = (e) => {
+    if (isDraggingRef.current) {
+      const touch = e.changedTouches[0]
+      const currentY = touch.clientY
+      const dy = Math.max(0, currentY - dragStartYRef.current)
+      const dt = Math.max(1, Date.now() - dragStartTimeRef.current)
+      const velocity = dy / dt
+      const halfScreen = window.innerHeight * 0.45
+      const shouldClose = dy >= halfScreen || (velocity > 0.55 && dy > 80)
+
+      if (shouldClose) {
+        // Pulled down half or more -> smoothly go down to exit
+        isClosingRef.current = true
+        if (playerContainerRef.current) {
+          playerContainerRef.current.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
+          playerContainerRef.current.style.transform = `translate3d(0, ${window.innerHeight}px, 0)`
+        }
+        if (!isMobile) {
+          const el = document.getElementById('app-main-content')
+          if (el) {
+            el.style.transition = 'opacity 0.32s ease, transform 0.32s ease, border-radius 0.32s ease'
+            el.style.transform = 'scale(1)'
+            el.style.opacity = '1'
+            el.style.borderRadius = '0px'
+          }
+        }
+        haptics.light()
+        setTimeout(() => {
+          setVisible(false)
+          setIsFullScreenPlayer(false)
+          isClosingRef.current = false
+          isDraggingRef.current = false
+          dragYRef.current = 0
+        }, 320)
+      } else {
+        // Less than half -> smoothly spring back up to full screen
+        if (playerContainerRef.current) {
+          playerContainerRef.current.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1)'
+          playerContainerRef.current.style.transform = 'translate3d(0, 0, 0)'
+        }
+        if (!isMobile) {
+          const el = document.getElementById('app-main-content')
+          if (el) {
+            el.style.transition = 'opacity 0.35s ease, transform 0.35s ease'
+            el.style.transform = 'scale(0.92)'
+            el.style.opacity = '0.3'
+          }
+        }
+        setTimeout(() => {
+          if (playerContainerRef.current) {
+            playerContainerRef.current.style.transition = ''
+          }
+          isDraggingRef.current = false
+          dragYRef.current = 0
+        }, 350)
+      }
+      return
+    }
+
+    // Horizontal swipe for next/previous track
     const touchEndX = e.changedTouches[0].clientX
     const touchEndY = e.changedTouches[0].clientY
     const diffX = touchStartX.current - touchEndX
@@ -420,7 +592,7 @@ export default function FullScreenPlayer() {
     
     if (Math.abs(diffX) > Math.abs(diffY)) {
       if (Math.abs(diffX) > 70) {
-        haptics.medium() // Haptic on swipe-to-skip
+        haptics.medium()
         if (diffX > 0) {
           setSwipeDirection(1)
           playNext()
@@ -433,12 +605,105 @@ export default function FullScreenPlayer() {
   }
 
   const handleMouseDown = (e) => {
-    if (isFsQueueOpen) return
+    if (isFsQueueOpen || isShareMode) return
+    isMouseDownRef.current = true
     touchStartX.current = e.clientX
     touchStartY.current = e.clientY
+    dragStartYRef.current = e.clientY
+    dragStartTimeRef.current = Date.now()
+    dragYRef.current = 0
+    isDraggingRef.current = false
+
+    const inTopArea = e.clientY < 480
+    const inTopBar = Boolean(e.target.closest && e.target.closest('.fsp-top-bar'))
+    isPullFromTopRef.current = inTopArea || inTopBar
+  }
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDownRef.current || isFsQueueOpen || isShareMode) return
+    const dy = e.clientY - dragStartYRef.current
+    const dx = e.clientX - touchStartX.current
+
+    if (!isDraggingRef.current) {
+      if (isPullFromTopRef.current && dy > 8 && dy > Math.abs(dx)) {
+        isDraggingRef.current = true
+      }
+    }
+
+    if (isDraggingRef.current) {
+      const pullY = Math.max(0, dy)
+      dragYRef.current = pullY
+      if (playerContainerRef.current) {
+        playerContainerRef.current.style.transition = 'none'
+        playerContainerRef.current.style.transform = `translate3d(0, ${pullY}px, 0)`
+      }
+      if (!isMobile) {
+        const progress = Math.min(1, pullY / window.innerHeight)
+        const el = document.getElementById('app-main-content')
+        if (el) {
+          el.style.transform = `scale(${0.92 + progress * 0.08})`
+          el.style.opacity = `${0.3 + progress * 0.7}`
+        }
+      }
+    }
   }
 
   const handleMouseUp = (e) => {
+    if (!isMouseDownRef.current) return
+    isMouseDownRef.current = false
+    if (isDraggingRef.current) {
+      const dy = Math.max(0, e.clientY - dragStartYRef.current)
+      const dt = Math.max(1, Date.now() - dragStartTimeRef.current)
+      const velocity = dy / dt
+      const halfScreen = window.innerHeight * 0.45
+      const shouldClose = dy >= halfScreen || (velocity > 0.55 && dy > 80)
+
+      if (shouldClose) {
+        isClosingRef.current = true
+        if (playerContainerRef.current) {
+          playerContainerRef.current.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
+          playerContainerRef.current.style.transform = `translate3d(0, ${window.innerHeight}px, 0)`
+        }
+        if (!isMobile) {
+          const el = document.getElementById('app-main-content')
+          if (el) {
+            el.style.transition = 'opacity 0.32s ease, transform 0.32s ease, border-radius 0.32s ease'
+            el.style.transform = 'scale(1)'
+            el.style.opacity = '1'
+            el.style.borderRadius = '0px'
+          }
+        }
+        setTimeout(() => {
+          setVisible(false)
+          setIsFullScreenPlayer(false)
+          isClosingRef.current = false
+          isDraggingRef.current = false
+          dragYRef.current = 0
+        }, 320)
+      } else {
+        if (playerContainerRef.current) {
+          playerContainerRef.current.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1)'
+          playerContainerRef.current.style.transform = 'translate3d(0, 0, 0)'
+        }
+        if (!isMobile) {
+          const el = document.getElementById('app-main-content')
+          if (el) {
+            el.style.transition = 'opacity 0.35s ease, transform 0.35s ease'
+            el.style.transform = 'scale(0.92)'
+            el.style.opacity = '0.3'
+          }
+        }
+        setTimeout(() => {
+          if (playerContainerRef.current) {
+            playerContainerRef.current.style.transition = ''
+          }
+          isDraggingRef.current = false
+          dragYRef.current = 0
+        }, 350)
+      }
+      return
+    }
+
     if (isFsQueueOpen) return
     const mouseEndX = e.clientX
     const mouseEndY = e.clientY
@@ -481,26 +746,28 @@ export default function FullScreenPlayer() {
 
   return (
     <div 
+      ref={playerContainerRef}
       style={{
         position: 'fixed', inset: 0, zIndex: 9998,
-        display: isFullScreenPlayer ? 'flex' : 'none',
+        display: (isFullScreenPlayer || visible) ? 'flex' : 'none',
         flexDirection: 'column',
         color: '#fff',
         overflow: 'hidden',
         background: 'transparent',
         userSelect: 'none',
         pointerEvents: isFullScreenPlayer ? 'auto' : 'none',
-        opacity: visible ? 1 : 0,
-        transition: 'opacity 0.2s ease',
         touchAction: 'none',
         WebkitUserSelect: 'none',
-        // Push below notch/status bar in PWA standalone mode
         paddingTop: 'env(safe-area-inset-top, 0px)',
+        willChange: 'transform',
       }}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
       
       {/* Background — Opaque vibrant color to match mini player exactly */}
@@ -608,15 +875,12 @@ export default function FullScreenPlayer() {
       </div>
 
       {/* Top Bar (Floating controls) */}
-      <div style={{ 
+      <div className="fsp-top-bar" style={{ 
         position: 'absolute', top: 0, right: 0, left: 0, zIndex: 50,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', 
         padding: isMobile ? '12px 16px' : '24px',
         background: 'transparent', pointerEvents: 'none'
       }}>
-        <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
-          <FiChevronDown size={22} />
-        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '8px', pointerEvents: 'auto' }}>
           {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiDisc size={18} /></button>}
           {!isMobile && <button style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.7, cursor: 'pointer', padding: '8px' }}><FiYoutube size={18} /></button>}
