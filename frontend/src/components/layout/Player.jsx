@@ -9,6 +9,7 @@ import { getLyrics } from '../../utils/api.js'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { haptics } from '../../utils/haptics.js'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import ScrollingText from '../ui/ScrollingText.jsx'
 
 /* ─── Time Formatter ─── */
 function fmt(s) {
@@ -206,13 +207,16 @@ export default function Player() {
           <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         
-        <div style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, pointerEvents: 'none' }}>
-          <p className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0 }}>
-            {currentSong.title}
-          </p>
-          <p className="truncate" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', margin: '2px 0 0 0' }}>
-            {currentSong.artist}
-          </p>
+        <div style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <ScrollingText
+            text={currentSong.title}
+            style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0, lineHeight: 1.3 }}
+          />
+          <ScrollingText
+            text={currentSong.artist}
+            style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', margin: '2px 0 0 0', lineHeight: 1.2 }}
+            speed={22}
+          />
         </div>
 
         <button
@@ -286,13 +290,16 @@ export default function Player() {
           width={56} height={56}
           style={{ borderRadius: '4px', flexShrink: 0 }}
         />
-        <div style={{ minWidth: 0 }}>
-          <p className="truncate" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {currentSong.title}
-          </p>
-          <p className="truncate" style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            {currentSong.artist}
-          </p>
+        <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+          <ScrollingText
+            text={currentSong.title}
+            style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}
+          />
+          <ScrollingText
+            text={currentSong.artist}
+            style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}
+            speed={22}
+          />
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); haptics.light(); toggleSavedSong(currentSong) }}

@@ -64,9 +64,9 @@ function PageWrapper({ children }) {
   return (
     <div style={{
       opacity: visible ? 1 : 0,
-      transform: visible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 4px, 0)',
+      transform: visible ? 'none' : 'translate3d(0, 4px, 0)',
       transition: 'opacity 200ms ease-out, transform 200ms ease-out',
-      willChange: 'opacity, transform',
+      willChange: visible ? 'auto' : 'opacity, transform',
       minHeight: '100%'
     }}>
       {children}

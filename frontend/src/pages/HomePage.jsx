@@ -432,12 +432,13 @@ export default function HomePage() {
   return (
     <div style={{ 
       position: 'relative', 
-      padding: isMobile ? 'calc(10px + env(safe-area-inset-top, 0px)) 8px 20px' : '16px 32px 40px', 
-      overflow: 'hidden' 
+      padding: isMobile ? '0 8px 20px' : '0 32px 40px', 
     }}>
       {/* ─── Ambient Aurora Background Effect ─── */}
       {!isMobile && (
         <div style={{
+          position: 'absolute',
+          inset: 0,
           pointerEvents: 'none',
           overflow: 'hidden',
           contain: 'strict',
@@ -510,11 +511,18 @@ export default function HomePage() {
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* ─── Home Header: Rhym Logo + Brand Text + Profile Avatar ─── */}
         <header style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: isMobile ? '0 4px 8px' : '0 0 10px',
+          margin: isMobile ? '0 -8px 10px' : '0 -32px 14px',
+          padding: isMobile 
+            ? 'calc(10px + env(safe-area-inset-top, 0px)) 12px 10px' 
+            : '16px 32px',
           userSelect: 'none',
+          background: '#121212',
         }}>
           {/* Left: Brand Lockup */}
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '10px' }}>
@@ -554,7 +562,6 @@ export default function HomePage() {
             style={{
               width: isMobile ? '32px' : '36px',
               height: isMobile ? '32px' : '36px',
-              marginRight: isMobile ? '8px' : '10px',
               borderRadius: '50%',
               background: 'rgba(255, 255, 255, 0.08)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
