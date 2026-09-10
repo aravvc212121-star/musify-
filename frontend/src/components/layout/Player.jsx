@@ -170,8 +170,8 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          // Dock flush against the full-width nav bar (64px)
-          bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+          // Dock closer above the bottom nav bar
+          bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))',
           left: '12px',
           right: '12px',
           height: '56px',
@@ -185,7 +185,7 @@ export default function Player() {
           alignItems: 'center',
           padding: '0 12px',
           gap: '12px',
-          zIndex: 900,
+          zIndex: 1001,
           boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
           border: '1px solid rgba(255,255,255,0.05)',
           cursor: 'pointer',
@@ -259,8 +259,8 @@ export default function Player() {
         </div>
 
         {/* Progress bar line at bottom */}
-        <div style={{ position: 'absolute', bottom: 0, left: '12px', right: '12px', height: '2px', background: 'rgba(255,255,255,0.1)', borderRadius: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
-          <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.2s linear' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: '12px', right: '12px', height: '2px', background: 'rgba(255,255,255,0.2)', borderRadius: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
+          <div style={{ width: `${progressPercent}%`, height: '100%', background: '#fff', transition: 'width 0.2s linear' }} />
         </div>
       </div>
     )

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { searchSongs, getTrending } from '../utils/api.js'
-import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle } from 'react-icons/fi'
+import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle, FiUser } from 'react-icons/fi'
 import { useIsMobile } from '../hooks/useIsMobile.js'
 
 /* ─── Greeting based on time ─── */
@@ -255,8 +255,8 @@ export default function HomePage() {
         if (stored) {
           try {
             const parsed = JSON.parse(stored)
-            // Only use cache if it has version 4, is from today, and has valid data
-            if (parsed.version === 4 && parsed.date === today && parsed.songs && parsed.songs.length >= 4) {
+            // Only use cache if it has version 5, is from today, and has valid data
+            if (parsed.version === 5 && parsed.date === today && parsed.songs && parsed.songs.length >= 4) {
               console.log('[Daily Carousel] ✓ Using cached songs from multiple artists')
               setDailySongs(parsed.songs)
               shouldFetch = false
@@ -274,12 +274,12 @@ export default function HomePage() {
         
         if (!shouldFetch) return
 
-        // Fetch ONE song from each of these 4 artists
+        // Fetch ONE song from each of these 4 artists (Karan Aujla moved from last to first)
         const artists = [
+          { name: 'Karan Aujla', query: 'Karan Aujla' },
           { name: 'Travis Scott', query: 'Travis Scott' },
           { name: 'Dua Lipa', query: 'Dua Lipa' },
-          { name: 'Seedhe Maut', query: 'Seedhe Maut' },
-          { name: 'Karan Aujla', query: 'Karan Aujla' }
+          { name: 'Seedhe Maut', query: 'Seedhe Maut' }
         ]
         
         console.log('[Daily Carousel] 🎤 Fetching 1 song from each artist...')
@@ -309,16 +309,17 @@ export default function HomePage() {
           localStorage.setItem('dailySongs', JSON.stringify({ 
             date: today, 
             songs, 
-            version: 4, // Version 4 for multi-artist format
+            version: 5, // Version 5 with last item moved to first
             timestamp: Date.now()
           }))
         } else {
           console.warn(`[Daily Carousel] ⚠ Only got ${songs.length} songs, need 4`)
-          // Fallback to trending
+          // Fallback to trending with last item moved to first
           const trending = await getTrending()
           if (trending && trending.length >= 4) {
             console.log('[Daily Carousel] ↻ Using trending fallback')
-            setDailySongs(trending.slice(0, 4))
+            const tSongs = trending.slice(0, 4)
+            setDailySongs([tSongs[tSongs.length - 1], ...tSongs.slice(0, -1)])
           }
         }
       } catch (e) {
@@ -327,8 +328,9 @@ export default function HomePage() {
         try {
           const trending = await getTrending()
           if (trending && trending.length >= 4) {
-            setDailySongs(trending.slice(0, 4))
             console.log('[Daily Carousel] ↻ Error recovery: using trending')
+            const tSongs = trending.slice(0, 4)
+            setDailySongs([tSongs[tSongs.length - 1], ...tSongs.slice(0, -1)])
           }
         } catch (err) {
           console.error('[Daily Carousel] ✗ All fallbacks failed:', err)
@@ -428,7 +430,11 @@ export default function HomePage() {
   const recentTracks = madeForYou.slice(0, 10)
 
   return (
-    <div style={{ position: 'relative', padding: isMobile ? '12px 8px 20px' : '16px 32px 40px', overflow: 'hidden' }}>
+    <div style={{ 
+      position: 'relative', 
+      padding: isMobile ? 'calc(10px + env(safe-area-inset-top, 0px)) 8px 20px' : '16px 32px 40px', 
+      overflow: 'hidden' 
+    }}>
       {/* ─── Ambient Aurora Background Effect ─── */}
       {!isMobile && (
         <div style={{
@@ -446,7 +452,7 @@ export default function HomePage() {
             background: 'radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0, 210, 255, 0.05) 40%, transparent 70%)',
             filter: 'blur(60px)',
             top: '10%',
-            left: '20%',
+            left: '15%',
             animation: 'aurora-float-1 20s ease-in-out infinite',
             willChange: 'transform, opacity',
             transform: 'translateZ(0)',
@@ -458,11 +464,11 @@ export default function HomePage() {
             width: isMobile ? '250px' : '500px',
             height: isMobile ? '250px' : '500px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(138, 43, 226, 0.12) 0%, rgba(138, 43, 226, 0.04) 40%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0.04) 40%, transparent 70%)',
             filter: 'blur(50px)',
-            top: '50%',
-            right: '15%',
-            animation: 'aurora-float-2 25s ease-in-out infinite',
+            top: '40%',
+            right: '10%',
+            animation: 'aurora-float-2 25s ease-in-out infinite reverse',
             willChange: 'transform, opacity',
             transform: 'translateZ(0)',
             backfaceVisibility: 'hidden',
@@ -502,69 +508,268 @@ export default function HomePage() {
       
       {/* Content Container with relative positioning */}
       <div style={{ position: 'relative', zIndex: 1 }}>
-      {/* ─── 3. Your Playlists (2-row horizontal scroll on mobile) ─── */}
-      <div style={{ marginTop: isMobile ? '16px' : '24px', marginBottom: isMobile ? '20px' : '40px' }}>
+        {/* ─── Home Header: Rhym Logo + Brand Text + Profile Avatar ─── */}
+        <header style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: isMobile ? '0 4px 8px' : '0 0 10px',
+          userSelect: 'none',
+        }}>
+          {/* Left: Brand Lockup */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '10px' }}>
+            <svg
+              width={isMobile ? 27 : 31}
+              height={isMobile ? 27 : 31}
+              viewBox="0 0 512 512"
+              style={{
+                borderRadius: '6.5px',
+                flexShrink: 0,
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <rect width="512" height="512" rx="100" ry="100" fill="#000" />
+              <g fill="#fff">
+                <rect x="148" y="200" width="22" height="160" rx="11" />
+                <rect x="192" y="145" width="22" height="270" rx="11" />
+                <rect x="236" y="95" width="22" height="322" rx="11" />
+                <rect x="280" y="130" width="22" height="290" rx="11" />
+                <rect x="324" y="175" width="22" height="200" rx="11" />
+              </g>
+            </svg>
+            <span style={{
+              fontSize: isMobile ? '16px' : '19px',
+              fontWeight: 600,
+              color: '#fff',
+              letterSpacing: '-0.3px',
+              lineHeight: 1,
+            }}>
+              Rhym
+            </span>
+          </div>
 
-        <div className="ambient-box">
-          <div className="playlists-grid" style={{
-            paddingLeft: 0,
-            paddingRight: isMobile ? '16px' : 0,
-            paddingTop: 0,
-            paddingBottom: isMobile ? '8px' : 0
+          {/* Right: Profile Avatar Button */}
+          <button
+            onClick={() => navigate('/auth')}
+            style={{
+              width: isMobile ? '32px' : '36px',
+              height: isMobile ? '32px' : '36px',
+              marginRight: isMobile ? '8px' : '10px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              cursor: 'pointer',
+              padding: 0,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+              WebkitTapHighlightColor: 'transparent',
+              transition: 'background 0.15s ease, transform 0.15s ease',
+            }}
+            onPointerDown={(e) => { e.currentTarget.style.transform = 'scale(0.92)' }}
+            onPointerUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onPointerLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            title="Profile"
+            aria-label="Profile"
+          >
+            <FiUser size={isMobile ? 16 : 18} color="#fff" />
+          </button>
+        </header>
+
+        {/* ─── Daily Songs Carousel (Aesthetic & Scrollable) ─── */}
+        {dailySongs.length > 0 && (
+          <div style={{
+            marginBottom: isMobile ? '8px' : '12px',
+            position: 'relative'
           }}>
-            {userPlaylists.slice(0, 10).map((playlist, i) => {
-              const isLiked = playlist.name === 'Liked Songs'
-              return (
-                <div 
-                  key={i} 
-                  onClick={() => navigate(`/playlist/${encodeURIComponent(playlist.name)}`)}
+            <div 
+              ref={postersScrollRef}
+              className="posters-scroll"
+            style={{
+              display: 'flex',
+              gap: isMobile ? '12px' : '20px',
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: '8px'
+            }}
+          >
+            {dailySongs.map((song, idx) => (
+              <div
+                key={song.videoId || idx}
+                onClick={() => handlePlaySong(song, dailySongs, idx)}
+                style={{
+                  position: 'relative',
+                  width: isMobile ? '88vw' : '560px',
+                  height: isMobile ? '210px' : '320px',
+                  borderRadius: isMobile ? '12px' : '16px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  scrollSnapAlign: 'start',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                }}
+                className="aesthetic-poster"
+              >
+                {/* Background Image */}
+                <img 
+                  src={song.thumbnail} 
+                  alt={song.title}
+                  loading="lazy"
+                  decoding="async"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '8px',
-                    padding: isMobile ? '8px' : '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: isMobile ? '8px' : '12px',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s, transform 0.2s',
-                    position: 'relative'
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
                   }}
-                  className="playlist-quick-card"
-                >
-                  <div style={{
-                    width: isMobile ? '42px' : '56px', height: isMobile ? '42px' : '56px',
-                    background: playlist.color || 'var(--hero-start)',
-                    borderRadius: '6px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: isMobile ? '18px' : '24px', fontWeight: 900,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    flexShrink: 0
+                />
+                
+                {/* Gradient overlay for text readability */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)'
+                }} />
+                
+                {/* Song Title at Bottom */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: isMobile ? '14px' : '22px',
+                  zIndex: 2
+                }}>
+                  <h3 style={{
+                    fontSize: isMobile ? '15px' : '20px',
+                    fontWeight: 700,
+                    color: '#fff',
+                    margin: 0,
+                    lineHeight: 1.3,
+                    textShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical'
                   }}>
-                    {isLiked ? '💜' : playlist.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p className="truncate" style={{ fontSize: isMobile ? '12px' : '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{playlist.name}</p>
-                    <p style={{ fontSize: isMobile ? '10px' : '12px', color: '#b3b3b3', margin: '2px 0 0 0' }}>Playlist</p>
-                  </div>
-                  {!isMobile && (
-                    <div className="card-play-btn" style={{
-                      width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: 0, transform: 'scale(0.8)', transition: 'all 0.2s'
+                    {song.title}
+                  </h3>
+                  {song.artist && (
+                    <p style={{
+                      fontSize: isMobile ? '13px' : '15px',
+                      color: 'rgba(255,255,255,0.85)',
+                      fontWeight: 500,
+                      margin: '4px 0 0 0',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
-                      <FiPlay size={14} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
-                    </div>
+                      {song.artist}
+                    </p>
                   )}
                 </div>
-              )
-            })}
+                
+                {/* Hover play icon overlay */}
+                <div 
+                  className="poster-play-overlay"
+                  style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(8px)',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease'
+                  }}
+                >
+                  <div style={{
+                    width: isMobile ? '56px' : '80px',
+                    height: isMobile ? '56px' : '80px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.95)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    transform: 'scale(0.9)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                  className="poster-play-icon"
+                  >
+                    <FiPlay 
+                      size={isMobile ? 24 : 32} 
+                      fill="currentColor" 
+                      style={{ color: '#000', marginLeft: '4px' }} 
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
+          
+          {/* Static Dots Navigation - Outside carousel */}
+          {dailySongs.length > 1 && (
+            <div style={{
+              position: 'absolute',
+              bottom: isMobile ? '12px' : '16px',
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '8px',
+              zIndex: 10,
+              pointerEvents: 'auto'
+            }}>
+              {dailySongs.map((_, dotIdx) => (
+                <button
+                  key={dotIdx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const scrollContainer = postersScrollRef.current
+                    if (scrollContainer) {
+                      const poster = scrollContainer.querySelector('.aesthetic-poster')
+                      if (poster) {
+                        const posterWidth = poster.offsetWidth
+                        const gap = isMobile ? 12 : 20
+                        scrollContainer.scrollTo({
+                          left: dotIdx * (posterWidth + gap),
+                          behavior: 'smooth'
+                        })
+                      }
+                    }
+                  }}
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: dotIdx === activePosterIndex ? '#fff' : 'rgba(255,255,255,0.4)',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transform: dotIdx === activePosterIndex ? 'scale(1.2)' : 'scale(1)'
+                  }}
+                  aria-label={`Go to slide ${dotIdx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* ─── 2. Top Radios (Scroll Row) ─── */}
       <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
-        <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
+        <div style={{ padding: isMobile ? '4px 16px 0 0' : '6px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
           <SectionHeader 
             title="Top Radios" 
             subtitle="More like"
@@ -671,6 +876,68 @@ export default function HomePage() {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ─── 3. Your Playlists (2-row horizontal scroll on mobile) ─── */}
+      <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+        <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
+          <SectionHeader title="Your Playlists" isMobile={isMobile} />
+        </div>
+        <div className="ambient-box">
+          <div className="playlists-grid" style={{
+            paddingLeft: 0,
+            paddingRight: isMobile ? '16px' : 0,
+            paddingTop: 0,
+            paddingBottom: isMobile ? '8px' : 0
+          }}>
+            {userPlaylists.slice(0, 10).map((playlist, i) => {
+              const isLiked = playlist.name === 'Liked Songs'
+              return (
+                <div 
+                  key={i} 
+                  onClick={() => navigate(`/playlist/${encodeURIComponent(playlist.name)}`)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px',
+                    padding: isMobile ? '8px' : '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isMobile ? '8px' : '12px',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s, transform 0.2s',
+                    position: 'relative'
+                  }}
+                  className="playlist-quick-card"
+                >
+                  <div style={{
+                    width: isMobile ? '42px' : '56px', height: isMobile ? '42px' : '56px',
+                    background: playlist.color || 'var(--hero-start)',
+                    borderRadius: '6px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: isMobile ? '18px' : '24px', fontWeight: 900,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    flexShrink: 0
+                  }}>
+                    {isLiked ? '💜' : playlist.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p className="truncate" style={{ fontSize: isMobile ? '12px' : '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{playlist.name}</p>
+                    <p style={{ fontSize: isMobile ? '10px' : '12px', color: '#b3b3b3', margin: '2px 0 0 0' }}>Playlist</p>
+                  </div>
+                  {!isMobile && (
+                    <div className="card-play-btn" style={{
+                      width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: 0, transform: 'scale(0.8)', transition: 'all 0.2s'
+                    }}>
+                      <FiPlay size={14} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 

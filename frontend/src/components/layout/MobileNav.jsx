@@ -7,16 +7,34 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { MdHomeFilled } from 'react-icons/md'
-import { BiSearch } from 'react-icons/bi'
-import { FiBook, FiPlus } from 'react-icons/fi'
+import { GoHome, GoHomeFill } from 'react-icons/go'
+import { FiSearch, FiPlus } from 'react-icons/fi'
 import { haptics } from '../../utils/haptics.js'
+import CreateSheet from '../ui/CreateSheet.jsx'
+
+/* Stacked-bars "library" icon — two rounded vertical bars side by side */
+function LibraryIcon({ size = 24, color = 'currentColor' }) {
+  const w = size
+  const h = size
+  const barW = w * 0.2
+  const barGap = w * 0.18
+  const r = barW * 0.4
+  const tallH = h * 0.7
+  const shortH = h * 0.5
+  const startX = (w - (barW * 2 + barGap)) / 2
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x={startX} y={h - tallH - (h * 0.05)} width={barW} height={tallH} rx={r} fill="none" stroke={color} strokeWidth={1.5} />
+      <rect x={startX + barW + barGap} y={h - shortH - (h * 0.05)} width={barW} height={shortH} rx={r} fill="none" stroke={color} strokeWidth={1.5} />
+    </svg>
+  )
+}
 
 const TABS = [
-  { path: '/', label: 'Home', Icon: MdHomeFilled },
-  { path: '/search', label: 'Search', Icon: BiSearch },
+  { path: '/', label: 'Home', Icon: GoHome, ActiveIcon: GoHomeFill },
+  { path: '/search', label: 'Search', Icon: FiSearch },
   { action: 'create-playlist', label: 'Create', Icon: FiPlus },
-  { path: '/library', label: 'Your Library', Icon: FiBook },
+  { path: '/library', label: 'Your Library', Icon: LibraryIcon },
 ]
 
 export const NAV_BAR_HEIGHT = 64
@@ -33,6 +51,7 @@ export default function MobileNav() {
   const [capsuleStyle, setCapsuleStyle] = useState({ left: 0, width: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragOverIdx, setDragOverIdx] = useState(-1)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const isDraggingRef = useRef(false)
   const isMouseDownRef = useRef(false)
@@ -45,6 +64,11 @@ export default function MobileNav() {
   const hasMountedRef = useRef(false)
 
   const activeIndex = TABS.findIndex(t => t.path === pathname)
+
+  // Auto-close create sheet on route change
+  useEffect(() => {
+    setIsCreateOpen(false)
+  }, [pathname])
 
   // Measure and position the capsule behind the active tab
   const updateCapsule = useCallback((idx) => {
@@ -88,11 +112,12 @@ export default function MobileNav() {
   // Tap handler
   const handleTap = useCallback((idx) => {
     haptics.light()
-    updateCapsule(idx)
     const tab = TABS[idx]
     if (tab.action === 'create-playlist') {
-      window.dispatchEvent(new CustomEvent('open-create-playlist'))
+      setIsCreateOpen(prev => !prev)
     } else {
+      setIsCreateOpen(false)
+      updateCapsule(idx)
       navigate(tab.path)
     }
   }, [navigate, updateCapsule])
@@ -203,8 +228,9 @@ export default function MobileNav() {
       const tabData = TABS[targetIdx]
       if (tabData) {
         if (tabData.action === 'create-playlist') {
-          window.dispatchEvent(new CustomEvent('open-create-playlist'))
+          setIsCreateOpen(prev => !prev)
         } else if (tabData.path && tabData.path !== pathname) {
+          setIsCreateOpen(false)
           navigate(tabData.path)
         }
       }
@@ -274,31 +300,33 @@ export default function MobileNav() {
   const visualActiveIdx = isDragging && dragOverIdx >= 0 ? dragOverIdx : activeIndex
 
   return (
-    <nav
-      ref={navRef}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleMouseDown}
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        // ─── Transparent and black tinted ───
-        background: 'rgba(0, 0, 0, 0.6)',
-        backdropFilter: 'none',
-        WebkitBackdropFilter: 'none',
-        border: 'none',
-        boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.6)',
-        borderRadius: 0,
-        // Layout
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        // Layering
-        zIndex: 1000,
+    <>
+      <CreateSheet isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <nav
+        ref={navRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          // ─── Soft Gradient Fade: Rich tint in between, feathered smooth fade out above ───
+          background: 'linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.94) 25%, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.68) 72%, rgba(0, 0, 0, 0.40) 86%, rgba(0, 0, 0, 0.14) 95%, rgba(0, 0, 0, 0) 100%)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+          border: 'none',
+          boxShadow: 'none',
+          borderRadius: 0,
+          // Layout
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          // Layering (above bottom sheet scrim so nav bar remains visible)
+          zIndex: 1102,
         touchAction: 'none', // We handle all touch ourselves
         WebkitTapHighlightColor: 'transparent',
         userSelect: 'none',
@@ -340,9 +368,13 @@ export default function MobileNav() {
         }} 
       />
 
-      {TABS.map(({ path, action, label, Icon }, idx) => {
+      {TABS.map(({ path, action, label, Icon, ActiveIcon }, idx) => {
+        const isCreateTab = action === 'create-playlist'
+        const isCreateActive = isCreateTab && isCreateOpen
         const isActive = idx === visualActiveIdx && !action
         const isPressed = idx === pressedIdx
+        const DisplayIcon = (isActive && ActiveIcon) ? ActiveIcon : Icon
+        const isHighlighted = isActive || isCreateActive
 
         return (
           <button
@@ -360,7 +392,8 @@ export default function MobileNav() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '4px', // spacing between icon and text
+              gap: '3px', // spacing between icon and text
+              paddingTop: '2px', // subtle offset to lower icons
               background: 'none',
               border: 'none',
               flex: 1,
@@ -370,25 +403,37 @@ export default function MobileNav() {
               WebkitTapHighlightColor: 'transparent',
               position: 'relative',
               zIndex: 1,
-              // Tap spring animation + gentle scale up when hovered by dragged pill
-              transform: isPressed ? 'scale(0.85)' : (isActive && isDragging ? 'scale(1.08)' : 'scale(1)'),
+              // Tap spring animation (clean deceleration curve for Create tab to avoid wobble)
+              transform: isPressed ? (isCreateTab ? 'scale(0.92)' : 'scale(0.85)') : (isActive && isDragging ? 'scale(1.08)' : 'scale(1)'),
               transition: isPressed
-                ? 'transform 0.1s ease-out'
-                : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                ? 'transform 0.08s ease-out'
+                : (isCreateTab ? 'transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)' : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'),
             }}
           >
-            <Icon
-              size={action === 'create-playlist' ? 32 : 28} // Make icons larger as requested
+            <DisplayIcon
+              size={isCreateTab ? 32 : 28}
+              color={isHighlighted ? '#fff' : '#8a8a8a'}
               style={{
-                color: isActive ? '#fff' : '#a3a3a3', // Pure white if active, solid opaque gray if not
-                filter: isActive ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.25))' : 'none',
-                transition: hasMountedRef.current ? 'color 0.2s ease, filter 0.2s ease' : 'none',
+                color: isHighlighted ? '#fff' : '#8a8a8a',
+                filter: isHighlighted ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))' : 'none',
+                transition: hasMountedRef.current 
+                  ? 'color 0.2s ease, filter 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)' 
+                  : 'none',
+                strokeWidth: isCreateTab ? 1.5 : undefined,
+                transform: isCreateTab
+                  ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
+                  : 'translate3d(0, 1.5px, 0)',
+                WebkitTransform: isCreateTab
+                  ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
+                  : 'translate3d(0, 1.5px, 0)',
+                transformOrigin: 'center center',
+                willChange: isCreateTab ? 'transform' : undefined,
               }}
             />
             <span style={{ 
               fontSize: '11px', 
-              fontWeight: 400, // Very thin, no bold
-              color: isActive ? '#fff' : '#a3a3a3',
+              fontWeight: 400,
+              color: isHighlighted ? '#fff' : '#8a8a8a',
               transition: hasMountedRef.current ? 'color 0.2s ease' : 'none',
               lineHeight: 1
             }}>
@@ -398,5 +443,6 @@ export default function MobileNav() {
         )
       })}
     </nav>
+  </>
   )
 }

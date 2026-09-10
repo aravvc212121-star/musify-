@@ -142,16 +142,26 @@ export default function TopBar({ isMobile = false }) {
 
   return (
     <div ref={barRef} className="top-bar-sticky" style={{
-      position: 'relative', top: '0', zIndex: 1000,
-      height: isMobile ? '64px' : '80px', 
-      width: isMobile ? '100%' : 'calc(100% - 64px)',
-      margin: isMobile ? '0 0 12px' : '0 32px 24px',
+      position: isSearchPage ? 'sticky' : 'relative',
+      top: 0,
+      zIndex: 1000,
+      height: isMobile ? (isSearchPage ? 'auto' : '64px') : (isSearchPage ? '74px' : '80px'), 
+      width: isMobile ? '100%' : (isSearchPage ? '100%' : 'calc(100% - 64px)'),
+      margin: isMobile ? (isSearchPage ? '0' : '0 0 12px') : (isSearchPage ? '0' : '0 32px 24px'),
       border: 'none',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: isMobile ? '0 12px' : '0 24px',
-      paddingTop: isMobile ? 'calc(12px + env(safe-area-inset-top, 0px))' : '16px',
-      borderRadius: isMobile ? '0' : '12px',
-      background: 'transparent',
+      borderBottom: isSearchPage ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: isMobile ? (isSearchPage ? '0 16px' : '0 12px') : (isSearchPage ? '0 32px' : '0 24px'),
+      paddingTop: isMobile 
+        ? 'calc(12px + env(safe-area-inset-top, 0px))' 
+        : (isSearchPage ? '14px' : '16px'),
+      paddingBottom: isSearchPage ? (isMobile ? '12px' : '14px') : 0,
+      borderRadius: isMobile ? '0' : (isSearchPage ? '0' : '12px'),
+      background: isSearchPage ? '#121212' : 'transparent',
+      boxShadow: isSearchPage ? '0 4px 20px rgba(0, 0, 0, 0.5)' : 'none',
+      boxSizing: 'border-box',
     }}>
       
       {/* Left — Hamburger (mobile) or Nav arrows (desktop) */}
@@ -219,17 +229,15 @@ export default function TopBar({ isMobile = false }) {
             width: isMobile ? '100%' : '440px',
             display: 'flex',
             alignItems: 'center',
-            background: isMobile ? 'rgba(20, 20, 20, 0.95)' : 'rgba(32, 32, 32, 0.3)',
-            backdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: isMobile ? 'none' : 'blur(24px) saturate(180%)',
+            background: 'rgba(255, 255, 255, 0.08)',
             borderRadius: '24px',
-            padding: '0 12px',
-            height: isMobile ? '38px' : '42px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            padding: '0 14px',
+            height: isMobile ? '42px' : '44px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             transition: 'all 0.2s ease',
             boxSizing: 'border-box',
             minWidth: 0,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
           }} className="search-bar-container">
             <FiSearch style={{ color: '#fff', fontSize: '18px', marginLeft: '4px', flexShrink: 0 }} />
             <input

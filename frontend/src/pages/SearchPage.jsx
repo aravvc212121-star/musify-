@@ -1,332 +1,402 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { usePlayer } from '../context/PlayerContext.jsx'
-import { FiPlay, FiMusic, FiChevronRight, FiSearch, FiX, FiClock, FiUser } from 'react-icons/fi'
-import SongCard from '../components/ui/SongCard.jsx'
+import { FiSearch, FiX, FiPlus, FiMusic, FiClock } from 'react-icons/fi'
 import { useSearch } from '../hooks/useSearch.js'
 
-const CATEGORIES = [
-  { name: 'Pop', color: '#E13300', emoji: '🎤' },
-  { name: 'Hip-Hop', color: '#BA5D07', emoji: '🎧' },
-  { name: 'Rock', color: '#1E3264', emoji: '🎸' },
-  { name: 'Electronic', color: '#0D73EC', emoji: '🎹' },
-  { name: 'Lo-Fi', color: '#148A08', emoji: '☁️' },
-  { name: 'Classical', color: '#509BF5', emoji: '🎻' },
-  { name: 'Jazz', color: '#E8115B', emoji: '🎷' },
-  { name: 'R&B', color: '#8400E7', emoji: '🥃' },
-  { name: 'Synthwave', color: '#4B0082', emoji: '🌃' },
-  { name: 'Acoustic', color: '#BC5900', emoji: '🪵' },
-  { name: 'Workout', color: '#E91429', emoji: '💪' },
-  { name: 'Focus', color: '#00d2ff', emoji: '🧠' },
-  { name: 'Chill', color: '#1E3264', emoji: '🧊' },
-  { name: 'Party', color: '#AF2896', emoji: '🎉' },
-  { name: 'Sleep', color: '#1E3264', emoji: '😴' },
-  { name: 'Gaming', color: '#0D73EC', emoji: '🎮' },
-  { name: 'Indie', color: '#E91429', emoji: '🎸' },
-  { name: 'Soul', color: '#BC5900', emoji: '🔥' },
-  { name: 'Romance', color: '#E91429', emoji: '💖' },
-  { name: 'K-Pop', color: '#AF2896', emoji: '🇰🇷' },
-  { name: 'Metal', color: '#1E3264', emoji: '🤘' },
-  { name: 'Country', color: '#BC5900', emoji: '🤠' },
-  { name: 'Blues', color: '#0D73EC', emoji: '🎸' },
-  { name: 'Reggae', color: '#148A08', emoji: '🦁' }
-]
+/* ─── Persistent Recent Searches ─── */
+const RECENT_KEY = 'rhym_recent_searches'
+const MAX_RECENT = 10
 
+function loadRecent() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (raw) return JSON.parse(raw).slice(0, MAX_RECENT)
+  } catch {}
+  return []
+}
+
+function saveRecent(list) {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)))
+  } catch {}
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH ROW — shared component for both states
+   ═══════════════════════════════════════════════ */
+function SearchRow({ song, showRemove, onPlay, onRemove, onAdd }) {
+  const [hovered, setHovered] = useState(false)
+  const [imgErr, setImgErr] = useState(false)
+
+  const thumb = imgErr ? null : (song.albumArt || song.thumbnail || null)
+  const title = song.title || 'Unknown'
+  const artist = song.artist || song.channelTitle || 'Unknown'
+  const subtitle = song.album && song.album !== 'Unknown'
+    ? `Song • ${artist}`
+    : `Single • ${artist}`
+
+  return (
+    <div
+      onClick={() => onPlay?.(song)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('open-context-menu', {
+          detail: { x: e.clientX, y: e.clientY, song, type: 'song' }
+        }))
+      }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '8px 12px',
+        borderRadius: 10,
+        cursor: 'pointer',
+        background: hovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+        transition: 'background 0.15s ease',
+        touchAction: 'manipulation',
+        userSelect: 'none',
+      }}
+    >
+      {/* Thumbnail */}
+      <div style={{
+        width: 52, height: 52, borderRadius: 6,
+        overflow: 'hidden', flexShrink: 0,
+        background: 'rgba(255,255,255,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {thumb ? (
+          <img
+            src={thumb}
+            alt=""
+            width={52}
+            height={52}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgErr(true)}
+            style={{ width: 52, height: 52, objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <FiMusic size={20} style={{ color: 'rgba(255,255,255,0.3)' }} />
+        )}
+      </div>
+
+      {/* Title + Subtitle */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          margin: 0, fontSize: 15, fontWeight: 600, color: '#fff',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          lineHeight: 1.3,
+        }}>
+          {title}
+        </p>
+        <p style={{
+          margin: '3px 0 0', fontSize: 13, fontWeight: 400,
+          color: 'rgba(255,255,255,0.45)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          lineHeight: 1.2,
+        }}>
+          {subtitle}
+        </p>
+      </div>
+
+      {/* + Add icon */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onAdd?.(song) }}
+        style={{
+          background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)',
+          cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', borderRadius: '50%', flexShrink: 0,
+          transition: 'color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.background = 'none' }}
+        aria-label="Add to library"
+      >
+        <FiPlus size={20} />
+      </button>
+
+      {/* X Remove icon (only in recent searches) */}
+      {showRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove?.(song) }}
+          style={{
+            background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
+            cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', borderRadius: '50%', flexShrink: 0,
+            transition: 'color 0.15s, background 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; e.currentTarget.style.background = 'none' }}
+          aria-label="Remove from recent"
+        >
+          <FiX size={18} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH PAGE
+   ═══════════════════════════════════════════════ */
 export default function SearchPage({ isMobile }) {
-  const { 
-    searchQuery, setSearchQuery, 
+  const {
+    searchQuery, setSearchQuery,
     masterPlaylistData, playSong,
     userPlaylists
   } = usePlayer()
 
-  const [recentSongs, setRecentSongs] = useState([])
-
-  // Centralized search hook — handles fuzzy matching, API fetch, and artist grouping
+  const [recentSongs, setRecentSongs] = useState(loadRecent)
   const searchResults = useSearch(searchQuery, masterPlaylistData, userPlaylists)
+  const containerRef = useRef(null)
 
-  // Load recent songs
+  // Escape key clears search
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
-    setRecentSongs(saved)
+    const handleKey = (e) => { if (e.key === 'Escape') setSearchQuery('') }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [setSearchQuery])
+
+  // ─── Recent search helpers ───
+  const addToRecent = useCallback((song) => {
+    if (!song?.videoId) return
+    const entry = {
+      videoId: song.videoId,
+      title: song.title || 'Unknown',
+      artist: song.artist || song.channelTitle || 'Unknown',
+      thumbnail: song.albumArt || song.thumbnail || '',
+      album: song.album || '',
+    }
+    setRecentSongs(prev => {
+      const updated = [entry, ...prev.filter(s => s.videoId !== song.videoId)].slice(0, MAX_RECENT)
+      saveRecent(updated)
+      return updated
+    })
   }, [])
 
-  const removeRecentSong = (videoId) => {
-    const updated = recentSongs.filter(s => s.videoId !== videoId)
-    setRecentSongs(updated)
-    localStorage.setItem('rhym_recent_searches', JSON.stringify(updated))
-  }
+  const removeFromRecent = useCallback((song) => {
+    setRecentSongs(prev => {
+      const updated = prev.filter(s => s.videoId !== song.videoId)
+      saveRecent(updated)
+      return updated
+    })
+  }, [])
 
-  const clearAllRecent = () => {
+  const clearAllRecent = useCallback(() => {
     setRecentSongs([])
-    localStorage.setItem('rhym_recent_searches', JSON.stringify([]))
-  }
+    saveRecent([])
+  }, [])
 
-  const saveToRecent = (song) => {
-    if (!song || !song.videoId) return
-    const songData = { 
-      videoId: song.videoId, 
-      title: song.title || 'Unknown', 
-      artist: song.artist || song.channelTitle || 'Unknown',
-      thumbnail: song.albumArt || song.thumbnail || ''
-    }
-    const saved = JSON.parse(localStorage.getItem('rhym_recent_searches') || '[]')
-    let updated = [songData, ...saved.filter(s => s.videoId !== song.videoId)]
-    updated = updated.slice(0, 10)
-    setRecentSongs(updated)
-    localStorage.setItem('rhym_recent_searches', JSON.stringify(updated))
-  }
+  // ─── Play handlers ───
+  const handlePlayRecent = useCallback((song, list, idx) => {
+    if (!song?.videoId) return
+    // Move to top of recent
+    addToRecent(song)
+    playSong(song, list, idx)
+  }, [playSong, addToRecent])
 
-  // Escape key to clear search
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setSearchQuery('')
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setSearchQuery])
+  const handlePlayResult = useCallback((song, list, idx) => {
+    if (!song?.videoId) return
+    addToRecent(song)
+    playSong(song, list, idx)
+  }, [playSong, addToRecent])
+
+  const handleAdd = useCallback((song) => {
+    window.dispatchEvent(new CustomEvent('open-context-menu', {
+      detail: { x: window.innerWidth / 2, y: window.innerHeight / 2, song, type: 'song' }
+    }))
+  }, [])
 
   const isEmpty = searchQuery.trim().length === 0
   const displaySongs = searchResults.isArtistMatch ? searchResults.artistSongs : searchResults.songs
   const hasResults = displaySongs.length > 0
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', minHeight: '100%' }}>
-      
-      {/* STATE 1: BROWSE CATEGORIES + RECENT SEARCHES */}
-      <div style={{ display: isEmpty ? 'block' : 'none' }}>
+    <div ref={containerRef} style={{
+      padding: isMobile ? '8px 4px 100px' : '12px 24px 100px',
+      minHeight: '100%',
+    }}>
 
-        {/* Recent Searches Section — shows actual songs you played */}
-        {recentSongs.length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '13px', fontWeight: 600, color: '#b3b3b3', margin: 0 }}>History</h2>
-              <button onClick={clearAllRecent} style={{
-                background: 'none', border: 'none', color: '#b3b3b3', cursor: 'pointer',
-                fontSize: '13px', fontWeight: 600, padding: '4px 12px', borderRadius: '16px',
-                transition: 'all 0.2s'
-              }} className="clear-all-btn">Clear All</button>
-            </div>
-            <div style={{
-              display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px'
-            }} className="hide-scrollbar">
-              {recentSongs.map((song, i) => (
-                <div key={song.videoId || i} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: '8px', cursor: 'pointer', flexShrink: 0,
-                  width: isMobile ? '80px' : '120px',
-                  position: 'relative',
-                  transition: 'transform 0.2s'
-                }}
-                  className="recent-card"
-                  onClick={() => playSong(song, recentSongs, i)}
-                >
-                  <button onClick={(e) => { e.stopPropagation(); removeRecentSong(song.videoId) }} style={{
-                    position: 'absolute', top: '-4px', right: '-4px', zIndex: 2,
-                    width: '20px', height: '20px', borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#b3b3b3', cursor: 'pointer', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', padding: 0,
-                    opacity: 0, transition: 'opacity 0.2s'
-                  }} className="recent-remove-btn">
-                    <FiX size={11} />
-                  </button>
-                  <div style={{
-                    width: isMobile ? '80px' : '120px', height: isMobile ? '80px' : '120px',
-                    borderRadius: isMobile ? '6px' : '12px', overflow: 'hidden',
-                    background: song.thumbnail ? 'transparent' : 'rgba(255,255,255,0.08)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
-                  }}>
-                    {song.thumbnail ? (
-                      <img src={song.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <FiMusic size={isMobile ? 20 : 28} style={{ color: 'rgba(255,255,255,0.5)' }} />
-                    )}
-                  </div>
-                  <div style={{ width: '100%', textAlign: 'center', minWidth: 0 }}>
-                    <p className="truncate" style={{ margin: 0, fontSize: isMobile ? '11px' : '13px', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{song.title}</p>
-                    <p className="truncate" style={{ margin: '2px 0 0', fontSize: isMobile ? '9px' : '11px', color: '#b3b3b3' }}>{song.artist}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* ═══ STATE 1: RECENT SEARCHES (when search is empty) ═══ */}
+      {isEmpty && (
+        <div style={{ animation: 'searchFadeIn 0.2s ease' }}>
 
-        {/* Separator line - doesn't connect to edges */}
-        {recentSongs.length > 0 && (
-          <div style={{
-            width: '80%',
-            maxWidth: '600px',
-            height: '1px',
-            background: 'rgba(255,255,255,0.1)',
-            margin: '32px auto',
-          }} />
-        )}
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: isMobile ? '8px' : '16px'
-        }}>
-          {CATEGORIES.map(cat => (
-            <div 
-              key={cat.name} 
-              onClick={() => setSearchQuery(cat.name)}
-              style={{
-                aspectRatio: '1 / 1', background: cat.color, borderRadius: isMobile ? '6px' : '8px',
-                padding: isMobile ? '10px' : '16px', position: 'relative', overflow: 'hidden', cursor: 'pointer',
-                transition: '0.2s ease'
-              }}
-              className="category-card"
-            >
-              <span style={{ fontSize: isMobile ? '11px' : '18px', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{cat.name}</span>
-              <span style={{
-                position: 'absolute', bottom: '-10px', right: '-10px',
-                fontSize: isMobile ? '42px' : '64px', transform: 'rotate(25deg)', opacity: 0.8
-              }}>{cat.emoji}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* STATE 2: SEARCH RESULTS */}
-      {!isEmpty && (
-        <div className="results-container" style={{ opacity: 1, transition: 'opacity 0.2s ease' }}>
-
-          {/* Artist-Grouped Header */}
-          {searchResults.isArtistMatch && searchResults.matchedArtist && hasResults && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '16px 18px', marginBottom: 20, borderRadius: 14,
-              background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(0, 210, 255, 0.02))',
-              border: '1px solid rgba(0, 210, 255, 0.1)',
-            }}>
+          {recentSongs.length > 0 ? (
+            <>
+              {/* Header */}
               <div style={{
-                width: 44, height: 44, borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(0, 210, 255, 0.1))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: isMobile ? '8px 12px 4px' : '8px 12px 8px',
               }}>
-                <FiUser size={20} style={{ color: 'var(--accent, #00d2ff)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FiClock size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <h2 style={{
+                    fontSize: 16, fontWeight: 700, color: '#fff', margin: 0,
+                    letterSpacing: '0.2px',
+                  }}>
+                    Recent Searches
+                  </h2>
+                </div>
+                <button
+                  onClick={clearAllRecent}
+                  style={{
+                    background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '6px 14px',
+                    borderRadius: 20, transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'none' }}
+                >
+                  Clear All
+                </button>
               </div>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', margin: 0, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                  Songs by
-                </p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
-                  {searchResults.matchedArtist}
-                </p>
+
+              {/* Recent rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {recentSongs.slice(0, MAX_RECENT).map((song, i) => (
+                  <SearchRow
+                    key={song.videoId || i}
+                    song={song}
+                    showRemove={true}
+                    onPlay={(s) => handlePlayRecent(s, recentSongs, i)}
+                    onRemove={removeFromRecent}
+                    onAdd={handleAdd}
+                  />
+                ))}
               </div>
-              <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.25)' }}>
-                {displaySongs.length} {displaySongs.length === 1 ? 'song' : 'songs'}
-              </span>
-            </div>
-          )}
-
-          {hasResults ? (
-            <div style={{ animation: 'staggerIn 0.25s ease forwards' }}>
-              {!searchResults.isArtistMatch && (
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '20px' }}>Songs</h2>
-              )}
-              {isMobile ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {displaySongs.map((song, i) => (
-                    <SongCard key={song.videoId} song={song} songs={displaySongs} index={i} showDuration={true} onPlay={(s) => saveToRecent(s)} />
-                  ))}
-                </div>
-              ) : (
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(3, 1fr)', 
-                  gap: '20px'
-                }}>
-                  {displaySongs.map((song, i) => (
-                    <div key={song.videoId} className="search-song-card" 
-                      onClick={() => { saveToRecent(song); playSong(song, displaySongs, i) }} 
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('open-context-menu', {
-                          detail: { x: e.clientX, y: e.clientY, song, type: 'song' }
-                        }));
-                      }}
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        padding: '16px',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        position: 'relative',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px'
-                      }}
-                    >
-                      <div style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-                        <img src={song.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <div className="search-card-play-btn" style={{
-                          position: 'absolute', bottom: '8px', right: '8px',
-                          width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          opacity: 0, transform: 'translateY(10px)', transition: 'all 0.2s'
-                        }}>
-                          <FiPlay size={18} style={{ fill: '#fff', color: '#fff', marginLeft: '2px' }} />
-                        </div>
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p className="truncate" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#fff' }}>{song.title}</p>
-                        <p className="truncate" style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#b3b3b3' }}>
-                          {song.artist || song.channelTitle || 'Unknown'}
-                          {song.album && song.album !== 'Unknown' && ` · ${song.album}`}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Loading spinner when API results are still coming */}
-              {searchResults.loading && (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: '50%',
-                    border: '2px solid rgba(255,255,255,0.1)',
-                    borderTopColor: 'rgba(255,255,255,0.4)',
-                    animation: 'spin 0.6s linear infinite'
-                  }} />
-                </div>
-              )}
-            </div>
+            </>
           ) : (
-            /* NO RESULTS STATE */
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '100px 0' }}>
-              <FiSearch size={48} style={{ color: '#fff', opacity: 0.4, marginBottom: '24px' }} />
-              <p style={{ color: '#b3b3b3', fontSize: '16px', margin: 0 }}>No results found for</p>
-              <p style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '4px 0 8px' }}>"{searchQuery}"</p>
-              <p style={{ color: '#b3b3b3', fontSize: '13px' }}>Please make sure your words are spelled correctly.</p>
+            /* Empty recent state */
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '120px 24px', textAlign: 'center',
+            }}>
+              <FiSearch size={48} style={{ color: 'rgba(255,255,255,0.15)', marginBottom: 20 }} />
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontWeight: 600, margin: 0 }}>
+                Search for songs, artists, or albums
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, margin: '8px 0 0' }}>
+                Your recent searches will appear here
+              </p>
             </div>
           )}
         </div>
       )}
 
+      {/* ═══ STATE 2: LIVE SEARCH RESULTS (when typing) ═══ */}
+      {!isEmpty && (
+        <div style={{ animation: 'searchFadeIn 0.2s ease' }}>
+
+          {/* Artist match header */}
+          {searchResults.isArtistMatch && searchResults.matchedArtist && hasResults && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 16px', marginBottom: 8, borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(0, 210, 255, 0.02))',
+              border: '1px solid rgba(0, 210, 255, 0.1)',
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(0, 210, 255, 0.1))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <FiMusic size={18} style={{ color: 'var(--accent, #00d2ff)' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)',
+                  margin: 0, letterSpacing: '0.8px', textTransform: 'uppercase',
+                }}>
+                  Songs by
+                </p>
+                <p style={{ fontSize: 17, fontWeight: 700, color: '#fff', margin: 0 }}>
+                  {searchResults.matchedArtist}
+                </p>
+              </div>
+              <span style={{
+                fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.2)',
+                flexShrink: 0,
+              }}>
+                {displaySongs.length} {displaySongs.length === 1 ? 'song' : 'songs'}
+              </span>
+            </div>
+          )}
+
+          {/* Results list */}
+          {hasResults ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {displaySongs.map((song, i) => (
+                <SearchRow
+                  key={song.videoId || `r-${i}`}
+                  song={song}
+                  showRemove={false}
+                  onPlay={(s) => handlePlayResult(s, displaySongs, i)}
+                  onAdd={handleAdd}
+                />
+              ))}
+
+              {/* Loading spinner for API results */}
+              {searchResults.loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.08)',
+                    borderTopColor: 'rgba(255,255,255,0.35)',
+                    animation: 'searchSpin 0.6s linear infinite',
+                  }} />
+                </div>
+              )}
+            </div>
+          ) : searchResults.loading ? (
+            /* Loading state — no results yet */
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '80px 24px',
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                border: '2.5px solid rgba(255,255,255,0.08)',
+                borderTopColor: 'rgba(255,255,255,0.4)',
+                animation: 'searchSpin 0.6s linear infinite',
+                marginBottom: 16,
+              }} />
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, margin: 0 }}>
+                Searching…
+              </p>
+            </div>
+          ) : (
+            /* No results found */
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '100px 24px', textAlign: 'center',
+            }}>
+              <FiSearch size={44} style={{ color: 'rgba(255,255,255,0.12)', marginBottom: 20 }} />
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, margin: 0 }}>
+                No results found for
+              </p>
+              <p style={{
+                color: '#fff', fontSize: 17, fontWeight: 700,
+                margin: '6px 0 10px',
+              }}>
+                "{searchQuery}"
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, margin: 0 }}>
+                Check your spelling or try different keywords
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Scoped Styles ─── */}
       <style>{`
-        .category-card:hover { filter: brightness(1.15); transform: scale(1.04) !important; }
-        .search-song-card:hover { 
-          background: rgba(255,255,255,0.1) !important; 
-          transform: scale(1.04) !important;
-          box-shadow: 0 12px 24px rgba(0,0,0,0.3);
-        }
-        .search-song-card:hover .search-card-play-btn {
-          opacity: 1 !important;
-          transform: translateY(0) !important;
-        }
-        .recent-card:hover { transform: scale(1.05) !important; }
-        .recent-card:hover .recent-remove-btn { opacity: 1 !important; }
-        .clear-all-btn:hover { color: #fff !important; background: rgba(255,255,255,0.08); }
-        
-        @keyframes staggerIn {
-          from { opacity: 0; transform: translateY(10px); }
+        @keyframes searchFadeIn {
+          from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes spin {
+        @keyframes searchSpin {
           to { transform: rotate(360deg); }
         }
       `}</style>
