@@ -52,6 +52,8 @@ export default function MobileNav() {
   const [isDragging, setIsDragging] = useState(false)
   const [dragOverIdx, setDragOverIdx] = useState(-1)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  // Mini-player dominant color — read from CSS variable set by Player.jsx
+  const [miniPlayerColor, setMiniPlayerColor] = useState(null)
 
   const isDraggingRef = useRef(false)
   const isMouseDownRef = useRef(false)
@@ -69,6 +71,23 @@ export default function MobileNav() {
   useEffect(() => {
     setIsCreateOpen(false)
   }, [pathname])
+
+  // Read --mini-player-color CSS variable set by Player.jsx.
+  // MutationObserver fires only when the html style attribute changes,
+  // so this has zero cost when the mini-player color isn't changing.
+  useEffect(() => {
+    const readColor = () => {
+      const root = document.documentElement
+      const color = root.style.getPropertyValue('--mini-player-color').trim()
+      const visible = root.style.getPropertyValue('--mini-player-visible').trim()
+      setMiniPlayerColor(visible === '1' && color ? color : null)
+    }
+    // Read immediately on mount
+    readColor()
+    const observer = new MutationObserver(readColor)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
+    return () => observer.disconnect()
+  }, [])
 
   // Measure and position the capsule behind the active tab
   const updateCapsule = useCallback((idx) => {
@@ -340,6 +359,33 @@ export default function MobileNav() {
         WebkitBackfaceVisibility: 'hidden',
       }}
     >
+      {/*
+        ── System nav-bar color bleed ───────────────────────────────────────────
+        Purely visual strip rendered inside MobileNav's paddingBottom zone
+        (the safe-area-inset-bottom region that sits behind the device's gesture
+        pill / 3-button nav bar). When the mini-player is active, this fills
+        that area with its dominant color so the mini-player color flows
+        seamlessly all the way to the screen edge with no black gap.
+        All tab buttons, the capsule, and the nav bar layout are untouched.
+      */}
+      {miniPlayerColor && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            // Only fills the safe-area-inset-bottom padding zone
+            height: 'env(safe-area-inset-bottom, 0px)',
+            background: miniPlayerColor,
+            transition: 'background 0.4s ease',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+      )}
+
       {/* Sliding capsule indicator */}
       <div 
         ref={capsuleRef}

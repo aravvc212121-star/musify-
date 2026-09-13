@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { FiPlay, FiClock, FiHeart, FiMoreHorizontal, FiArrowLeft, FiSearch, FiMusic } from 'react-icons/fi'
 import { getTrending, searchSongs } from '../utils/api.js'
+import SongListItem from '../components/ui/SongListItem.jsx'
 
 function fmt(s) {
   if (!s || isNaN(s)) return '0:00'
@@ -52,6 +53,15 @@ export default function PlaylistPage() {
     loadData()
   }, [playlistName, isSpecial, persistentPlaylist])
 
+  // Black panel background to match app-wide theme
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    const prev = panel.style.background
+    panel.style.background = '#000000'
+    return () => { panel.style.background = prev }
+  }, [])
+
   const songs = useMemo(() => {
     if (isLikedPlaylist) return savedSongs
     if (persistentPlaylist) return persistentPlaylist.songs || []
@@ -82,8 +92,8 @@ export default function PlaylistPage() {
     <div style={{ 
       paddingBottom: 100, 
       animation: 'fadeIn 0.3s ease',
-      background: `linear-gradient(to bottom, ${color.includes('gradient') ? 'rgba(0,0,0,0)' : color + '33'}, transparent 500px)`,
-      minHeight: '100%'
+      background: '#000000',
+      minHeight: '100dvh'
     }}>
       {/* ─── Hero Section ─── */}
       <div className="playlist-hero" style={{
@@ -152,7 +162,7 @@ export default function PlaylistPage() {
       </div>
 
       {/* ─── Song List ─── */}
-      <div className="song-list-container">
+      <div className="song-list-container" style={{ padding: '0 16px' }}>
         {songs.length === 0 ? (
           <div style={{ padding: '80px 0', textAlign: 'center', color: '#b3b3b3' }}>
             <FiMusic size={64} style={{ marginBottom: '24px', opacity: 0.3 }} />
@@ -160,111 +170,18 @@ export default function PlaylistPage() {
             <p style={{ fontSize: '14px' }}>Find more of the music you love in search</p>
           </div>
         ) : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', color: '#b3b3b3', borderBottom: 'none', paddingBottom: '8px', marginBottom: '16px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 600 }}>
-              <div style={{ width: '40px', textAlign: 'center' }}>#</div>
-              <div style={{ flex: 1 }}>Title</div>
-              <div className="col-album" style={{ flex: 1 }}>Album</div>
-              <div style={{ width: '100px', textAlign: 'right', paddingRight: '32px' }}><FiClock size={16} /></div>
-            </div>
-
-            {songs.map((song, i) => {
-              const isPlaying = currentSong?.videoId === song.videoId
-              const saved = isSongSaved(song.videoId)
-              return (
-                <div
-                  key={song.videoId}
-                  className="song-row"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    window.dispatchEvent(new CustomEvent('open-context-menu', {
-                      detail: { x: e.clientX, y: e.clientY, song, playlistName, type: 'song' }
-                    }));
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center',
-                    padding: '8px 0', borderRadius: '4px',
-                    color: isPlaying ? 'var(--accent)' : 'var(--text-primary)',
-                    transition: 'all 0.2s ease',
-                    height: '56px'
-                  }}
-                >
-                  <div 
-                    onClick={() => playSong(song, songs, i)}
-                    style={{ width: '40px', textAlign: 'center', color: isPlaying ? 'var(--accent)' : '#b3b3b3', fontSize: '14px', cursor: 'pointer' }}
-                  >
-                    {isPlaying ? (
-                      <div className="playing-bars">
-                        <div className="bar"></div><div className="bar"></div><div className="bar"></div>
-                      </div>
-                    ) : (
-                      i + 1
-                    )}
-                  </div>
-                  <div 
-                    onClick={() => playSong(song, songs, i)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', minWidth: 0 }}
-                  >
-                    <img src={song.thumbnail || `https://i.ytimg.com/vi/${song.videoId}/default.jpg`} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} alt="" />
-                    <div style={{ minWidth: 0 }}>
-                      <div className="truncate" style={{ fontSize: '16px', fontWeight: 600, color: isPlaying ? 'var(--accent)' : '#fff' }}>{song.title}</div>
-                      <div className="truncate" style={{ fontSize: '14px', color: '#b3b3b3' }}>{song.artist || 'Unknown Artist'}</div>
-                    </div>
-                  </div>
-                  <div className="col-album truncate" style={{ flex: 1, fontSize: '14px', color: '#b3b3b3' }}>
-                    {song.album || 'Single'}
-                  </div>
-                  
-                  <div style={{ width: '100px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px', paddingRight: '16px' }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleSavedSong(song) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: saved ? 'var(--accent)' : '#b3b3b3' }}
-                      className="hover-pop"
-                    >
-                      <FiHeart size={18} style={{ fill: saved ? 'var(--accent)' : 'none' }} />
-                    </button>
-                    
-                    <span style={{ fontSize: '14px', color: '#b3b3b3', width: '40px', textAlign: 'right' }}>{fmt(song.duration || 210)}</span>
-                    
-                    <button
-                      className="row-more-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const rect = e.currentTarget.getBoundingClientRect()
-                        window.dispatchEvent(new CustomEvent('open-context-menu', {
-                          detail: { x: rect.left - 180, y: rect.bottom + 8, song, playlistName }
-                        }))
-                      }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b3b3b3', padding: '4px' }}
-                    >
-                      <FiMoreHorizontal size={18} />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {songs.map((song, i) => (
+              <SongListItem key={song.videoId || i} song={song} songs={songs} index={i} />
+            ))}
+          </div>
         )}
       </div>
 
 
       <style>{`
-        .song-row:hover { background-color: rgba(255,255,255,0.1); }
-        .row-more-btn { opacity: 0; }
-        .song-row:hover .row-more-btn { opacity: 1; }
-        
         .play-btn-big:hover { transform: scale(1.05); }
         .hover-pop:active { transform: scale(1.3); transition: transform 0.1s; }
-        
-        .playing-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; width: 14px; margin: 0 auto; }
-        .playing-bars .bar { width: 3px; background: var(--accent); animation: playBar 0.8s infinite ease-in-out; }
-        .playing-bars .bar:nth-child(2) { animation-delay: 0.2s; }
-        .playing-bars .bar:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes playBar {
-          0%, 100% { height: 4px; }
-          50% { height: 14px; }
-        }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         

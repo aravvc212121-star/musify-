@@ -159,6 +159,15 @@ export default function SearchPage({ isMobile }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [setSearchQuery])
 
+  // Paint the scrollable panel black so there's no grey gap below content
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    const prev = panel.style.background
+    panel.style.background = '#000000'
+    return () => { panel.style.background = prev }
+  }, [])
+
   // ─── Recent search helpers ───
   const addToRecent = useCallback((song) => {
     if (!song?.videoId) return
@@ -215,7 +224,7 @@ export default function SearchPage({ isMobile }) {
 
   return (
     <div ref={containerRef} style={{
-      padding: isMobile ? '8px 4px 100px' : '12px 24px 100px',
+      padding: isMobile ? '8px 4px 16px' : '12px 24px 16px',
       minHeight: '100%',
     }}>
 
@@ -233,7 +242,7 @@ export default function SearchPage({ isMobile }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FiClock size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
                   <h2 style={{
-                    fontSize: 16, fontWeight: 700, color: '#fff', margin: 0,
+                    fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.4)', margin: 0,
                     letterSpacing: '0.2px',
                   }}>
                     Recent Searches

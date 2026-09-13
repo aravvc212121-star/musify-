@@ -32,10 +32,53 @@ export function usePlayerTime() {
   return context
 }
 
+// ─── Playback Persistence Helpers ───
+const PERSIST_KEY = 'rhym_last_played'
+
+function savePlaybackState(song, position, playing) {
+  if (!song) return
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({
+      videoId: song.videoId,
+      title: song.title,
+      artist: song.artist || song.channelTitle || '',
+      thumbnail: song.thumbnail || '',
+      albumArt: song.albumArt || '',
+      position: position || 0,
+      isPlaying: !!playing,
+      savedAt: Date.now()
+    }))
+  } catch (e) { /* quota exceeded, ignore */ }
+}
+
+function loadPlaybackState() {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch { return null }
+}
+
 export function PlayerProvider({ children }) {
-  const [currentSong, setCurrentSong] = useState(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
+  // Restore last-played song on init (UI only — no auto-play)
+  const [currentSong, setCurrentSong] = useState(() => {
+    const persisted = loadPlaybackState()
+    if (persisted && persisted.videoId) {
+      return {
+        videoId: persisted.videoId,
+        title: persisted.title,
+        artist: persisted.artist,
+        thumbnail: persisted.thumbnail,
+        albumArt: persisted.albumArt || '',
+      }
+    }
+    return null
+  })
+  const [isPlaying, setIsPlaying] = useState(false) // Never auto-play on restore
+  const [currentTime, setCurrentTime] = useState(() => {
+    const persisted = loadPlaybackState()
+    return persisted?.position || 0
+  })
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
   const [queue, setQueue] = useState([])
@@ -242,6 +285,25 @@ export function PlayerProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('recentlyPlayed', JSON.stringify(recentlyPlayed))
   }, [recentlyPlayed])
+
+  // ─── Playback Persistence: Save on song/state change ───
+  useEffect(() => {
+    if (currentSong) {
+      savePlaybackState(currentSong, currentTime, isPlaying)
+    }
+  }, [currentSong, isPlaying])
+
+  // ─── Playback Persistence: Periodically save position (every 5s) ───
+  useEffect(() => {
+    if (!currentSong || !isPlaying) return
+    const interval = setInterval(() => {
+      const audio = audioRef.current
+      if (audio && audio.currentTime > 0) {
+        savePlaybackState(currentSong, audio.currentTime, true)
+      }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [currentSong, isPlaying])
 
   useEffect(() => {
     localStorage.setItem('crossfadeEnabled', JSON.stringify(crossfadeEnabled))
@@ -552,6 +614,9 @@ export function PlayerProvider({ children }) {
     setIsPlaying(true)
     retryCountRef.current = 0
 
+    // Persist immediately on track switch
+    savePlaybackState(song, 0, true)
+
     if (songQueue) {
       setQueue(songQueue)
       setQueueIndex(index)
@@ -595,6 +660,26 @@ export function PlayerProvider({ children }) {
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current
+    // If no audio source but we have a restored song, load and play it
+    if (!audio.src && currentSongRef.current) {
+      const song = currentSongRef.current
+      const persisted = loadPlaybackState()
+      audio.crossOrigin = 'anonymous'
+      audio.src = `/api/stream?id=${song.videoId}&t=${Date.now()}`
+      audio.load()
+      // Seek to persisted position once loadable
+      if (persisted?.position > 0) {
+        const onCanPlay = () => {
+          audio.currentTime = persisted.position
+          audio.removeEventListener('canplay', onCanPlay)
+        }
+        audio.addEventListener('canplay', onCanPlay)
+      }
+      setIsAudioLoading(true)
+      setIsPlaying(true)
+      audio.play().catch(() => {})
+      return
+    }
     if (!audio.src) return
     if (isPlaying) {
       audio.pause()

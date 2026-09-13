@@ -136,7 +136,7 @@ export default function TopBar({ isMobile = false }) {
   const isSearchPage = pathname === '/search'
 
   // If mobile and on the home, artist, or playlist page, hide TopBar completely so content starts directly at the top.
-  if (isMobile && (pathname === '/' || pathname.startsWith('/artist/') || pathname.startsWith('/playlist/'))) {
+  if (isMobile && (pathname === '/' || pathname === '/library' || pathname === '/liked-songs' || pathname === '/popular-artists' || pathname.startsWith('/artist/') || pathname.startsWith('/playlist/') || pathname.startsWith('/album/') || pathname.startsWith('/charts/'))) {
     return null
   }
 
@@ -159,7 +159,7 @@ export default function TopBar({ isMobile = false }) {
         : (isSearchPage ? '14px' : '16px'),
       paddingBottom: isSearchPage ? (isMobile ? '12px' : '14px') : 0,
       borderRadius: isMobile ? '0' : (isSearchPage ? '0' : '12px'),
-      background: isSearchPage ? '#121212' : 'transparent',
+      background: isSearchPage ? '#000000' : 'transparent',
       boxShadow: isSearchPage ? '0 4px 20px rgba(0, 0, 0, 0.5)' : 'none',
       boxSizing: 'border-box',
     }}>
@@ -211,7 +211,7 @@ export default function TopBar({ isMobile = false }) {
       {/* Center Title (only when no search bar, desktop only) */}
       {!isMobile && (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative' }}>
-          {(!isSearchPage && pathname !== '/' && !pathname.startsWith('/artist/') && !pathname.startsWith('/playlist/')) && (
+          {(!isSearchPage && pathname !== '/' && pathname !== '/library' && !pathname.startsWith('/artist/') && !pathname.startsWith('/playlist/')) && (
             <span style={{ fontSize: '16px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '400px' }}>
               {pageTitle}
             </span>
@@ -283,7 +283,7 @@ export default function TopBar({ isMobile = false }) {
         )}
 
         {/* Mobile page title (when not on search/home/artist/playlist) */}
-        {isMobile && !isSearchPage && pathname !== '/' && !pathname.startsWith('/artist/') && !pathname.startsWith('/playlist/') && (
+        {isMobile && !isSearchPage && pathname !== '/' && pathname !== '/library' && !pathname.startsWith('/artist/') && !pathname.startsWith('/playlist/') && (
           <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
             {pageTitle}
           </span>

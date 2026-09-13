@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getArtistSongs } from '../utils/api.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { FiPlay, FiArrowLeft, FiMusic } from 'react-icons/fi'
-import SongCard from '../components/ui/SongCard.jsx'
+import SongListItem from '../components/ui/SongListItem.jsx'
 import { useIsMobile } from '../hooks/useIsMobile.js'
 
 const KNOWN_ARTISTS = {
@@ -63,6 +63,15 @@ export default function ArtistPage() {
     load()
   }, [id])
 
+  // Black panel background to match app-wide theme
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    const prev = panel.style.background
+    panel.style.background = '#000000'
+    return () => { panel.style.background = prev }
+  }, [])
+
   const color = useMemo(() => {
     let hash = 0
     for (let i = 0; i < (id || '').length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
@@ -75,8 +84,8 @@ export default function ArtistPage() {
     <div style={{ 
       paddingBottom: 100, 
       animation: 'fadeIn 0.3s ease',
-      background: '#121212',
-      minHeight: '100%'
+      background: '#000000',
+      minHeight: '100dvh'
     }}>
       {/* ─── Hero Poster Banner (Full-bleed poster with name overlay) ─── */}
       <div className="artist-poster-hero" style={{
@@ -222,9 +231,9 @@ export default function ArtistPage() {
             <p style={{ fontSize: '14px' }}>We couldn't find any tracks for this artist right now.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {songs.map((song, i) => (
-              <SongCard key={song.videoId || i} song={song} songs={songs} index={i} />
+              <SongListItem key={song.videoId || i} song={song} songs={songs} index={i} />
             ))}
           </div>
         )}

@@ -20,6 +20,9 @@ const ArtistPage = lazy(() => import('./pages/ArtistPage.jsx'))
 const ChartsPage = lazy(() => import('./pages/ChartsPage.jsx'))
 const PlaylistPage = lazy(() => import('./pages/PlaylistPage.jsx'))
 const AuthPage = lazy(() => import('./pages/AuthPage.jsx'))
+const AlbumPage = lazy(() => import('./pages/AlbumPage.jsx'))
+const PopularArtistsPage = lazy(() => import('./pages/PopularArtistsPage.jsx'))
+const LikedSongsPage = lazy(() => import('./pages/LikedSongsPage.jsx'))
 
 /* ─── Loading Spinner ─── */
 function PageLoader() {
@@ -170,6 +173,9 @@ function AppShell({ location }) {
               <Route path="/artist/:id" element={<ArtistPage />} />
               <Route path="/charts/:id" element={<ChartsPage />} />
               <Route path="/playlist/:id" element={<PlaylistPage />} />
+              <Route path="/album/:id" element={<AlbumPage />} />
+              <Route path="/popular-artists" element={<PopularArtistsPage />} />
+              <Route path="/liked-songs" element={<LikedSongsPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

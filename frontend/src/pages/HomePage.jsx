@@ -148,15 +148,16 @@ function VerticalCard({ song, isArtist, isNewRelease, isRecommended, onClick, is
       flexShrink: 0,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }}
-    className="vertical-card">
-      <div style={{ position: 'relative', width: `${imgSize}px`, height: `${imgSize}px`, marginBottom: isMobile ? '8px' : '16px', background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', borderRadius: isArtist ? '50%' : '4px', aspectRatio: '1/1' }}>
+    className="vertical-card"
+    >
+      <div style={{ position: 'relative', width: `${imgSize}px`, height: `${imgSize}px`, marginBottom: isMobile ? '8px' : '16px', background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', borderRadius: isArtist ? '50%' : '10px', aspectRatio: '1/1' }}>
         <img
           src={song.thumbnail || song.img} alt={song.title || song.name}
           width={imgSize}
           height={imgSize}
           loading="lazy"
           decoding="async"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: isArtist ? '50%' : '4px' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: isArtist ? '50%' : '10px' }}
         />
         {isNewRelease && (
           <div style={{
@@ -241,6 +242,38 @@ export default function HomePage() {
   const postersScrollRef = useRef(null)
 
   const isMobile = useIsMobile()
+  // Track whether the page has been scrolled past the collapse threshold
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Collapse the "Rhym" wordmark into the logo when the user scrolls down
+  useEffect(() => {
+    // The scrollable container is .center-panel (the nearest scrolling ancestor)
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    let rafId = null
+    const THRESHOLD = 20 // px before text starts collapsing
+    const onScroll = () => {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        setIsScrolled(panel.scrollTop > THRESHOLD)
+      })
+    }
+    panel.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      panel.removeEventListener('scroll', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [])
+
+  // Paint the scrollable panel black so there's no grey gap below content
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    const prev = panel.style.background
+    panel.style.background = '#000000'
+    return () => { panel.style.background = prev }
+  }, [])
 
   // Get or generate daily songs (4 songs from DIFFERENT popular artists) based on current date
   useEffect(() => {
@@ -432,7 +465,7 @@ export default function HomePage() {
   return (
     <div style={{ 
       position: 'relative', 
-      padding: isMobile ? '0 8px 20px' : '0 32px 40px', 
+      padding: isMobile ? '0 8px 8px' : '0 32px 12px', 
     }}>
       {/* ─── Ambient Aurora Background Effect ─── */}
       {!isMobile && (
@@ -519,21 +552,24 @@ export default function HomePage() {
           justifyContent: 'space-between',
           margin: isMobile ? '0 -8px 10px' : '0 -32px 14px',
           padding: isMobile 
-            ? 'calc(10px + env(safe-area-inset-top, 0px)) 12px 10px' 
-            : '16px 32px',
+            ? 'calc(6px + env(safe-area-inset-top, 0px)) 12px 6px' 
+            : '10px 32px',
           userSelect: 'none',
-          background: '#121212',
+          background: 'transparent',
         }}>
           {/* Left: Brand Lockup */}
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '10px' }}>
             <svg
-              width={isMobile ? 27 : 31}
-              height={isMobile ? 27 : 31}
+              width={isMobile ? 24 : 28}
+              height={isMobile ? 24 : 28}
               viewBox="0 0 512 512"
               style={{
                 borderRadius: '6.5px',
                 flexShrink: 0,
                 boxShadow: '0 2px 10px rgba(0, 0, 0, 0.35)',
+                opacity: isScrolled ? 0 : 1,
+                pointerEvents: isScrolled ? 'none' : 'auto',
+                transition: 'opacity 0.25s ease',
               }}
             >
               <rect width="512" height="512" rx="100" ry="100" fill="#000" />
@@ -546,11 +582,20 @@ export default function HomePage() {
               </g>
             </svg>
             <span style={{
-              fontSize: isMobile ? '16px' : '19px',
+              fontSize: isMobile ? '15px' : '17px',
               fontWeight: 600,
               color: '#fff',
               letterSpacing: '-0.3px',
               lineHeight: 1,
+              // Collapse text into logo on scroll
+              maxWidth: isScrolled ? '0px' : '80px',
+              opacity: isScrolled ? 0 : 1,
+              // Cancel the parent flex gap when fully collapsed so no dead space remains
+              marginLeft: isScrolled ? `${-(isMobile ? 8 : 10)}px` : '0px',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              transition: 'max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: 'max-width, opacity',
             }}>
               Rhym
             </span>
@@ -560,10 +605,10 @@ export default function HomePage() {
           <button
             onClick={() => navigate('/auth')}
             style={{
-              width: isMobile ? '32px' : '36px',
-              height: isMobile ? '32px' : '36px',
+              width: isMobile ? '28px' : '32px',
+              height: isMobile ? '28px' : '32px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.08)',
+              background: '#38b2ac',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -573,7 +618,9 @@ export default function HomePage() {
               padding: 0,
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'background 0.15s ease, transform 0.15s ease',
+              opacity: isScrolled ? 0 : 1,
+              pointerEvents: isScrolled ? 'none' : 'auto',
+              transition: 'background 0.15s ease, transform 0.15s ease, opacity 0.25s ease',
             }}
             onPointerDown={(e) => { e.currentTarget.style.transform = 'scale(0.92)' }}
             onPointerUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
@@ -581,7 +628,7 @@ export default function HomePage() {
             title="Profile"
             aria-label="Profile"
           >
-            <FiUser size={isMobile ? 16 : 18} color="#fff" />
+            <FiUser size={isMobile ? 16 : 18} color="#000" />
           </button>
         </header>
 
@@ -1247,9 +1294,6 @@ export default function HomePage() {
 
         /* Vertical Card Hover */
         .vertical-card:hover {
-          background: #2a2a2a !important;
-          transform: scale(1.04) !important;
-          box-shadow: 0 12px 24px rgba(0,0,0,0.3) !important;
         }
         .vertical-card:hover .hover-play-btn {
           opacity: 1 !important;

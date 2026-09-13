@@ -155,6 +155,24 @@ export default function Player() {
   const thumb = currentSong?.thumbnail || (currentSong ? `https://i.ytimg.com/vi/${currentSong.videoId}/mqdefault.jpg` : '')
   const dominantColor = useDominantColor(thumb)
 
+  // Sync dominant color into a CSS variable so MobileNav can bleed it into the system nav bar area
+  useEffect(() => {
+    const root = document.documentElement
+    if (currentSong && dominantColor) {
+      root.style.setProperty('--mini-player-color', dominantColor)
+      root.style.setProperty('--mini-player-visible', '1')
+    } else {
+      root.style.removeProperty('--mini-player-color')
+      root.style.removeProperty('--mini-player-visible')
+    }
+    return () => {
+      if (!currentSong) {
+        root.style.removeProperty('--mini-player-color')
+        root.style.removeProperty('--mini-player-visible')
+      }
+    }
+  }, [dominantColor, currentSong])
+
   if (!currentSong) return null
 
   const saved = isSongSaved(currentSong.videoId)
