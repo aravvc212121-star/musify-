@@ -49,7 +49,7 @@ export default function LibraryPage() {
         {/* Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/settings')}
             style={{
               width: 32, height: 32, borderRadius: '50%',
               background: '#38b2ac', border: 'none',

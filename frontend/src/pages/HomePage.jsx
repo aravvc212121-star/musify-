@@ -637,7 +637,7 @@ export default function HomePage() {
 
           {/* Right: Profile Avatar Button */}
           <button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/settings')}
             style={{
               width: isMobile ? '28px' : '32px',
               height: isMobile ? '28px' : '32px',

@@ -23,6 +23,7 @@ const AuthPage = lazy(() => import('./pages/AuthPage.jsx'))
 const AlbumPage = lazy(() => import('./pages/AlbumPage.jsx'))
 const PopularArtistsPage = lazy(() => import('./pages/PopularArtistsPage.jsx'))
 const LikedSongsPage = lazy(() => import('./pages/LikedSongsPage.jsx'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage.jsx'))
 
 /* ─── Loading Spinner ─── */
 function PageLoader() {
@@ -179,6 +180,7 @@ function AppShell({ location }) {
               <Route path="/album/:id" element={<AlbumPage />} />
               <Route path="/popular-artists" element={<PopularArtistsPage />} />
               <Route path="/liked-songs" element={<LikedSongsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
