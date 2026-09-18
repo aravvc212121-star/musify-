@@ -45,8 +45,8 @@ export function BlendProvider({ children }) {
   useEffect(() => { seekToRef.current = seekTo }, [seekTo])
 
   useEffect(() => {
-    // If VITE_API_URL is not set, dynamically point to port 3001 on the current hostname (works for localhost and LAN IPs)
-    const backendUrl = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3001`
+    // If VITE_API_URL is not set, dynamically point to port 3001 in dev, or '/' in production (Render)
+    const backendUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/' : `${window.location.protocol}//${window.location.hostname}:3001`)
     const newSocket = io(backendUrl)
     setSocket(newSocket)
 
