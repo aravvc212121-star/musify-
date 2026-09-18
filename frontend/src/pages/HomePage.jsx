@@ -606,14 +606,18 @@ export default function HomePage() {
                 transition: 'opacity 0.25s ease',
               }}
             >
-              <rect width="512" height="512" rx="100" ry="100" fill="#000" />
-              <g fill="#fff">
-                <rect x="148" y="200" width="22" height="160" rx="11" />
-                <rect x="192" y="145" width="22" height="270" rx="11" />
-                <rect x="236" y="95" width="22" height="322" rx="11" />
-                <rect x="280" y="130" width="22" height="290" rx="11" />
-                <rect x="324" y="175" width="22" height="200" rx="11" />
-              </g>
+              <defs>
+                <linearGradient id="hdr-cyan" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee"/>
+                  <stop offset="100%" stopColor="#06b6d4"/>
+                </linearGradient>
+              </defs>
+              <rect width="512" height="512" rx="100" ry="100" fill="#0a0a0a"/>
+              <path d="M160 400 L160 140 Q160 110 185 110 L280 110 Q340 110 340 170 Q340 230 280 230 L220 230"
+                fill="none" stroke="#f0f0f0" strokeWidth="38" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="240" y1="230" x2="360" y2="400"
+                stroke="url(#hdr-cyan)" strokeWidth="38" strokeLinecap="round"/>
+              <circle cx="370" cy="110" r="16" fill="#22d3ee"/>
             </svg>
             <span style={{
               fontSize: isMobile ? '15px' : '17px',
