@@ -9,13 +9,19 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
+import { BlendProvider } from './context/BlendContext.jsx'
+import BlendModal from './components/ui/BlendModal.jsx'
+import RoomCodePopup from './components/ui/RoomCodePopup.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <PlayerProvider>
-        <App />
+        <BlendProvider>
+          <BlendModal />
+          <RoomCodePopup />
+          <App />
         <Toaster
           position="bottom-center"
           containerStyle={{ bottom: 100 }}
@@ -40,6 +46,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             },
           }}
         />
+        </BlendProvider>
       </PlayerProvider>
     </BrowserRouter>
   </React.StrictMode>,

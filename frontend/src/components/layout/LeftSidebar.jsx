@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { 
   FiHome as IconHome, FiSearch as IconSearch, FiBook as IconLibrary, 
-  FiDisc as IconPlaylist, FiPlus as IconPlus, FiChevronDown, FiChevronRight
+  FiDisc as IconPlaylist, FiPlus as IconPlus, FiChevronDown, FiChevronRight,
+  FiMessageSquare as IconChat
 } from 'react-icons/fi'
 import { usePlayer } from '../../context/PlayerContext.jsx'
+import { useBlend } from '../../context/BlendContext.jsx'
 
 import { FiX, FiDownload } from 'react-icons/fi'
 import { useInstallPrompt } from '../../hooks/useInstallPrompt.js'
@@ -13,6 +15,7 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
   const { 
     userPlaylists, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed
   } = usePlayer()
+  const { room, openChat, unreadChatCount } = useBlend()
   const { isInstallable, handleInstallClick } = useInstallPrompt()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -39,6 +42,7 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
   const navItems = [
     { path: '/', label: 'Home', Icon: IconHome },
     { path: '/search', label: 'Search', Icon: IconSearch },
+    ...(room ? [{ action: 'open-chat', label: 'Chat', Icon: IconChat }] : []),
     { path: '/library', label: 'Your Library', Icon: IconLibrary },
   ]
   const collapsed = isMobile ? false : isLeftSidebarCollapsed
@@ -102,7 +106,44 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
         boxShadow: '0 0 30px rgba(0, 210, 255, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
         border: '1px solid rgba(255, 255, 255, 0.02)'
       }}>
-        {navItems.map(({ path, label, Icon }) => {
+        {navItems.map(({ path, action, label, Icon }) => {
+          if (action === 'open-chat') {
+            return (
+              <button
+                key={action} title={collapsed ? label : ''}
+                className="nav-link-hover"
+                onClick={() => {
+                  openChat()
+                  if (isMobile && onClose) onClose()
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 12px',
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  color: 'var(--text-secondary)', background: 'transparent', border: 'none',
+                  fontWeight: 400, borderRadius: '8px', transition: 'all 0.2s ease', cursor: 'pointer', width: '100%'
+                }}
+              >
+                <div style={{ position: 'relative', display: 'flex' }}>
+                  <Icon size={collapsed ? 20 : 24} />
+                  {unreadChatCount > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '-4px', right: '-6px',
+                      width: '16px', height: '16px', borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #2563eb, #22d3ee)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '9px', fontWeight: 400, color: '#fff',
+                      border: '1.5px solid #000',
+                      zIndex: 2,
+                    }}>
+                      {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                    </div>
+                  )}
+                </div>
+                {!collapsed && <span style={{ fontSize: '14px' }}>{label}</span>}
+              </button>
+            )
+          }
+          
           const isActive = pathname === path
           return (
             <NavLink 

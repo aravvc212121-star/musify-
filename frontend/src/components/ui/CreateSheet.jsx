@@ -2,6 +2,7 @@ import React, { useCallback } from 'react'
 import BottomSheet from './BottomSheet.jsx'
 import { FiMusic } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { useBlend } from '../../context/BlendContext.jsx'
 
 /**
  * "Blend" icon – two overlapping circles
@@ -91,6 +92,8 @@ function SheetRow({ icon, title, subtitle, onClick }) {
  *  - onClose : () => void
  */
 export default function CreateSheet({ isOpen, onClose }) {
+  const { setIsBlendModalOpen } = useBlend()
+
   const handlePlaylist = useCallback(() => {
     onClose()
     // Open create playlist modal immediately
@@ -99,16 +102,8 @@ export default function CreateSheet({ isOpen, onClose }) {
 
   const handleBlend = useCallback(() => {
     onClose()
-    toast('Blend coming soon!', {
-      icon: '✨',
-      style: {
-        borderRadius: '24px',
-        background: '#282828',
-        color: '#fff',
-        fontSize: '13px',
-      },
-    })
-  }, [onClose])
+    setIsBlendModalOpen(true)
+  }, [onClose, setIsBlendModalOpen])
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose}>

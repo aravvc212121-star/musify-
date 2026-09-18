@@ -8,9 +8,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { GoHome, GoHomeFill } from 'react-icons/go'
-import { FiSearch, FiPlus } from 'react-icons/fi'
+import { FiSearch, FiPlus, FiMessageSquare } from 'react-icons/fi'
 import { haptics } from '../../utils/haptics.js'
 import CreateSheet from '../ui/CreateSheet.jsx'
+import { useBlend } from '../../context/BlendContext.jsx'
 
 /* Stacked-bars "library" icon — two rounded vertical bars side by side */
 function LibraryIcon({ size = 24, color = 'currentColor' }) {
@@ -33,6 +34,7 @@ function LibraryIcon({ size = 24, color = 'currentColor' }) {
 const TABS = [
   { path: '/', label: 'Home', Icon: GoHome, ActiveIcon: GoHomeFill },
   { path: '/search', label: 'Search', Icon: FiSearch },
+  { action: 'open-chat', label: 'Chat', Icon: FiMessageSquare, condition: (room) => !!room },
   { action: 'create-playlist', label: 'Create', Icon: FiPlus },
   { path: '/library', label: 'Your Library', Icon: LibraryIcon },
 ]
@@ -54,6 +56,14 @@ export default function MobileNav() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   // Mini-player dominant color — read from CSS variable set by Player.jsx
   const [miniPlayerColor, setMiniPlayerColor] = useState(null)
+  const { room, openChat, unreadChatCount } = useBlend()
+
+  // Filter out tabs conditionally (hide Create if in room, hide Chat if NOT in room)
+  const activeTabs = TABS.filter(t => {
+    if (t.action === 'create-playlist') return !room
+    if (t.condition) return t.condition(room)
+    return true
+  })
 
   const isDraggingRef = useRef(false)
   const isMouseDownRef = useRef(false)
@@ -65,7 +75,7 @@ export default function MobileNav() {
   const capsuleWidthRef = useRef(0)
   const hasMountedRef = useRef(false)
 
-  const activeIndex = TABS.findIndex(t => t.path === pathname)
+  const activeIndex = activeTabs.findIndex(t => t.path === pathname)
 
   // Auto-close create sheet on route change
   useEffect(() => {
@@ -131,15 +141,17 @@ export default function MobileNav() {
   // Tap handler
   const handleTap = useCallback((idx) => {
     haptics.light()
-    const tab = TABS[idx]
+    const tab = activeTabs[idx]
     if (tab.action === 'create-playlist') {
       setIsCreateOpen(prev => !prev)
+    } else if (tab.action === 'open-chat') {
+      openChat()
     } else {
       setIsCreateOpen(false)
       updateCapsule(idx)
       navigate(tab.path)
     }
-  }, [navigate, updateCapsule])
+  }, [navigate, updateCapsule, activeTabs, openChat])
 
   // --- Smooth Drag Logic: Move pill freely with finger, snap to closest tab on release ---
   const startDrag = useCallback((clientX) => {
@@ -244,7 +256,7 @@ export default function MobileNav() {
 
       haptics.medium()
 
-      const tabData = TABS[targetIdx]
+      const tabData = activeTabs[targetIdx]
       if (tabData) {
         if (tabData.action === 'create-playlist') {
           setIsCreateOpen(prev => !prev)
@@ -386,7 +398,6 @@ export default function MobileNav() {
         />
       )}
 
-      {/* Sliding capsule indicator */}
       <div 
         ref={capsuleRef}
         style={{
@@ -403,7 +414,6 @@ export default function MobileNav() {
             : '0 0 16px rgba(0, 210, 255, 0.08)',
           opacity: capsuleStyle.width > 0 ? 1 : 0,
           cursor: isDragging ? 'grabbing' : 'grab',
-          // Smooth spring-like slide between tabs only when not actively dragging
           transition: isDragging
             ? 'none'
             : !hasMountedRef.current
@@ -414,7 +424,7 @@ export default function MobileNav() {
         }} 
       />
 
-      {TABS.map(({ path, action, label, Icon, ActiveIcon }, idx) => {
+      {activeTabs.map(({ path, action, label, Icon, ActiveIcon }, idx) => {
         const isCreateTab = action === 'create-playlist'
         const isCreateActive = isCreateTab && isCreateOpen
         const isActive = idx === visualActiveIdx && !action
@@ -456,26 +466,41 @@ export default function MobileNav() {
                 : (isCreateTab ? 'transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)' : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'),
             }}
           >
-            <DisplayIcon
-              size={isCreateTab ? 32 : 28}
-              color={isHighlighted ? '#fff' : '#8a8a8a'}
-              style={{
-                color: isHighlighted ? '#fff' : '#8a8a8a',
-                filter: isHighlighted ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))' : 'none',
-                transition: hasMountedRef.current 
-                  ? 'color 0.2s ease, filter 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)' 
-                  : 'none',
-                strokeWidth: isCreateTab ? 1.5 : undefined,
-                transform: isCreateTab
-                  ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
-                  : 'translate3d(0, 1.5px, 0)',
-                WebkitTransform: isCreateTab
-                  ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
-                  : 'translate3d(0, 1.5px, 0)',
-                transformOrigin: 'center center',
-                willChange: isCreateTab ? 'transform' : undefined,
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex' }}>
+              <DisplayIcon
+                size={isCreateTab ? 32 : 28}
+                color={isHighlighted ? '#fff' : '#8a8a8a'}
+                style={{
+                  color: isHighlighted ? '#fff' : '#8a8a8a',
+                  filter: isHighlighted ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))' : 'none',
+                  transition: hasMountedRef.current 
+                    ? 'color 0.2s ease, filter 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)' 
+                    : 'none',
+                  strokeWidth: isCreateTab ? 1.5 : undefined,
+                  transform: isCreateTab
+                    ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
+                    : 'translate3d(0, 1.5px, 0)',
+                  WebkitTransform: isCreateTab
+                    ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
+                    : 'translate3d(0, 1.5px, 0)',
+                  transformOrigin: 'center center',
+                  willChange: isCreateTab ? 'transform' : undefined,
+                }}
+              />
+              {action === 'open-chat' && unreadChatCount > 0 && (
+                <div style={{
+                  position: 'absolute', top: '-4px', right: '-4px',
+                  width: '16px', height: '16px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #2563eb, #22d3ee)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '9px', fontWeight: 400, color: '#fff',
+                  border: '1.5px solid #000',
+                  zIndex: 2,
+                }}>
+                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                </div>
+              )}
+            </div>
             <span style={{ 
               fontSize: '11px', 
               fontWeight: 400,

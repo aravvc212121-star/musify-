@@ -91,6 +91,13 @@ export function PlayerProvider({ children }) {
     } catch { return [] }
   })
 
+  const [savedArtists, setSavedArtists] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('savedArtists') || '[]')
+      return Array.isArray(saved) ? saved : []
+    } catch { return [] }
+  })
+
   const [recommendations, setRecommendations] = useState([])
   const [isRecLoading, setIsRecLoading] = useState(false)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
@@ -281,6 +288,10 @@ export function PlayerProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('savedSongs', JSON.stringify(savedSongs))
   }, [savedSongs])
+
+  useEffect(() => {
+    localStorage.setItem('savedArtists', JSON.stringify(savedArtists))
+  }, [savedArtists])
 
   useEffect(() => {
     localStorage.setItem('recentlyPlayed', JSON.stringify(recentlyPlayed))
@@ -591,6 +602,22 @@ export function PlayerProvider({ children }) {
     if (currentSong) fetchRecommendations(currentSong)
   }, [currentSong, fetchRecommendations])
 
+  // ─── Clear Player ───
+  const clearPlayer = useCallback(() => {
+    setCurrentSong(null)
+    setIsPlaying(false)
+    setQueue([])
+    setQueueIndex(-1)
+    setCurrentTime(0)
+    setDuration(0)
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+    }
+  }, [])
+
   // ─── Play Song ───
   const playSong = useCallback((song, songQueue = null, index = 0, isAutoCrossfade = false, isHistoryNav = false) => {
     if (!song) return
@@ -810,6 +837,22 @@ export function PlayerProvider({ children }) {
     return savedSongs.some(s => s.videoId === videoId)
   }, [savedSongs])
 
+  // ─── Saved Artists ───
+  const toggleSavedArtist = useCallback((artist) => {
+    setSavedArtists(prev => {
+      const exists = prev.some(a => a.name === artist.name)
+      if (exists) {
+        return prev.filter(a => a.name !== artist.name)
+      } else {
+        return [artist, ...prev]
+      }
+    })
+  }, [])
+
+  const isArtistSaved = useCallback((artistName) => {
+    return savedArtists.some(a => a.name === artistName)
+  }, [savedArtists])
+
   const addSongToPlaylist = useCallback((playlistName, song) => {
     setUserPlaylists(prev => prev.map(pl => {
       if (pl.name === playlistName) {
@@ -884,9 +927,10 @@ export function PlayerProvider({ children }) {
     sleepTimer, sleepTimerRemaining, startSleepTimer, cancelSleepTimer,
     crossfadeEnabled, setCrossfadeEnabled,
     crossfadeDuration, setCrossfadeDuration,
-    playSong, togglePlay, seekTo, setPlayerVolume,
+    playSong, togglePlay, seekTo, setPlayerVolume, clearPlayer,
     playNext, playPrevious, addToQueue, removeFromQueue, reorderQueue,
     toggleSavedSong, isSongSaved,
+    savedArtists, toggleSavedArtist, isArtistSaved,
     shuffle, setShuffle, repeat, setRepeat,
     eqBands, onEQChange,
     addSongToPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist
@@ -899,9 +943,11 @@ export function PlayerProvider({ children }) {
     playSong, togglePlay, seekTo, setPlayerVolume,
     playNext, playPrevious, addToQueue, removeFromQueue, reorderQueue,
     toggleSavedSong, isSongSaved,
+    savedArtists, toggleSavedArtist, isArtistSaved,
     shuffle, repeat, sleepTimer, sleepTimerRemaining,
     crossfadeEnabled, crossfadeDuration, eqBands, onEQChange,
-    addSongToPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist
+    addSongToPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist,
+    clearPlayer
   ])
 
   return (

@@ -15,6 +15,8 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import compression from 'compression'
 import { LRUCache } from 'lru-cache'
+import http from 'http'
+import { Server as SocketIOServer } from 'socket.io'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -219,6 +221,206 @@ app.get('/api/stream', async (req, res) => {
   }
 })
 
+// ─── Socket.io Blend Rooms Logic ───
+const server = http.createServer(app)
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+})
+
+// Room state storage: { [roomId]: { members: [{ id, name }], currentTrack: null, isPlaying: false, position: 0 } }
+const blendRooms = {}
+
+function generateRoomCode() {
+  const code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+  return code
+}
+
+io.on('connection', (socket) => {
+  console.log(`[Blend] Client connected: ${socket.id}`)
+
+  socket.on('create-room', (callback) => {
+    let roomId
+    let attempts = 0
+    let maxAttempts = 5
+    let success = false
+    
+    while (attempts < maxAttempts) {
+      roomId = generateRoomCode()
+      if (!blendRooms[roomId]) {
+        success = true
+        break
+      }
+      attempts++
+    }
+
+    if (!success) {
+      return callback({ success: false, error: 'Could not generate unique room code. Please try again.' })
+    }
+
+    blendRooms[roomId] = { hostId: null, members: [], currentTrack: null, isPlaying: false, position: 0 }
+    // User doesn't join here yet, they call join-room right after
+    callback({ success: true, roomId })
+  })
+
+  socket.on('join-room', (data, callback) => {
+    const roomIdStr = typeof data === 'string' ? data : data.roomId
+    const username = typeof data === 'object' && data.username ? data.username : null
+
+    if (!roomIdStr) return callback({ success: false, error: 'Room code required' })
+    const roomId = roomIdStr.toUpperCase()
+    
+    if (!blendRooms[roomId]) {
+      return callback({ success: false, error: 'Room not found' })
+    }
+    
+    if (blendRooms[roomId].members.length >= 3) {
+      return callback({ success: false, error: 'Room is full (max 3 members)' })
+    }
+
+    // Leave any current room
+    const currentRooms = Array.from(socket.rooms).filter(r => r !== socket.id)
+    currentRooms.forEach(r => {
+      socket.leave(r)
+      if (blendRooms[r]) {
+        blendRooms[r].members = blendRooms[r].members.filter(m => m.id !== socket.id)
+        io.to(r).emit('room-updated', blendRooms[r])
+      }
+    })
+
+    socket.join(roomId)
+    // Add member
+    if (blendRooms[roomId].members.length === 0) {
+      blendRooms[roomId].hostId = socket.id
+    }
+    
+    // Check if user is already in the room to avoid duplicates
+    let member = blendRooms[roomId].members.find(m => m.id === socket.id)
+    if (!member) {
+      const fallbackName = `User ${blendRooms[roomId].members.length + 1}`
+      member = { id: socket.id, name: username || fallbackName }
+      blendRooms[roomId].members.push(member)
+    } else if (username) {
+      member.name = username // Update name if they rejoin with a new one
+    }
+    
+    console.log(`[Blend] ${socket.id} joined room ${roomId}. Total: ${blendRooms[roomId].members.length}`)
+
+    // Broadcast update
+    io.to(roomId).emit('room-updated', blendRooms[roomId])
+    
+    // Return current room state to the joiner
+    callback({ success: true, room: blendRooms[roomId] })
+  })
+
+  socket.on('leave-room', (roomId) => {
+    if (blendRooms[roomId]) {
+      socket.leave(roomId)
+      
+      if (blendRooms[roomId].hostId === socket.id) {
+        console.log(`[Blend] Host ${socket.id} left. Destroying room ${roomId}.`)
+        io.to(roomId).emit('room-destroyed', { reason: 'Host left the room' })
+        delete blendRooms[roomId]
+      } else {
+        blendRooms[roomId].members = blendRooms[roomId].members.filter(m => m.id !== socket.id)
+        console.log(`[Blend] ${socket.id} left room ${roomId}.`)
+        if (blendRooms[roomId].members.length === 0) {
+          delete blendRooms[roomId]
+        } else {
+          io.to(roomId).emit('room-updated', blendRooms[roomId])
+        }
+      }
+    }
+  })
+
+  socket.on('disconnecting', () => {
+    const currentRooms = Array.from(socket.rooms).filter(r => r !== socket.id)
+    currentRooms.forEach(roomId => {
+      if (blendRooms[roomId]) {
+        if (blendRooms[roomId].hostId === socket.id) {
+          console.log(`[Blend] Host ${socket.id} disconnected. Destroying room ${roomId}.`)
+          io.to(roomId).emit('room-destroyed', { reason: 'Host disconnected' })
+          delete blendRooms[roomId]
+        } else {
+          blendRooms[roomId].members = blendRooms[roomId].members.filter(m => m.id !== socket.id)
+          if (blendRooms[roomId].members.length === 0) {
+            delete blendRooms[roomId]
+          } else {
+            io.to(roomId).emit('room-updated', blendRooms[roomId])
+          }
+        }
+      }
+    })
+  })
+
+  socket.on('disconnect', () => {
+    console.log(`[Blend] Client disconnected: ${socket.id}`)
+  })
+
+  // Playback sync events
+  socket.on('player-event', ({ roomId, type, data }) => {
+    if (!blendRooms[roomId]) return
+
+    const room = blendRooms[roomId]
+    const now = Date.now()
+
+    if (type === 'track-change') {
+      room.currentTrack = data.track
+      room.position = 0
+      // keep previous isPlaying state unless specified
+      if (typeof data.isPlaying === 'boolean') {
+        room.isPlaying = data.isPlaying
+      }
+    } else if (type === 'play') {
+      room.isPlaying = true
+      room.position = data.position || room.position
+    } else if (type === 'pause') {
+      room.isPlaying = false
+      room.position = data.position || room.position
+    } else if (type === 'seek') {
+      room.position = data.position
+    }
+
+    // Broadcast to everyone else in the room
+    socket.to(roomId).emit('player-event', {
+      type,
+      data,
+      timestamp: now,
+      senderId: socket.id
+    })
+  })
+
+  // ─── Chat Messages ───
+  socket.on('chat-message', ({ roomId, message, senderName }) => {
+    if (!blendRooms[roomId]) return
+    const member = blendRooms[roomId].members.find(m => m.id === socket.id)
+    if (!member) return
+
+    const chatMsg = {
+      id: `${socket.id}-${Date.now()}`,
+      senderId: socket.id,
+      senderName: senderName || member.name || 'User',
+      message: (message || '').trim(),
+      timestamp: Date.now(),
+    }
+    if (!chatMsg.message) return
+
+    // Broadcast to ALL members in the room (sender included for confirmation)
+    io.to(roomId).emit('chat-message', chatMsg)
+  })
+
+  // Heartbeat to fix drift
+  socket.on('heartbeat', ({ roomId, position, isPlaying }) => {
+    if (!blendRooms[roomId]) return
+    const room = blendRooms[roomId]
+    room.position = position
+    room.isPlaying = isPlaying
+    socket.to(roomId).emit('heartbeat', { position, isPlaying, timestamp: Date.now() })
+  })
+})
+
 // ─── Serve static files ───
 app.use(express.static(path.join(__dirname, '../frontend/dist')))
 
@@ -227,7 +429,7 @@ app.get('*', (req, res) => {
 })
 
 // ─── Start ───
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🎵 Rhym v5 (JioSaavn) running on port ${PORT}`)
 })
 

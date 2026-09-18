@@ -11,7 +11,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react'
  *    This completely eliminates the unmount flash / tear-down jitter at the end of the slide-down.
  * 3. Scrim uses touch isolation (`touchAction: 'none'`) avoiding any body layout reflow.
  */
-export default function BottomSheet({ isOpen, onClose, children }) {
+export default function BottomSheet({ isOpen, onClose, children, sheetStyle = {} }) {
   const [visible, setVisible] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const isDraggingRef = useRef(false)
@@ -107,6 +107,8 @@ export default function BottomSheet({ isOpen, onClose, children }) {
           padding: '12px 16px 0',
           paddingBottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
           boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.6)',
+          ...sheetStyle,
+
           transform: !visible 
             ? 'translate3d(0, 102%, 0)' 
             : `translate3d(0, ${dragOffset}px, 0)`,

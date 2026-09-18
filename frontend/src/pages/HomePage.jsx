@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext.jsx'
-import { searchSongs, getTrending } from '../utils/api.js'
-import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle, FiUser } from 'react-icons/fi'
+import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle, FiUser, FiCheck, FiPause, FiMusic } from 'react-icons/fi'
 import { useIsMobile } from '../hooks/useIsMobile.js'
+import BottomSheet from '../components/ui/BottomSheet.jsx'
+import { useBlend } from '../context/BlendContext.jsx'
 
 /* ─── Greeting based on time ─── */
 // Keeping for future use
@@ -30,8 +31,35 @@ const TOP_ARTISTS = [
   { name: 'Lata Mangeshkar', img: 'https://cdn-images.dzcdn.net/images/artist/837d46f90f541736e07817f463317c80/500x500-000000-80-0-0.jpg' },
 ]
 
+const MORE_ARTISTS = [
+  ...TOP_ARTISTS,
+  { name: 'Kishore Kumar', img: 'https://cdn-images.dzcdn.net/images/artist/dbd4cd0d5c2e3f1000b742542d3d7a07/500x500-000000-80-0-0.jpg' },
+  { name: 'Ed Sheeran', img: 'https://cdn-images.dzcdn.net/images/artist/a91a1d5ea91e85e4f0966569b50e8d6a/500x500-000000-80-0-0.jpg' },
+  { name: 'Justin Bieber', img: 'https://cdn-images.dzcdn.net/images/artist/581693b4724a7fcfa754455101e13a44/500x500-000000-80-0-0.jpg' },
+  { name: 'Eminem', img: 'https://cdn-images.dzcdn.net/images/artist/877872aaf75694f11d53c318700ab2b5/500x500-000000-80-0-0.jpg' },
+  { name: 'Badshah', img: 'https://cdn-images.dzcdn.net/images/artist/e528e270424103b527f8a27ac625563b/500x500-000000-80-0-0.jpg' },
+  { name: 'Neha Kakkar', img: 'https://cdn-images.dzcdn.net/images/artist/ac5350cff290edd5b69fa584b8b1bd4f/500x500-000000-80-0-0.jpg' },
+  { name: 'Armaan Malik', img: 'https://cdn-images.dzcdn.net/images/artist/79b85e695e0ca6529e56bf3b628e92bd/500x500-000000-80-0-0.jpg' },
+  { name: 'Darshan Raval', img: 'https://cdn-images.dzcdn.net/images/artist/64af370d73cfbc33006b8adcb2508bce/500x500-000000-80-0-0.jpg' },
+  { name: 'Kr$na', img: 'https://cdn-images.dzcdn.net/images/artist/70223888f501f4b843142e071abda364/500x500-000000-80-0-0.jpg' },
+  { name: 'MC Stan', img: 'https://cdn-images.dzcdn.net/images/artist/a5a8cca44e7eab2db7d44e039bed2574/500x500-000000-80-0-0.jpg' },
+  { name: 'Divine', img: 'https://cdn-images.dzcdn.net/images/artist/837d46f90f541736e07817f463317c80/500x500-000000-80-0-0.jpg' },
+  { name: 'Naezy', img: 'https://cdn-images.dzcdn.net/images/artist/dbd4cd0d5c2e3f1000b742542d3d7a07/500x500-000000-80-0-0.jpg' },
+  { name: 'Shreya Ghoshal', img: 'https://cdn-images.dzcdn.net/images/artist/a91a1d5ea91e85e4f0966569b50e8d6a/500x500-000000-80-0-0.jpg' },
+  { name: 'Sonu Nigam', img: 'https://cdn-images.dzcdn.net/images/artist/581693b4724a7fcfa754455101e13a44/500x500-000000-80-0-0.jpg' },
+  { name: 'Raftaar', img: 'https://cdn-images.dzcdn.net/images/artist/dbd4cd0d5c2e3f1000b742542d3d7a07/500x500-000000-80-0-0.jpg' },
+  { name: 'King', img: 'https://cdn-images.dzcdn.net/images/artist/a91a1d5ea91e85e4f0966569b50e8d6a/500x500-000000-80-0-0.jpg' },
+  { name: 'Guru Randhawa', img: 'https://cdn-images.dzcdn.net/images/artist/581693b4724a7fcfa754455101e13a44/500x500-000000-80-0-0.jpg' },
+  { name: 'Mika Singh', img: 'https://cdn-images.dzcdn.net/images/artist/877872aaf75694f11d53c318700ab2b5/500x500-000000-80-0-0.jpg' },
+  { name: 'Jubin Nautiyal', img: 'https://cdn-images.dzcdn.net/images/artist/e528e270424103b527f8a27ac625563b/500x500-000000-80-0-0.jpg' },
+  { name: 'Anirudh', img: 'https://cdn-images.dzcdn.net/images/artist/ac5350cff290edd5b69fa584b8b1bd4f/500x500-000000-80-0-0.jpg' },
+  { name: 'A.R. Rahman', img: 'https://cdn-images.dzcdn.net/images/artist/79b85e695e0ca6529e56bf3b628e92bd/500x500-000000-80-0-0.jpg' },
+  { name: 'Billie Eilish', img: 'https://cdn-images.dzcdn.net/images/artist/64af370d73cfbc33006b8adcb2508bce/500x500-000000-80-0-0.jpg' },
+  { name: 'Olivia Rodrigo', img: 'https://cdn-images.dzcdn.net/images/artist/70223888f501f4b843142e071abda364/500x500-000000-80-0-0.jpg' },
+]
+
 /* ─── Section Header ─── */
-function SectionHeader({ title, subtitle, poster, scrollRef, isMobile }) {
+function SectionHeader({ title, subtitle, poster, scrollRef, isMobile, rightElement }) {
   const scroll = (dir) => {
     if (scrollRef.current) {
       const amt = dir === 'left' ? -600 : 600;
@@ -78,26 +106,29 @@ function SectionHeader({ title, subtitle, poster, scrollRef, isMobile }) {
           </h2>
         </div>
       </div>
-      {!isMobile && scrollRef && (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
-            onClick={() => scroll('left')} 
-            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-          >
-            <FiChevronLeft size={20} />
-          </button>
-          <button 
-            onClick={() => scroll('right')} 
-            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-          >
-            <FiChevronRight size={20} />
-          </button>
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {rightElement}
+        {!isMobile && scrollRef && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => scroll('left')} 
+              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <FiChevronLeft size={20} />
+            </button>
+            <button 
+              onClick={() => scroll('right')} 
+              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <FiChevronRight size={20} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -220,7 +251,8 @@ let memoryHomeCache = getInitialHomeCache()
 /* ═══ HOME PAGE ═══ */
 export default function HomePage() {
   const navigate = useNavigate()
-  const { playSong, userPlaylists, recentlyPlayed } = usePlayer()
+  const { playSong, currentSong, isPlaying, togglePlay, userPlaylists, recentlyPlayed, savedArtists, toggleSavedArtist, isArtistSaved } = usePlayer()
+  const { room, roomHistory, leaveRoom, isChatOpen, openChat } = useBlend()
   const [trending, setTrending] = useState(() => memoryHomeCache.trending || [])
   const [madeForYou, setMadeForYou] = useState(() => memoryHomeCache.madeForYou || [])
   const [popularAlbums, setPopularAlbums] = useState(() => memoryHomeCache.popularAlbums || [])
@@ -228,6 +260,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(() => !(memoryHomeCache.madeForYou && memoryHomeCache.madeForYou.length > 0))
   const [dailySongs, setDailySongs] = useState([])
   const [activePosterIndex, setActivePosterIndex] = useState(0)
+  const [isArtistModalOpen, setIsArtistModalOpen] = useState(false)
 
   const recentRef = useRef(null)
   const artistsRef = useRef(null)
@@ -608,7 +641,7 @@ export default function HomePage() {
               width: isMobile ? '28px' : '32px',
               height: isMobile ? '28px' : '32px',
               borderRadius: '50%',
-              background: '#38b2ac',
+              background: 'rgba(255, 255, 255, 0.1)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -625,14 +658,160 @@ export default function HomePage() {
             onPointerDown={(e) => { e.currentTarget.style.transform = 'scale(0.92)' }}
             onPointerUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             onPointerLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onPointerEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
+            onPointerOut={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)' }}
             title="Profile"
             aria-label="Profile"
           >
-            <FiUser size={isMobile ? 16 : 18} color="#000" />
+            <FiUser size={16} />
           </button>
         </header>
 
+        {/* ─── BLEND SHARED PLAYER CARD (If in room) ─── */}
+        {room && (
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'var(--mini-player-color, #1A1A1A)',
+            backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.4))',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            marginBottom: '20px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+
+            {/* Top row: live + members + leave */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {/* Live dot */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{
+                    width: '5px', height: '5px', borderRadius: '50%', background: '#FFFFFF',
+                    boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)',
+                    animation: 'blend-pulse 2s ease-in-out infinite',
+                  }} />
+                  <span style={{ color: '#FFFFFF', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Live</span>
+                </div>
+
+                {/* Separator */}
+                <div style={{ width: '1px', height: '12px', background: '#333333' }} />
+
+                {/* Member name pills */}
+                {room.members.map((m, i) => (
+                  <span key={m.id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    background: i === 0 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.2)',
+                    color: i === 0 ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '10px', fontWeight: 600,
+                    padding: '3px 10px',
+                    borderRadius: '500px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    lineHeight: 1,
+                  }}>
+                    {m.name || `User ${i + 1}`}
+                  </span>
+                ))}
+              </div>
+
+
+
+              {/* Leave */}
+              <button
+                onClick={(e) => { e.stopPropagation(); leaveRoom(); }}
+                style={{
+                  background: '#ef4444',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '500px',
+                  padding: '3px 12px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  letterSpacing: '0.3px',
+                  textTransform: 'uppercase',
+                  transition: 'background 0.2s',
+                  flexShrink: 0,
+                }}
+                onPointerEnter={e => { e.currentTarget.style.background = '#dc2626'; }}
+                onPointerLeave={e => { e.currentTarget.style.background = '#ef4444'; }}
+              >
+                Leave
+              </button>
+            </div>
+
+            {/* Song row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative', zIndex: 1 }}>
+              {/* Poster */}
+              {currentSong ? (
+                <img src={currentSong.thumbnail} alt="" style={{
+                  width: '38px', height: '38px', borderRadius: '4px', objectFit: 'cover',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+                }} />
+              ) : (
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '4px',
+                  background: '#282828',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <FiMusic size={16} color="#6A6A6A" />
+                </div>
+              )}
+
+              {/* Song info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {currentSong ? (
+                  <>
+                    <div className="truncate" style={{ color: '#FFFFFF', fontSize: '13px', fontWeight: 700, lineHeight: 1.3 }}>
+                      {currentSong.title}
+                    </div>
+                    <div className="truncate" style={{ color: '#B3B3B3', fontSize: '11px', marginTop: '2px', fontWeight: 400 }}>
+                      {currentSong.artist}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ color: '#B3B3B3', fontSize: '13px', fontWeight: 500 }}>No track playing</div>
+                    <div style={{ color: '#6A6A6A', fontSize: '11px', marginTop: '2px' }}>Play something to sync</div>
+                  </>
+                )}
+              </div>
+
+              {/* Equalizer bars */}
+              {currentSong && isPlaying && (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '16px', flexShrink: 0 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: '2.5px', borderRadius: '1px',
+                      background: '#00d2ff',
+                      animation: `blend-eq-${i} 0.8s ease-in-out infinite alternate`,
+                    }} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* CSS Animations */}
+            <style>{`
+              @keyframes blend-pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.3; transform: scale(0.8); }
+              }
+              @keyframes blend-eq-0 {
+                0% { height: 3px; } 100% { height: 14px; }
+              }
+              @keyframes blend-eq-1 {
+                0% { height: 9px; } 100% { height: 5px; }
+              }
+              @keyframes blend-eq-2 {
+                0% { height: 5px; } 100% { height: 12px; }
+              }
+            `}</style>
+          </div>
+        )}
+
         {/* ─── Daily Songs Carousel (Aesthetic & Scrollable) ─── */}
+
         {dailySongs.length > 0 && (
           <div style={{
             marginBottom: isMobile ? '8px' : '12px',
@@ -853,31 +1032,64 @@ export default function HomePage() {
       {/* ─── 2b. Popular Artists (Scroll Row) ─── */}
       <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
         <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
-          <SectionHeader title="Popular Artists" scrollRef={artistsRef} isMobile={isMobile} />
+          <SectionHeader 
+            title="Popular Artists" 
+            scrollRef={artistsRef} 
+            isMobile={isMobile}
+            rightElement={
+              <button 
+                onClick={() => setIsArtistModalOpen(true)}
+                style={{
+                  background: 'transparent', border: 'none', outline: 'none', color: '#fff', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transform: 'translateX(10px)'
+                }}
+              >
+                <FiPlus size={20} />
+              </button>
+            }
+          />
         </div>
         <div className="ambient-box">
           <div className="h-scroll" style={{ paddingBottom: 0 }} ref={artistsRef}>
-            {TOP_ARTISTS.map((artist, i) => (
+            {MORE_ARTISTS.map((artist, i) => (
               <VerticalCard key={i} song={artist} isArtist isMobile={isMobile} onClick={() => handleArtistClick(artist.name)} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* ─── 2c. Recently Listened (Scroll Row) ─── */}
-      {recentlyPlayed && recentlyPlayed.length > 0 && (
+      {/* ─── 2c. Recently Listened (Scroll Row) or Room History ─── */}
+      {room ? (
         <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
           <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
-            <SectionHeader title="Recently Listened" scrollRef={listenRef} isMobile={isMobile} />
+            <SectionHeader title="Recent plays in this room" scrollRef={listenRef} isMobile={isMobile} />
           </div>
           <div className="ambient-box">
             <div className="h-scroll" style={{ paddingBottom: 0 }} ref={listenRef}>
-              {recentlyPlayed.slice(0, 10).map((song, i) => (
-                <VerticalCard key={song.videoId || i} song={song} isMobile={isMobile} onClick={() => handlePlaySong(song, recentlyPlayed, i)} />
-              ))}
+              {roomHistory.length === 0 ? (
+                <div style={{ color: '#8a8a8f', fontSize: '14px', padding: '12px 0' }}>No recent songs in this room yet</div>
+              ) : (
+                roomHistory.map((song, i) => (
+                  <VerticalCard key={song.videoId || i} song={song} isMobile={isMobile} onClick={() => handlePlaySong(song, roomHistory, i)} />
+                ))
+              )}
             </div>
           </div>
         </div>
+      ) : (
+        recentlyPlayed && recentlyPlayed.length > 0 && (
+          <div style={{ marginBottom: isMobile ? '20px' : '40px' }}>
+            <div style={{ padding: isMobile ? '16px 16px 0 0' : '24px 20px 0 0', marginBottom: isMobile ? '10px' : '16px' }}>
+              <SectionHeader title="Recently Listened" scrollRef={listenRef} isMobile={isMobile} />
+            </div>
+            <div className="ambient-box">
+              <div className="h-scroll" style={{ paddingBottom: 0 }} ref={listenRef}>
+                {recentlyPlayed.slice(0, 10).map((song, i) => (
+                  <VerticalCard key={song.videoId || i} song={song} isMobile={isMobile} onClick={() => handlePlaySong(song, recentlyPlayed, i)} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       {/* ─── Categories ─── */}
@@ -1444,6 +1656,62 @@ export default function HomePage() {
         }
       `}</style>
       </div>
+
+      {/* ─── Artist Selection Modal ─── */}
+      <BottomSheet isOpen={isArtistModalOpen} onClose={() => setIsArtistModalOpen(false)}>
+        <div style={{ padding: '0 4px', maxHeight: '70vh', overflowY: 'auto' }} className="hide-scrollbar">
+          <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 16px 0', color: '#fff', textAlign: 'center' }}>
+            Select Artists
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '16px',
+            paddingBottom: '24px'
+          }}>
+            {MORE_ARTISTS.map((artist, idx) => {
+              const isSelected = isArtistSaved(artist.name)
+              return (
+                <div 
+                  key={idx}
+                  onClick={() => toggleSavedArtist(artist)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    cursor: 'pointer', position: 'relative'
+                  }}
+                >
+                  <div style={{
+                    width: '80px', height: '80px', borderRadius: '50%',
+                    background: '#2a2a2a', marginBottom: '8px',
+                    position: 'relative', overflow: 'hidden',
+                    border: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
+                    transition: 'border 0.2s ease'
+                  }}>
+                    <img 
+                      src={artist.img} alt={artist.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    {isSelected && (
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <FiCheck size={24} color="#fff" />
+                      </div>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 600, color: isSelected ? 'var(--accent)' : '#fff',
+                    textAlign: 'center', lineHeight: 1.2
+                  }}>
+                    {artist.name}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   )
 }

@@ -106,12 +106,15 @@ export default function App() {
 }
 
 import { usePlayer } from './context/PlayerContext.jsx'
+import { useBlend } from './context/BlendContext.jsx'
 
 import GlobalModals from './components/ui/GlobalModals.jsx'
 import FullScreenPlayer from './components/layout/FullScreenPlayer.jsx'
+import BlendChat from './components/ui/BlendChat.jsx'
 
 function AppShell({ location }) {
   const { isRightSidebarOpen, isFullScreenPlayer, isLeftSidebarCollapsed, setIsLeftSidebarCollapsed, currentSong } = usePlayer()
+  const { isChatOpen } = useBlend()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
 
@@ -191,6 +194,9 @@ function AppShell({ location }) {
 
       <FullScreenPlayer />
       <GlobalModals />
+
+      {/* ─── Fullscreen Chat Overlay ─── */}
+      {isChatOpen && <BlendChat />}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

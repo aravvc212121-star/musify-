@@ -12,7 +12,7 @@ import { FiSearch, FiPlus, FiHeart, FiChevronRight, FiUser } from 'react-icons/f
 import { useIsMobile } from '../hooks/useIsMobile.js'
 
 export default function LibraryPage() {
-  const { savedSongs, recentlyPlayed, userPlaylists, playSong } = usePlayer()
+  const { savedSongs, recentlyPlayed, userPlaylists, playSong, savedArtists } = usePlayer()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const [activeFilter, setActiveFilter] = useState('All')
@@ -239,6 +239,47 @@ export default function LibraryPage() {
                     </p>
                   </div>
                   <FiPlus size={20} color="#8a8a8a" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── 6. Artists Section ─── */}
+        {(activeFilter === 'All' || activeFilter === 'Artists') && savedArtists.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#ffffff' }}>Artists</h2>
+            </div>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+              gap: 16
+            }}>
+              {savedArtists.map((artist, i) => (
+                <div
+                  key={i}
+                  onClick={() => navigate(`/artist/${encodeURIComponent(artist.name)}`)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <div style={{
+                    width: 90, height: 90, borderRadius: '50%',
+                    background: '#1a1a1a', overflow: 'hidden',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                    marginBottom: 8,
+                  }}>
+                    <img
+                      src={artist.img || artist.thumbnail}
+                      alt={artist.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      loading="lazy"
+                    />
+                  </div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', margin: 0, textAlign: 'center' }}>
+                    {artist.name}
+                  </p>
+                  <p style={{ fontSize: 11, color: '#8a8a8a', margin: '2px 0 0 0' }}>Artist</p>
                 </div>
               ))}
             </div>
