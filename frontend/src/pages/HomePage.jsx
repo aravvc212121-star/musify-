@@ -5,6 +5,7 @@ import { FiPlay, FiPlus, FiChevronLeft, FiChevronRight, FiCircle, FiUser, FiChec
 import { useIsMobile } from '../hooks/useIsMobile.js'
 import BottomSheet from '../components/ui/BottomSheet.jsx'
 import { useBlend } from '../context/BlendContext.jsx'
+import { searchSongs, getTrending } from '../utils/api.js'
 
 /* ─── Greeting based on time ─── */
 // Keeping for future use
