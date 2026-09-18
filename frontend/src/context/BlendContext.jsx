@@ -47,8 +47,25 @@ export function BlendProvider({ children }) {
   useEffect(() => {
     // If VITE_API_URL is not set, dynamically point to port 3001 in dev, or '/' in production (Render)
     const backendUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/' : `${window.location.protocol}//${window.location.hostname}:3001`)
-    const newSocket = io(backendUrl)
+    const newSocket = io(backendUrl, {
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    })
     setSocket(newSocket)
+
+    newSocket.on('connect', () => {
+      // If we already have a room (e.g. after a reconnect), re-join it automatically
+      if (roomRef.current && roomRef.current.roomId) {
+        const myName = roomRef.current.members.find(m => m.name)?.name || 'User'
+        newSocket.emit('join-room', { roomId: roomRef.current.roomId, username: myName }, (joinRes) => {
+          if (joinRes.success) {
+            setRoom(prev => prev ? { ...prev, members: joinRes.room.members } : null)
+          }
+        })
+      }
+    })
 
     newSocket.on('room-updated', (updatedRoom) => {
       setRoom(prev => {
