@@ -38,8 +38,8 @@ const SongRow = memo(({ song, songs = [], index = 0, showIndex = false }) => {
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
         height: 64, padding: '0 12px', borderRadius: 12,
-        background: isActive ? 'rgba(0, 210, 255, 0.08)' : 'transparent',
-        border: `1px solid ${isActive ? 'rgba(0, 210, 255, 0.15)' : 'transparent'}`,
+        background: isActive ? 'rgba(56, 178, 172, 0.08)' : 'transparent',
+        border: `1px solid ${isActive ? 'rgba(56, 178, 172, 0.15)' : 'transparent'}`,
         cursor: 'pointer', transition: 'background 0.15s',
       }}
     >

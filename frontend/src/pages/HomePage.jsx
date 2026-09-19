@@ -6,6 +6,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js'
 import BottomSheet from '../components/ui/BottomSheet.jsx'
 import { useBlend } from '../context/BlendContext.jsx'
 import { searchSongs, getTrending } from '../utils/api.js'
+import Footer from '../components/ui/Footer.jsx'
 
 /* ─── Greeting based on time ─── */
 // Keeping for future use
@@ -305,7 +306,7 @@ export default function HomePage() {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
-    panel.style.background = '#000000'
+    panel.style.background = ''
     return () => { panel.style.background = prev }
   }, [])
 
@@ -517,7 +518,7 @@ export default function HomePage() {
             width: isMobile ? '300px' : '600px',
             height: isMobile ? '300px' : '600px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0, 210, 255, 0.05) 40%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(56, 178, 172, 0.15) 0%, rgba(56, 178, 172, 0.05) 40%, transparent 70%)',
             filter: 'blur(60px)',
             top: '10%',
             left: '15%',
@@ -608,8 +609,8 @@ export default function HomePage() {
             >
               <defs>
                 <linearGradient id="hdr-cyan" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee"/>
-                  <stop offset="100%" stopColor="#06b6d4"/>
+                  <stop offset="0%" stopColor="#38b2ac"/>
+                  <stop offset="100%" stopColor="#38b2ac"/>
                 </linearGradient>
               </defs>
               <rect width="512" height="512" rx="100" ry="100" fill="#0a0a0a"/>
@@ -617,7 +618,7 @@ export default function HomePage() {
                 fill="none" stroke="#f0f0f0" strokeWidth="38" strokeLinecap="round" strokeLinejoin="round"/>
               <line x1="240" y1="230" x2="360" y2="400"
                 stroke="url(#hdr-cyan)" strokeWidth="38" strokeLinecap="round"/>
-              <circle cx="370" cy="110" r="16" fill="#22d3ee"/>
+              <circle cx="370" cy="110" r="16" fill="#38b2ac"/>
             </svg>
             <span style={{
               fontSize: isMobile ? '15px' : '17px',
@@ -646,29 +647,27 @@ export default function HomePage() {
               width: isMobile ? '28px' : '32px',
               height: isMobile ? '28px' : '32px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: '#38b2ac',
+              border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
+              color: '#ffffff',
               cursor: 'pointer',
               padding: 0,
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
               WebkitTapHighlightColor: 'transparent',
               opacity: isScrolled ? 0 : 1,
               pointerEvents: isScrolled ? 'none' : 'auto',
-              transition: 'background 0.15s ease, transform 0.15s ease, opacity 0.25s ease',
+              transition: 'transform 0.15s ease, opacity 0.25s ease',
             }}
             onPointerDown={(e) => { e.currentTarget.style.transform = 'scale(0.92)' }}
             onPointerUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             onPointerLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-            onPointerEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
-            onPointerOut={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)' }}
             title="Profile"
             aria-label="Profile"
           >
-            <FiUser size={16} />
+            <FiUser size={16} style={{ color: '#000' }} />
           </button>
         </header>
 
@@ -788,7 +787,7 @@ export default function HomePage() {
                   {[0, 1, 2].map(i => (
                     <div key={i} style={{
                       width: '2.5px', borderRadius: '1px',
-                      background: '#00d2ff',
+                      background: '#38b2ac',
                       animation: `blend-eq-${i} 0.8s ease-in-out infinite alternate`,
                     }} />
                   ))}
@@ -1660,6 +1659,8 @@ export default function HomePage() {
           }
         }
       `}</style>
+      
+      <Footer />
       </div>
 
       {/* ─── Artist Selection Modal ─── */}

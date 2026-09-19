@@ -103,7 +103,7 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
         gap: '4px', 
         padding: collapsed ? '8px' : '8px 12px', 
         margin: '0 4px 16px 4px',
-        boxShadow: '0 0 30px rgba(0, 210, 255, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0 0 30px rgba(56, 178, 172, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
         border: '1px solid rgba(255, 255, 255, 0.02)'
       }}>
         {navItems.map(({ path, action, label, Icon }) => {
@@ -129,7 +129,7 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
                     <div style={{
                       position: 'absolute', top: '-4px', right: '-6px',
                       width: '16px', height: '16px', borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #2563eb, #22d3ee)',
+                      background: 'linear-gradient(135deg, #2563eb, #38b2ac)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '9px', fontWeight: 400, color: '#fff',
                       border: '1.5px solid #000',
@@ -170,8 +170,8 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
             style={{
               display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 12px', 
               justifyContent: collapsed ? 'center' : 'flex-start',
-              color: 'var(--accent)', background: 'rgba(0, 210, 255, 0.1)',
-              border: '1px solid rgba(0, 210, 255, 0.2)',
+              color: 'var(--accent)', background: 'rgba(56, 178, 172, 0.1)',
+              border: '1px solid rgba(56, 178, 172, 0.2)',
               fontWeight: 500, borderRadius: '8px', transition: 'all 0.2s ease', cursor: 'pointer',
               marginTop: '8px'
             }}
@@ -192,7 +192,7 @@ export default function LeftSidebar({ isMobile = false, onClose }) {
           flexDirection: 'column', 
           overflow: 'hidden', 
           margin: '0 4px 8px 4px',
-          boxShadow: '0 0 30px rgba(0, 210, 255, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
+          boxShadow: '0 0 30px rgba(56, 178, 172, 0.04), 0 0 15px rgba(138, 43, 226, 0.03), 0 4px 20px rgba(0, 0, 0, 0.3)',
           border: '1px solid rgba(255, 255, 255, 0.02)',
           overscrollBehavior: 'contain'
         }}>

@@ -37,7 +37,7 @@ function ToggleSwitch({ isOn, onToggle }) {
         width: '38px',
         height: '22px',
         borderRadius: '11px',
-        background: isOn ? '#22d3ee' : '#3a3a3a',
+        background: isOn ? '#38b2ac' : '#3a3a3a',
         border: 'none',
         cursor: 'pointer',
         position: 'relative',
@@ -156,18 +156,39 @@ export default function SettingsPage() {
   const [dataSaver, setDataSaver] = useState(() => {
     try { return JSON.parse(localStorage.getItem('rhym_data_saver') || 'false') } catch { return false }
   })
+  const [isScrolled, setIsScrolled] = useState(false)
 
   // Persist data saver toggle
   useEffect(() => {
     localStorage.setItem('rhym_data_saver', JSON.stringify(dataSaver))
   }, [dataSaver])
 
+  // Fade out header when scrolled down (like home tab)
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    let rafId = null
+    const THRESHOLD = 20
+    const onScroll = () => {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        setIsScrolled(panel.scrollTop > THRESHOLD)
+      })
+    }
+    panel.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      panel.removeEventListener('scroll', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [])
+
   // Paint panel black
   useEffect(() => {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
-    panel.style.background = '#000000'
+    panel.style.background = ''
     return () => { panel.style.background = prev }
   }, [])
 
@@ -195,7 +216,7 @@ export default function SettingsPage() {
 
   return (
     <div style={{
-      background: '#000000',
+      background: 'transparent',
       minHeight: '100dvh',
       color: '#ffffff',
       animation: 'fadeIn 0.3s ease',
@@ -204,12 +225,15 @@ export default function SettingsPage() {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-        padding: '10px 16px 6px',
+        gap: '8px',
+        padding: '4px 12px 0px',
         position: 'sticky',
         top: 0,
-        background: '#000000',
+        background: 'transparent',
         zIndex: 100,
+        opacity: isScrolled ? 0 : 1,
+        pointerEvents: isScrolled ? 'none' : 'auto',
+        transition: 'opacity 0.25s ease',
       }}>
         <button
           onClick={() => navigate(-1)}
@@ -218,7 +242,7 @@ export default function SettingsPage() {
             border: 'none',
             color: '#ffffff',
             cursor: 'pointer',
-            padding: '4px',
+            padding: '2px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -226,10 +250,10 @@ export default function SettingsPage() {
           }}
           aria-label="Go back"
         >
-          <FiChevronLeft size={24} />
+          <FiChevronLeft size={22} />
         </button>
         <h1 style={{
-          fontSize: '19px',
+          fontSize: '20px',
           fontWeight: 700,
           margin: 0,
           letterSpacing: '-0.3px',

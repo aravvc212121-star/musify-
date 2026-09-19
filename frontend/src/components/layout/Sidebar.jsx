@@ -37,8 +37,8 @@ function NavItem({ to, icon, isActive, onClick }) {
     width: 44, height: 44, borderRadius: 12,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.3)',
-    background: isActive ? 'rgba(0, 210, 255, 0.1)' : 'transparent',
-    border: `1px solid ${isActive ? 'rgba(0, 210, 255, 0.15)' : 'transparent'}`,
+    background: isActive ? 'rgba(56, 178, 172, 0.1)' : 'transparent',
+    border: `1px solid ${isActive ? 'rgba(56, 178, 172, 0.15)' : 'transparent'}`,
     cursor: 'pointer', transition: 'all 0.15s',
   }
 

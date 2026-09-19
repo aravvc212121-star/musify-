@@ -104,7 +104,7 @@ export default function BlendChat() {
           <div style={{
             width: '34px', height: '34px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #00d2ff, #06b6d4)',
+            background: 'linear-gradient(135deg, #38b2ac, #38b2ac)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff',
             flexShrink: 0,
@@ -115,34 +115,37 @@ export default function BlendChat() {
             </svg>
           </div>
 
-          <div style={{
-            background: 'rgba(10,10,12,0.65)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '20px',
-            padding: '6px 16px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center'
-          }}>
-            <div style={{ color: '#fff', fontSize: '14px', fontWeight: 600 }}>Blend Room</div>
-            <div style={{ color: '#a5a5aa', fontSize: '11px', marginTop: '1px' }}>
-              {memberNames}
+          {/* Room Info (hide in draw mode to save space on mobile) */}
+          {!drawMode && (
+            <div style={{
+              background: 'rgba(10,10,12,0.65)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '20px',
+              padding: '6px 16px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center'
+            }}>
+              <div style={{ color: '#fff', fontSize: '14px', fontWeight: 600 }}>Blend Room</div>
+              <div style={{ color: '#a5a5aa', fontSize: '11px', marginTop: '1px' }}>
+                {memberNames}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Eraser Toggle (only visible in draw mode, moved to left) */}
           {drawMode && (
             <button
               onClick={() => setEraserActive(!eraserActive)}
               style={{
-                background: eraserActive ? '#00d2ff' : 'rgba(10,10,12,0.65)',
+                background: eraserActive ? '#38b2ac' : 'rgba(10,10,12,0.65)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 border: eraserActive ? 'none' : '1px solid rgba(255,255,255,0.06)',
                 boxShadow: 'none',
                 cursor: 'pointer',
                 color: eraserActive ? '#000000' : '#fff',
-                width: '42px', height: '42px',
+                width: '38px', height: '38px',
                 borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s',
@@ -152,7 +155,7 @@ export default function BlendChat() {
               onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
               title="Eraser"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.6 1.6c.8-.8 2-.8 2.8 0L21 5.2c.8.8.8 2 0 2.8L10 19" />
               </svg>
             </button>
@@ -173,7 +176,7 @@ export default function BlendChat() {
                 boxShadow: 'none',
                 cursor: 'pointer',
                 color: '#fff',
-                width: '42px', height: '42px',
+                width: '38px', height: '38px',
                 borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s',
@@ -183,7 +186,7 @@ export default function BlendChat() {
               onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
               title="Clear Canvas"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
                 <path d="M10 11v6" />
@@ -205,14 +208,14 @@ export default function BlendChat() {
               setDrawMode(!drawMode)
             }}
             style={{
-              background: drawMode ? '#00d2ff' : 'rgba(10,10,12,0.65)',
+              background: drawMode ? '#38b2ac' : 'rgba(10,10,12,0.65)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               border: drawMode ? 'none' : '1px solid rgba(255,255,255,0.06)',
               boxShadow: 'none',
               cursor: 'pointer',
               color: drawMode ? '#000000' : '#fff',
-              width: '42px', height: '42px',
+              width: '38px', height: '38px',
               borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'all 0.15s',
@@ -222,7 +225,7 @@ export default function BlendChat() {
             onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
             title="Draw Together"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <defs>
                 <linearGradient id="drawIconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#ff4444" />
@@ -249,12 +252,12 @@ export default function BlendChat() {
               border: '1px solid rgba(255,255,255,0.06)',
               cursor: 'pointer',
               color: '#fff',
-              width: '42px', height: '42px',
+              width: '38px', height: '38px',
               borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
@@ -340,7 +343,7 @@ export default function BlendChat() {
                     textShadow: '0 1px 4px rgba(0,0,0,0.8)',
                   }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '2px' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" flexShrink={0}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38b2ac" strokeWidth="2" strokeLinecap="round" flexShrink={0}>
                         <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
                       </svg>
                       <span>{msg.changedBy || 'Someone'} · Now playing</span>
@@ -386,7 +389,7 @@ export default function BlendChat() {
                   {/* Bubble */}
                   <div style={{
                     background: isMe
-                      ? '#00d2ff'
+                      ? '#38b2ac'
                       : '#eefaff',
                     backdropFilter: 'none',
                     border: 'none',
@@ -480,7 +483,7 @@ export default function BlendChat() {
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '0 0 0 16px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: showEmojis ? '#00d2ff' : '#8a8a8e', transition: 'color 0.2s', flexShrink: 0
+              color: showEmojis ? '#38b2ac' : '#8a8a8e', transition: 'color 0.2s', flexShrink: 0
             }}
           >
             <FiSmile size={24} />
@@ -518,7 +521,7 @@ export default function BlendChat() {
           style={{
             width: '48px', height: '48px',
             borderRadius: '50%',
-            background: '#00d2ff',
+            background: '#38b2ac',
             border: 'none',
             cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',

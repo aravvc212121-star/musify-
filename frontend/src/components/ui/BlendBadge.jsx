@@ -18,7 +18,7 @@ export default function BlendBadge() {
         <div 
           onClick={() => setIsBlendModalOpen(true)}
           style={{
-            background: 'linear-gradient(135deg, #2563eb, #22d3ee)',
+            background: 'linear-gradient(135deg, #2563eb, #38b2ac)',
             color: '#0d0d0f',
             fontSize: 11,
             fontWeight: 500,

@@ -50,7 +50,7 @@ function SheetRow({ icon, title, subtitle, onClick }) {
         width: 52,
         height: 52,
         borderRadius: '50%',
-        background: 'rgba(255, 255, 255, 0.08)',
+        background: '#000000',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

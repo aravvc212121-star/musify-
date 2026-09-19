@@ -40,7 +40,7 @@ function SongRow({ song, isPlaying, isCurrent, showAdd, onClick, onMore }) {
       style={{
         display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 20px',
         margin: '0 8px', borderRadius: '8px', cursor: 'pointer',
-        background: isCurrent ? 'rgba(0, 210, 255, 0.1)' : 'transparent',
+        background: isCurrent ? 'rgba(56, 178, 172, 0.1)' : 'transparent',
         borderLeft: isCurrent ? '3px solid var(--accent)' : '3px solid transparent',
         transition: 'background 0.2s ease'
       }}
@@ -238,9 +238,9 @@ export default function RightSidebar() {
               <>
                 <style>{`
                   @keyframes sidebarPulse {
-                    0% { box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); }
-                    50% { box-shadow: 0 0 30px rgba(0, 210, 255, 0.35); }
-                    100% { box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); }
+                    0% { box-shadow: 0 0 15px rgba(56, 178, 172, 0.2); }
+                    50% { box-shadow: 0 0 30px rgba(56, 178, 172, 0.35); }
+                    100% { box-shadow: 0 0 15px rgba(56, 178, 172, 0.2); }
                   }
                 `}</style>
                 <div className="glass-box" style={{ borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
@@ -253,7 +253,7 @@ export default function RightSidebar() {
                         height: '100%',
                         borderRadius: '12px',
                         objectFit: 'cover',
-                        boxShadow: isPlaying ? '0 8px 32px rgba(0, 210, 255, 0.3)' : '0 8px 32px rgba(0,0,0,0.5)',
+                        boxShadow: isPlaying ? '0 8px 32px rgba(56, 178, 172, 0.3)' : '0 8px 32px rgba(0,0,0,0.5)',
                         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                       }}
                     />

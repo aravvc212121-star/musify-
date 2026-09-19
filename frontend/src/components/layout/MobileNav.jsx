@@ -410,8 +410,8 @@ export default function MobileNav() {
           borderRadius: '12px',
           background: isDragging ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.08)',
           boxShadow: isDragging 
-            ? '0 0 20px rgba(0, 210, 255, 0.25), 0 4px 16px rgba(0,0,0,0.4)' 
-            : '0 0 16px rgba(0, 210, 255, 0.08)',
+            ? '0 0 20px rgba(56, 178, 172, 0.25), 0 4px 16px rgba(0,0,0,0.4)' 
+            : '0 0 16px rgba(56, 178, 172, 0.08)',
           opacity: capsuleStyle.width > 0 ? 1 : 0,
           cursor: isDragging ? 'grabbing' : 'grab',
           transition: isDragging
@@ -491,7 +491,7 @@ export default function MobileNav() {
                 <div style={{
                   position: 'absolute', top: '-4px', right: '-4px',
                   width: '16px', height: '16px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #2563eb, #22d3ee)',
+                  background: 'linear-gradient(135deg, #2563eb, #38b2ac)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '9px', fontWeight: 400, color: '#fff',
                   border: '1.5px solid #000',

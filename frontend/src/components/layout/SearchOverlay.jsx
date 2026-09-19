@@ -169,15 +169,15 @@ export default function SearchOverlay() {
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 14px', marginBottom: 8, borderRadius: 12,
-                    background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(0, 210, 255, 0.02))',
-                    border: '1px solid rgba(0, 210, 255, 0.12)',
+                    background: 'linear-gradient(135deg, rgba(56, 178, 172, 0.08), rgba(56, 178, 172, 0.02))',
+                    border: '1px solid rgba(56, 178, 172, 0.12)',
                   }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
-                      background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(0, 210, 255, 0.1))',
+                      background: 'linear-gradient(135deg, rgba(56, 178, 172, 0.25), rgba(56, 178, 172, 0.1))',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <FiUser size={16} style={{ color: 'var(--accent, #00d2ff)' }} />
+                      <FiUser size={16} style={{ color: 'var(--accent, #38b2ac)' }} />
                     </div>
                     <div>
                       <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', margin: 0, letterSpacing: '0.5px', textTransform: 'uppercase' }}>

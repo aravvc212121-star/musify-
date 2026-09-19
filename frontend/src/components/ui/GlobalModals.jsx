@@ -524,7 +524,7 @@ export default function GlobalModals() {
                     key={p.name}
                     onClick={() => setLocalEq(p.vals)}
                     style={{
-                      background: JSON.stringify(localEq) === JSON.stringify(p.vals) ? 'rgba(0, 210, 255, 0.2)' : 'rgba(255,255,255,0.05)',
+                      background: JSON.stringify(localEq) === JSON.stringify(p.vals) ? 'rgba(56, 178, 172, 0.2)' : 'rgba(255,255,255,0.05)',
                       border: JSON.stringify(localEq) === JSON.stringify(p.vals) ? '1px solid var(--accent)' : 'none',
                       color: JSON.stringify(localEq) === JSON.stringify(p.vals) ? '#fff' : '#b3b3b3',
                       borderRadius: '8px', padding: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
@@ -547,7 +547,7 @@ export default function GlobalModals() {
               </button>
               <button 
                 onClick={() => { setEqBands(localEq); toast.success('Equalizer profile applied'); setEqOpen(false); }} 
-                style={{ flex: 1, background: '#fff', border: 'none', color: '#000', borderRadius: '12px', padding: '14px', fontSize: '14px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(0, 210, 255, 0.3)', transition: 'transform 0.2s' }}
+                style={{ flex: 1, background: '#fff', border: 'none', color: '#000', borderRadius: '12px', padding: '14px', fontSize: '14px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(56, 178, 172, 0.3)', transition: 'transform 0.2s' }}
                 onMouseDown={e => e.currentTarget.style.transform = 'scale(0.96)'}
                 onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
               >
@@ -564,7 +564,7 @@ export default function GlobalModals() {
               border-radius: 10px;
             }
             .eq-slider-vertical::-webkit-slider-thumb {
-              box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+              box-shadow: 0 0 15px rgba(56, 178, 172, 0.5);
             }
           `}</style>
         </div>
@@ -614,7 +614,7 @@ export default function GlobalModals() {
               <div style={{ borderTop: '1px solid #282828', padding: '24px', background: 'rgba(255,255,255,0.02)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <h4 style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: 0 }}>Add songs to your playlist</h4>
-                  <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 800, background: 'rgba(0, 210, 255, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>{playlistModal.songs.length} SELECTED</span>
+                  <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 800, background: 'rgba(56, 178, 172, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>{playlistModal.songs.length} SELECTED</span>
                 </div>
                 
                 <div style={{ position: 'relative', marginBottom: '20px' }}>
@@ -637,7 +637,7 @@ export default function GlobalModals() {
                     .map((song, i) => {
                     const isAdded = playlistModal.songs.some(s => s.videoId === song.videoId)
                     return (
-                      <div key={song.videoId || i} style={{ display: 'flex', alignItems: 'center', padding: '8px', borderRadius: '8px', background: isAdded ? 'rgba(0, 210, 255, 0.05)' : 'transparent', transition: 'background 0.2s' }}>
+                      <div key={song.videoId || i} style={{ display: 'flex', alignItems: 'center', padding: '8px', borderRadius: '8px', background: isAdded ? 'rgba(56, 178, 172, 0.05)' : 'transparent', transition: 'background 0.2s' }}>
                         <img src={song.thumbnail} alt="" style={{ width: '40px', height: '40px', borderRadius: '4px', marginRight: '12px', objectFit: 'cover' }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p className="truncate" style={{ color: '#fff', fontSize: '14px', fontWeight: 600, margin: 0 }}>{song.title}</p>

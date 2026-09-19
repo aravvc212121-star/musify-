@@ -126,7 +126,7 @@ const SongListItem = memo(({ song, songs = [], index = 0, onAdd, hideAdd = false
         </p>
         <p style={{
           fontSize: 13, fontWeight: 500, margin: 0,
-          color: isCurrent ? 'rgba(0, 210, 255, 0.6)' : '#9ca3af',
+          color: isCurrent ? 'rgba(56, 178, 172, 0.6)' : '#9ca3af',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           lineHeight: 1.2,
         }}>

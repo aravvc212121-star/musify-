@@ -10,27 +10,49 @@ import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { FiSearch, FiPlus, FiHeart, FiChevronRight, FiUser } from 'react-icons/fi'
 import { useIsMobile } from '../hooks/useIsMobile.js'
+import Footer from '../components/ui/Footer.jsx'
 
 export default function LibraryPage() {
   const { savedSongs, recentlyPlayed, userPlaylists, playSong, savedArtists } = usePlayer()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const [activeFilter, setActiveFilter] = useState('All')
+  const [isScrolled, setIsScrolled] = useState(false)
 
   const filters = ['All', 'Playlists', 'Artists', 'Albums']
+
+  // Fade out header when scrolled down (like home tab)
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel) return
+    let rafId = null
+    const THRESHOLD = 20
+    const onScroll = () => {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        setIsScrolled(panel.scrollTop > THRESHOLD)
+      })
+    }
+    panel.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      panel.removeEventListener('scroll', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [])
 
   // Paint the scrollable panel black so there's no grey gap below the library content
   useEffect(() => {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
-    panel.style.background = '#000000'
+    panel.style.background = ''
     return () => { panel.style.background = prev }
   }, [])
 
   return (
     <div style={{
-      background: '#000000',
+      background: 'transparent',
       minHeight: '100dvh',
       color: '#ffffff',
       animation: 'fadeIn 0.3s ease',
@@ -43,8 +65,11 @@ export default function LibraryPage() {
         padding: '10px 16px 6px 16px',
         position: 'sticky',
         top: 0,
-        background: '#000000',
+        background: 'transparent',
         zIndex: 100,
+        opacity: isScrolled ? 0 : 1,
+        pointerEvents: isScrolled ? 'none' : 'auto',
+        transition: 'opacity 0.25s ease',
       }}>
         {/* Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -136,7 +161,7 @@ export default function LibraryPage() {
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               marginRight: 14,
             }}>
-              <FiHeart size={24} style={{ fill: '#22d3ee', color: '#22d3ee' }} />
+              <FiHeart size={24} style={{ fill: '#38b2ac', color: '#38b2ac' }} />
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px 0', color: '#ffffff' }}>
@@ -212,14 +237,14 @@ export default function LibraryPage() {
                   onClick={() => navigate(`/playlist/${encodeURIComponent(playlist.name)}`)}
                   style={{
                     display: 'flex', alignItems: 'center',
-                    background: '#141414',
+                    background: 'rgba(255, 255, 255, 0.05)',
                     borderRadius: 10,
                     padding: '8px 12px',
                     cursor: 'pointer',
                     transition: 'background 0.2s ease',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#1a1a1a'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#141414'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
                 >
                   <div style={{
                     width: 52, height: 52, borderRadius: 8,
@@ -285,6 +310,8 @@ export default function LibraryPage() {
             </div>
           </div>
         )}
+        
+        <Footer />
       </div>
 
       <style>{`

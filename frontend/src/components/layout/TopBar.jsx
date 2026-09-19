@@ -136,7 +136,7 @@ export default function TopBar({ isMobile = false }) {
   const isSearchPage = pathname === '/search'
 
   // If mobile and on the home, artist, or playlist page, hide TopBar completely so content starts directly at the top.
-  if (isMobile && (pathname === '/' || pathname === '/library' || pathname === '/liked-songs' || pathname === '/popular-artists' || pathname.startsWith('/artist/') || pathname.startsWith('/playlist/') || pathname.startsWith('/album/') || pathname.startsWith('/charts/'))) {
+  if (isMobile && (pathname === '/' || pathname === '/settings' || pathname === '/library' || pathname === '/liked-songs' || pathname === '/popular-artists' || pathname.startsWith('/artist/') || pathname.startsWith('/playlist/') || pathname.startsWith('/album/') || pathname.startsWith('/charts/'))) {
     return null
   }
 

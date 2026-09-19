@@ -33,7 +33,7 @@ function useIsMobile() {
 }
 
 const SWATCHES = [
-  { name: 'Cyan Blue', value: '#00d2ff', text: 'light', glow: 'rgba(0, 210, 255, 0.5)' },
+  { name: 'Cyan Blue', value: '#38b2ac', text: 'light', glow: 'rgba(56, 178, 172, 0.5)' },
   { name: 'Deep Teal', value: '#006466', text: 'light', glow: 'rgba(0, 100, 102, 0.5)' },
   { name: 'Coral Flame', value: '#FF5E5B', text: 'light', glow: 'rgba(255, 94, 91, 0.5)' },
   { name: 'Amber Gold', value: '#FFB800', text: 'dark', glow: 'rgba(255, 184, 0, 0.5)' },
@@ -95,7 +95,7 @@ function SongRow({ song, isPlaying, isCurrent, showAdd, onClick, onMore, addNext
       style={{
         display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 20px',
         margin: '0 8px', borderRadius: '8px', cursor: 'pointer',
-        background: isCurrent ? 'rgba(0, 210, 255, 0.1)' : 'transparent',
+        background: isCurrent ? 'rgba(56, 178, 172, 0.1)' : 'transparent',
         borderLeft: isCurrent ? '3px solid var(--accent)' : '3px solid transparent',
         transition: 'background 0.2s ease'
       }}
@@ -1220,7 +1220,7 @@ export default function FullScreenPlayer() {
         .fs-bottom-btn:hover { transform: scale(1.04) !important; opacity: 1 !important; }
         @keyframes eqBar { from { height: 4px; } to { height: 14px; } }
         .eq-bar { width: 3px; border-radius: 2px; background: var(--accent); animation: eqBar 0.6s ease-in-out infinite alternate; }
-        @keyframes pulseGlow { 0% { box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); } 50% { box-shadow: 0 0 80px rgba(0, 210, 255, 0.3); } 100% { box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); } }
+        @keyframes pulseGlow { 0% { box-shadow: 0 0 30px rgba(56, 178, 172, 0.2); } 50% { box-shadow: 0 0 80px rgba(56, 178, 172, 0.3); } 100% { box-shadow: 0 0 30px rgba(56, 178, 172, 0.2); } }
         .fs-seek-slider::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; }
         @keyframes lyricsSpin { to { transform: rotate(360deg); } }
         .lyrics-loader { width: 28px; height: 28px; border: 2px solid transparent; border-top-color: #fff; border-radius: 50%; animation: lyricsSpin 0.8s linear infinite; }

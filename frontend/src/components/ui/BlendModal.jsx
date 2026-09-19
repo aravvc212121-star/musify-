@@ -78,7 +78,7 @@ export default function BlendModal() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
           <div style={{
             width: 34, height: 34, borderRadius: '50%',
-            background: '#22d3ee',
+            background: '#38b2ac',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d0d0f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +107,7 @@ export default function BlendModal() {
             maxLength={20}
             style={{
               ...inputStyle,
-              border: canProceed ? '1px solid #22d3ee' : '1px solid #2e2e32',
+              border: canProceed ? '1px solid #38b2ac' : '1px solid #2e2e32',
               transition: 'border-color 0.2s'
             }}
           />
@@ -157,7 +157,7 @@ export default function BlendModal() {
             {/* Avatar row */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
               <div style={{
-                width: 30, height: 30, borderRadius: '50%', background: '#22d3ee',
+                width: 30, height: 30, borderRadius: '50%', background: '#38b2ac',
                 border: '2px solid #0d0d0f', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#ffffff', fontSize: 11, fontWeight: 600, zIndex: 3, boxSizing: 'border-box'
               }}>
@@ -172,7 +172,7 @@ export default function BlendModal() {
               disabled={!canProceed}
               style={{
                 width: '100%',
-                background: canProceed ? '#22d3ee' : '#2a2a2e',
+                background: canProceed ? '#38b2ac' : '#2a2a2e',
                 color: canProceed ? '#0d0d0f' : '#5a5a5f',
                 border: 'none', borderRadius: 12, padding: 13,
                 fontSize: 14, fontWeight: 600,
@@ -209,7 +209,7 @@ export default function BlendModal() {
               disabled={!canProceed || joinCode.length < 6}
               style={{
                 width: '100%',
-                background: (canProceed && joinCode.length === 6) ? '#22d3ee' : '#2a2a2e',
+                background: (canProceed && joinCode.length === 6) ? '#38b2ac' : '#2a2a2e',
                 color: (canProceed && joinCode.length === 6) ? '#0d0d0f' : '#5a5a5f',
                 border: 'none', borderRadius: 12, padding: 13,
                 fontSize: 14, fontWeight: 600,

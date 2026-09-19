@@ -207,7 +207,7 @@ function AppShell({ location }) {
         .premium-spinner {
           width: 48px;
           height: 48px;
-          border: 3px solid rgba(0, 210, 255, 0.1);
+          border: 3px solid rgba(56, 178, 172, 0.1);
           border-top: 3px solid var(--accent);
           border-radius: 50%;
           animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -222,11 +222,6 @@ function AppShell({ location }) {
           border-radius: 50%;
           animation: spin 1.5s linear infinite reverse;
           opacity: 0.5;
-        }
-
-        #app-container {
-          background: #000;
-          color: #fff;
         }
       `}</style>
     </div>

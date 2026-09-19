@@ -24,7 +24,7 @@ export default function LikedSongsPage() {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
-    panel.style.background = '#000000'
+    panel.style.background = ''
     return () => { panel.style.background = prev }
   }, [])
 
@@ -43,7 +43,7 @@ export default function LikedSongsPage() {
     <div style={{
       paddingBottom: 100,
       animation: 'fadeIn 0.3s ease',
-      background: '#000000',
+      background: 'transparent',
       minHeight: '100dvh'
     }}>
       {/* ─── Hero Section ─── */}
@@ -109,7 +109,7 @@ export default function LikedSongsPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
             cursor: songs.length > 0 ? 'pointer' : 'not-allowed', color: '#fff',
             opacity: songs.length > 0 ? 1 : 0.5,
-            boxShadow: '0 4px 16px rgba(0, 210, 255, 0.3)',
+            boxShadow: '0 4px 16px rgba(56, 178, 172, 0.3)',
             transition: 'transform 0.15s ease',
           }}
           className="play-btn-big"

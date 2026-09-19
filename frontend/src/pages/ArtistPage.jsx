@@ -68,7 +68,7 @@ export default function ArtistPage() {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
-    panel.style.background = '#000000'
+    panel.style.background = ''
     return () => { panel.style.background = prev }
   }, [])
 
@@ -84,7 +84,7 @@ export default function ArtistPage() {
     <div style={{ 
       paddingBottom: 100, 
       animation: 'fadeIn 0.3s ease',
-      background: '#000000',
+      background: 'transparent',
       minHeight: '100dvh'
     }}>
       {/* ─── Hero Poster Banner (Full-bleed poster with name overlay) ─── */}
@@ -189,7 +189,7 @@ export default function ArtistPage() {
             cursor: songs.length > 0 ? 'pointer' : 'not-allowed', color: '#fff',
             opacity: songs.length > 0 ? 1 : 0.5,
             transition: 'transform 0.1s ease, background 0.2s ease',
-            boxShadow: '0 4px 12px rgba(0, 210, 255, 0.3)'
+            boxShadow: '0 4px 12px rgba(56, 178, 172, 0.3)'
           }}
           className="play-btn-big"
         >

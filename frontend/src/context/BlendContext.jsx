@@ -78,7 +78,7 @@ export function BlendProvider({ children }) {
             if (m.id !== newSocket.id) {
               toast.custom((t) => (
                 <div style={{ background: '#1a1a1d', borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #22d3ee)' }} />
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #38b2ac)' }} />
                   <span style={{ color: '#fff', fontSize: 13 }}>{m.name} joined the room</span>
                 </div>
               ), { duration: 3000 })

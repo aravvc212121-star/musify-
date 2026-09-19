@@ -105,13 +105,13 @@ function SearchRow({ song, showRemove, onPlay, onRemove, onAdd }) {
       <button
         onClick={(e) => { e.stopPropagation(); onAdd?.(song) }}
         style={{
-          background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)',
+          background: 'none', border: 'none', color: '#fff',
           cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center',
           justifyContent: 'center', borderRadius: '50%', flexShrink: 0,
           transition: 'color 0.15s, background 0.15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.background = 'none' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
         aria-label="Add to library"
       >
         <FiPlus size={20} />
@@ -122,13 +122,13 @@ function SearchRow({ song, showRemove, onPlay, onRemove, onAdd }) {
         <button
           onClick={(e) => { e.stopPropagation(); onRemove?.(song) }}
           style={{
-            background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
+            background: 'none', border: 'none', color: '#fff',
             cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center',
             justifyContent: 'center', borderRadius: '50%', flexShrink: 0,
             transition: 'color 0.15s, background 0.15s',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; e.currentTarget.style.background = 'none' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
           aria-label="Remove from recent"
         >
           <FiX size={18} />
@@ -164,7 +164,7 @@ export default function SearchPage({ isMobile }) {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
-    panel.style.background = '#000000'
+    panel.style.background = ''
     return () => { panel.style.background = prev }
   }, [])
 
@@ -303,15 +303,15 @@ export default function SearchPage({ isMobile }) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 14,
               padding: '14px 16px', marginBottom: 8, borderRadius: 12,
-              background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.08), rgba(0, 210, 255, 0.02))',
-              border: '1px solid rgba(0, 210, 255, 0.1)',
+              background: 'linear-gradient(135deg, rgba(56, 178, 172, 0.08), rgba(56, 178, 172, 0.02))',
+              border: '1px solid rgba(56, 178, 172, 0.1)',
             }}>
               <div style={{
                 width: 40, height: 40, borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(0, 210, 255, 0.1))',
+                background: 'linear-gradient(135deg, rgba(56, 178, 172, 0.25), rgba(56, 178, 172, 0.1))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <FiMusic size={18} style={{ color: 'var(--accent, #00d2ff)' }} />
+                <FiMusic size={18} style={{ color: 'var(--accent, #38b2ac)' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
