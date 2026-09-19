@@ -104,10 +104,8 @@ export default function MobileNav() {
     const tab = tabRefs.current[idx]
     const nav = navRef.current
     if (!tab || !nav) return
-    const navRect = nav.getBoundingClientRect()
-    const tabRect = tab.getBoundingClientRect()
-    const left = (tabRect.left - navRect.left) + 16
-    const width = Math.max(tabRect.width - 32, 40)
+    const left = tab.offsetLeft + 16
+    const width = Math.max(tab.offsetWidth - 32, 40)
     capsuleLeftRef.current = left
     capsuleWidthRef.current = width
     setCapsuleStyle({ left, width })
@@ -214,8 +212,7 @@ export default function MobileNav() {
       for (let i = 0; i < tabRefs.current.length; i++) {
         const tab = tabRefs.current[i]
         if (!tab) continue
-        const tRect = tab.getBoundingClientRect()
-        const tCenter = (tRect.left - navRect.left) + tRect.width / 2
+        const tCenter = tab.offsetLeft + tab.offsetWidth / 2
         const dist = Math.abs(capsuleCenter - tCenter)
         if (dist < minDist) {
           minDist = dist
@@ -238,10 +235,8 @@ export default function MobileNav() {
       const tab = tabRefs.current[targetIdx]
 
       if (nav && tab) {
-        const navRect = nav.getBoundingClientRect()
-        const tabRect = tab.getBoundingClientRect()
-        const finalLeft = (tabRect.left - navRect.left) + 16
-        const finalWidth = Math.max(tabRect.width - 32, 40)
+        const finalLeft = tab.offsetLeft + 16
+        const finalWidth = Math.max(tab.offsetWidth - 32, 40)
 
         // Smooth spring animation snapping into the closest button
         if (capsuleRef.current) {
@@ -478,11 +473,11 @@ export default function MobileNav() {
                     : 'none',
                   strokeWidth: isCreateTab ? 1.5 : undefined,
                   transform: isCreateTab
-                    ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
-                    : 'translate3d(0, 1.5px, 0)',
+                    ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg) scale(1.05)' : 'translate3d(0, 1.5px, 0) rotate(0deg) scale(1)')
+                    : (isHighlighted ? 'translate3d(0, 1.5px, 0) scale(1.15)' : 'translate3d(0, 1.5px, 0) scale(1)'),
                   WebkitTransform: isCreateTab
-                    ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg)' : 'translate3d(0, 1.5px, 0) rotate(0deg)')
-                    : 'translate3d(0, 1.5px, 0)',
+                    ? (isCreateActive ? 'translate3d(0, 1.5px, 0) rotate(45deg) scale(1.05)' : 'translate3d(0, 1.5px, 0) rotate(0deg) scale(1)')
+                    : (isHighlighted ? 'translate3d(0, 1.5px, 0) scale(1.15)' : 'translate3d(0, 1.5px, 0) scale(1)'),
                   transformOrigin: 'center center',
                   willChange: isCreateTab ? 'transform' : undefined,
                 }}

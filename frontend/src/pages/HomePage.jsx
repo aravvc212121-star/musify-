@@ -819,6 +819,7 @@ export default function HomePage() {
         {dailySongs.length > 0 && (
           <div style={{
             marginBottom: isMobile ? '8px' : '12px',
+            marginTop: '-12px',
             position: 'relative'
           }}>
             <div 
@@ -840,7 +841,7 @@ export default function HomePage() {
                 onClick={() => handlePlaySong(song, dailySongs, idx)}
                 style={{
                   position: 'relative',
-                  width: isMobile ? '88vw' : '560px',
+                  width: isMobile ? 'calc(100vw - 24px)' : '560px',
                   height: isMobile ? '210px' : '320px',
                   borderRadius: isMobile ? '12px' : '16px',
                   overflow: 'hidden',

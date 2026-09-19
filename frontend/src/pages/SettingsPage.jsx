@@ -25,6 +25,7 @@ import {
   FiHelpCircle,
   FiInfo,
   FiLogOut,
+  FiImage,
 } from 'react-icons/fi'
 import { useIsMobile } from '../hooks/useIsMobile.js'
 
@@ -158,10 +159,25 @@ export default function SettingsPage() {
   })
   const [isScrolled, setIsScrolled] = useState(false)
 
+  // Background preference: 'doodle' (default) or 'black'
+  const [bgMode, setBgMode] = useState(() => {
+    return localStorage.getItem('rhym_bg_mode') || 'doodle'
+  })
+
   // Persist data saver toggle
   useEffect(() => {
     localStorage.setItem('rhym_data_saver', JSON.stringify(dataSaver))
   }, [dataSaver])
+
+  // Apply background mode to body
+  useEffect(() => {
+    localStorage.setItem('rhym_bg_mode', bgMode)
+    if (bgMode === 'black') {
+      document.body.classList.add('bg-black')
+    } else {
+      document.body.classList.remove('bg-black')
+    }
+  }, [bgMode])
 
   // Fade out header when scrolled down (like home tab)
   useEffect(() => {
@@ -355,6 +371,7 @@ export default function SettingsPage() {
 
         {/* ─── PREFERENCES ─── */}
         <SettingsSection label="Preferences">
+          <SettingRow icon={FiImage} label="Background" value={bgMode === 'doodle' ? 'Doodle' : 'Black'} hasChevron onClick={() => setBgMode(prev => prev === 'doodle' ? 'black' : 'doodle')} />
           <SettingRow icon={FiBell} label="Notifications" hasChevron onClick={() => {}} />
           <SettingRow icon={FiMoon} label="Appearance" value="Dark" hasChevron onClick={() => {}} />
           <SettingRow icon={FiGlobe} label="Language" value="English" hasChevron isLast onClick={() => {}} />

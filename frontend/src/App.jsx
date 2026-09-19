@@ -90,6 +90,16 @@ export default function App() {
     }
   }, [])
 
+  // Apply saved background preference on startup
+  useEffect(() => {
+    const bgMode = localStorage.getItem('rhym_bg_mode') || 'doodle'
+    if (bgMode === 'black') {
+      document.body.classList.add('bg-black')
+    } else {
+      document.body.classList.remove('bg-black')
+    }
+  }, [])
+
   // Auth page renders outside the app shell for full-screen takeover
   if (location.pathname === '/auth') {
     return (

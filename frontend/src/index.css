@@ -77,6 +77,12 @@ body {
   position: relative;
 }
 
+/* When user picks "Black" background in settings */
+body.bg-black {
+  background-image: none !important;
+  background-color: #000000 !important;
+}
+
 /* ─── App Shell Layout ─── */
 #app-container {
   width: 100vw;

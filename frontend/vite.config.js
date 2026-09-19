@@ -99,5 +99,29 @@ export default defineConfig({
       }
     },
     allowedHosts: true
-  }
+  },
+
+  /* ─── Production Hardening ─── */
+  build: {
+    sourcemap: false,           // No source maps in production
+    minify: 'terser',           // Use Terser for aggressive minification
+    terserOptions: {
+      compress: {
+        drop_console: true,     // Strip ALL console.* calls
+        drop_debugger: true,    // Strip debugger statements
+        passes: 2,              // Multiple compression passes
+      },
+      mangle: {
+        toplevel: true,         // Mangle top-level variable names
+      },
+      format: {
+        comments: false,        // Strip all comments
+      },
+    },
+  },
+
+  /* ─── Dev-only: strip console in production via esbuild ─── */
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
 })
