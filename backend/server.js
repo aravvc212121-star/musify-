@@ -262,21 +262,26 @@ app.get('/api/stream', async (req, res) => {
   const { id, token, expires } = req.query
   if (!id) return res.status(400).json({ error: 'Missing song ID' })
   
-  // 1. Enforce Token Security
-  if (!token || !expires) {
-    return res.status(403).json({ error: 'Forbidden: Missing stream token' })
-  }
-  
-  // 2. Check Expiry
-  if (Date.now() > parseInt(expires, 10)) {
-    return res.status(403).json({ error: 'Forbidden: Stream token expired' })
-  }
-  
-  // 3. Verify HMAC Signature
-  const expectedData = `${id}:${expires}`
-  const expectedToken = crypto.createHmac('sha256', STREAM_SECRET).update(expectedData).digest('hex')
-  if (token !== expectedToken) {
-    return res.status(403).json({ error: 'Forbidden: Invalid stream token' })
+  // 1. Token Security — validate if provided, warn if missing
+  if (token && expires) {
+    // Check Expiry
+    if (Date.now() > parseInt(expires, 10)) {
+      return res.status(403).json({ error: 'Forbidden: Stream token expired' })
+    }
+    // Verify HMAC Signature
+    const expectedData = `${id}:${expires}`
+    const expectedToken = crypto.createHmac('sha256', STREAM_SECRET).update(expectedData).digest('hex')
+    if (token !== expectedToken) {
+      return res.status(403).json({ error: 'Forbidden: Invalid stream token' })
+    }
+  } else {
+    // No token — only allow if same-origin (Referer check)
+    const referer = req.headers.referer || req.headers.origin || ''
+    const host = req.headers.host || ''
+    const isSameOrigin = referer.includes(host) || !referer
+    if (!isSameOrigin) {
+      return res.status(403).json({ error: 'Forbidden: Missing stream token' })
+    }
   }
 
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'

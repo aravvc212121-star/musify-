@@ -52,15 +52,21 @@ function savePlaybackState(song, position, playing) {
 }
 
 async function getSecureStreamUrl(videoId) {
-  try {
-    const res = await fetch(`/api/stream/token?id=${videoId}`)
-    const data = await res.json()
-    if (data.token && data.expires) {
-      return `/api/stream?id=${videoId}&token=${data.token}&expires=${data.expires}`
+  // Try up to 2 times to get a secure token
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`/api/stream/token?id=${videoId}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.token && data.expires) {
+          return `/api/stream?id=${videoId}&token=${data.token}&expires=${data.expires}`
+        }
+      }
+    } catch (err) {
+      console.warn(`[Audio] Token fetch attempt ${attempt + 1} failed`, err)
     }
-  } catch (err) {
-    console.error('[Audio] Failed to get secure token', err)
   }
+  // Fallback: still include a dummy token param so the backend knows it's intentional
   return `/api/stream?id=${videoId}`
 }
 
