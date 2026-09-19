@@ -653,7 +653,7 @@ export function PlayerProvider({ children }) {
     audio.oncanplay = null
 
     console.log(`[Audio] Loading: ${song.title}`)
-    
+    // Add cache-buster to avoid stale browser cache
     audio.src = `/api/stream?id=${song.videoId}&t=${Date.now()}`
     audio.load()
 
@@ -692,7 +692,6 @@ export function PlayerProvider({ children }) {
       const song = currentSongRef.current
       const persisted = loadPlaybackState()
       audio.crossOrigin = 'anonymous'
-      
       audio.src = `/api/stream?id=${song.videoId}&t=${Date.now()}`
       audio.load()
       // Seek to persisted position once loadable
