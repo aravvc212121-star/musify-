@@ -38,29 +38,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }))
 
-// 2. Strict CORS whitelist
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  process.env.FRONTEND_URL, // e.g. https://musify.onrender.com
-].filter(Boolean)
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin — this happens when the frontend
-    // is served from the SAME server (Render), or from mobile apps.
-    // Same-origin requests are safe by definition.
-    if (!origin) return callback(null, true)
-    
-    // Allow whitelisted origins + localhost in dev
-    if (allowedOrigins.includes(origin) || (!IS_PROD && origin?.startsWith('http://localhost'))) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true, // Allow cookies to be sent
-}))
+app.use(cors())
 
 app.use(compression())
 app.use(express.json({ limit: '100kb' })) // Limit payload size for JSON parsing
@@ -240,77 +218,39 @@ app.get('/api/metadata', async (req, res) => {
   }
 })
 
-// ─── Stream Security (HMAC Tokens) ───
-import crypto from 'crypto'
-const STREAM_SECRET = crypto.randomBytes(32).toString('hex')
-
-app.get('/api/stream/token', (req, res) => {
-  const { id } = req.query
-  if (!id) return res.status(400).json({ error: 'Missing song ID' })
-
-  // Token expires in 60 seconds
-  const expires = Date.now() + 60000 
-  const data = `${id}:${expires}`
-  const token = crypto.createHmac('sha256', STREAM_SECRET).update(data).digest('hex')
-  
-  res.json({ token, expires })
-})
-
 // ─── Stream Endpoint ───
 // Proxies audio from JioSaavn CDN with range-request support.
 app.get('/api/stream', async (req, res) => {
-  const { id, token, expires } = req.query
-  if (!id) return res.status(400).json({ error: 'Missing song ID' })
+  const songId = req.query.id
+  if (!songId) return res.status(400).json({ error: 'Missing song ID' })
   
-  // 1. Token Security — validate if provided, warn if missing
-  if (token && expires) {
-    // Check Expiry
-    if (Date.now() > parseInt(expires, 10)) {
-      return res.status(403).json({ error: 'Forbidden: Stream token expired' })
-    }
-    // Verify HMAC Signature
-    const expectedData = `${id}:${expires}`
-    const expectedToken = crypto.createHmac('sha256', STREAM_SECRET).update(expectedData).digest('hex')
-    if (token !== expectedToken) {
-      return res.status(403).json({ error: 'Forbidden: Invalid stream token' })
-    }
-  } else {
-    // No token — only allow if same-origin (Referer check)
-    const referer = req.headers.referer || req.headers.origin || ''
-    const host = req.headers.host || ''
-    const isSameOrigin = referer.includes(host) || !referer
-    if (!isSameOrigin) {
-      return res.status(403).json({ error: 'Forbidden: Missing stream token' })
-    }
-  }
-
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
-  console.log(`[Stream] Authorized request for ${id} from ${clientIp}`)
+  console.log(`[Stream] Request for ${songId} from ${clientIp}`)
 
   try {
     // Check cache — instantly reject songs we already know don't exist
-    let streamUrl = streamCache.get(id)
+    let streamUrl = streamCache.get(songId)
 
     if (streamUrl === 'not_found') {
       return res.status(404).json({ error: 'Song not available on Saavn' })
     }
 
     if (!streamUrl || streamUrl === 'loading') {
-      streamUrl = await saavnGetStreamUrl(id)
+      streamUrl = await saavnGetStreamUrl(songId)
       if (!streamUrl) {
         // Cache the failure so retries don't hammer the Saavn API
-        streamCache.set(id, 'not_found')
+        streamCache.set(songId, 'not_found')
         return res.status(404).json({ error: 'Song not available on Saavn' })
       }
-      streamCache.set(id, streamUrl)
+      streamCache.set(songId, streamUrl)
     }
 
-    // Redirect to the Saavn CDN (secured by our token wrapper)
+    // Redirect to the Saavn CDN
     res.redirect(302, streamUrl)
 
   } catch (err) {
     console.error('Stream endpoint error:', err.message)
-    streamCache.delete(id)
+    streamCache.delete(songId)
     res.status(500).json({ error: 'unavailable' })
   }
 })
