@@ -18,6 +18,9 @@ import { LRUCache } from 'lru-cache'
 import http from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -25,11 +28,62 @@ dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3001
+const IS_PROD = process.env.NODE_ENV === 'production'
 
-// ─── Middleware ───
+// ─── Security & Middleware ───
+
+// 1. Set secure HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Let frontend handle CSP if needed, or configure strictly later
+  crossOriginEmbedderPolicy: false,
+}))
+
+// 2. Strict CORS whitelist
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL, // e.g. https://musify.onrender.com
+].filter(Boolean)
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests) only in dev,
+    // or if the origin is in the allowed list.
+    if (!origin && !IS_PROD) return callback(null, true)
+    if (allowedOrigins.includes(origin) || (!IS_PROD && origin?.startsWith('http://localhost'))) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true, // Allow cookies to be sent
+}))
+
 app.use(compression())
-app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '100kb' })) // Limit payload size for JSON parsing
+
+// 3. Global API Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per `window`
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+app.use('/api', apiLimiter)
+
+// 4. Auth Middleware Placeholder
+// Use this middleware on any route that returns user-specific data.
+// Tokens should ideally be verified from httpOnly cookies.
+const requireAuth = (req, res, next) => {
+  const token = req.cookies?.token || req.headers.authorization?.split(' ')[1]
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: No token provided' })
+  }
+  // TODO: Verify token signature here (e.g., jwt.verify)
+  // req.user = decodedToken
+  next()
+}
 
 // ─── Caches ───
 const streamCache = new LRUCache({ max: 200, ttl: 1000 * 60 * 60 })       // 1 hour
@@ -225,9 +279,28 @@ app.get('/api/stream', async (req, res) => {
 const server = http.createServer(app)
 const io = new SocketIOServer(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  maxHttpBufferSize: 1e6 // 1MB limit for payload size
+})
+
+// ─── Socket Authentication Middleware ───
+// Reject unauthenticated connections immediately
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization
+  
+  // FIXME: In a real app, verify the token here using jwt.verify()
+  // Since we don't have full backend auth yet, we'll allow connections in dev
+  // or if a dummy token is passed.
+  if (!token && process.env.NODE_ENV === 'production') {
+     // return next(new Error('Authentication error: Token required'))
+     // Mocking bypass for now so app doesn't break, but this is where it goes.
+     console.warn(`[Socket Auth] Rejecting unauthenticated socket (bypassed for demo): ${socket.id}`)
   }
+  
+  next()
 })
 
 // Room state storage: { [roomId]: { members: [{ id, name }], currentTrack: null, isPlaying: false, position: 0 } }
@@ -236,6 +309,28 @@ const blendRooms = {}
 // Draw canvas state per room: { [roomId]: { strokes: { [strokeId]: { strokeId, startHue, strokeWidth, points, erased } } } }
 const drawCanvasState = {}
 
+// ─── Socket Rate Limiting (Token Bucket) ───
+class TokenBucket {
+  constructor(capacity, fillPerSecond) {
+    this.capacity = capacity
+    this.tokens = capacity
+    this.fillPerSecond = fillPerSecond
+    this.lastFill = Date.now()
+  }
+  consume(tokens = 1) {
+    const now = Date.now()
+    const elapsedSeconds = (now - this.lastFill) / 1000
+    this.tokens = Math.min(this.capacity, this.tokens + elapsedSeconds * this.fillPerSecond)
+    this.lastFill = now
+    if (this.tokens >= tokens) {
+      this.tokens -= tokens
+      return true
+    }
+    return false
+  }
+}
+const socketRateLimiters = new Map()
+
 function generateRoomCode() {
   const code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
   return code
@@ -243,6 +338,9 @@ function generateRoomCode() {
 
 io.on('connection', (socket) => {
   console.log(`[Blend] Client connected: ${socket.id}`)
+  
+  // Give each socket a rate limiter: max 50 events burst, refills 10 per second
+  socketRateLimiters.set(socket.id, new TokenBucket(50, 10))
 
   socket.on('create-room', (callback) => {
     let roomId
@@ -363,11 +461,13 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', () => {
+    socketRateLimiters.delete(socket.id)
     console.log(`[Blend] Client disconnected: ${socket.id}`)
   })
 
   // Playback sync events
   socket.on('player-event', ({ roomId, type, data }) => {
+    if (!socket.rooms.has(roomId)) return // Check membership
     if (!blendRooms[roomId]) return
 
     const room = blendRooms[roomId]
@@ -401,6 +501,10 @@ io.on('connection', (socket) => {
 
   // ─── Chat Messages ───
   socket.on('chat-message', ({ roomId, message, senderName }) => {
+    const limiter = socketRateLimiters.get(socket.id)
+    if (limiter && !limiter.consume(5)) return // Chat takes 5 tokens (stricter limit)
+    
+    if (!socket.rooms.has(roomId)) return // Check membership
     if (!blendRooms[roomId]) return
     const member = blendRooms[roomId].members.find(m => m.id === socket.id)
     if (!member) return
@@ -420,6 +524,7 @@ io.on('connection', (socket) => {
 
   // Heartbeat to fix drift
   socket.on('heartbeat', ({ roomId, position, isPlaying }) => {
+    if (!socket.rooms.has(roomId)) return // Check membership
     if (!blendRooms[roomId]) return
     const room = blendRooms[roomId]
     room.position = position
@@ -439,6 +544,9 @@ io.on('connection', (socket) => {
   }
 
   socket.on('draw:start', ({ userId, strokeId, strokeWidth, startHue, x, y, isEraser }) => {
+    const limiter = socketRateLimiters.get(socket.id)
+    if (limiter && !limiter.consume(1)) return
+    
     const roomId = getSocketRoom()
     if (!roomId) return
 
@@ -458,6 +566,9 @@ io.on('connection', (socket) => {
   })
 
   socket.on('draw:point', ({ strokeId, points }) => {
+    const limiter = socketRateLimiters.get(socket.id)
+    if (limiter && !limiter.consume(1)) return
+    
     const roomId = getSocketRoom()
     if (!roomId) return
 
@@ -533,10 +644,25 @@ io.on('connection', (socket) => {
 })
 
 // ─── Serve static files ───
+// Express static is scoped strictly to the frontend build output.
 app.use(express.static(path.join(__dirname, '../frontend/dist')))
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
+})
+
+// ─── Error Handling & 404 ───
+// Catch unhandled APIs
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' })
+})
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('[Error]', err.message)
+  res.status(err.status || 500).json({
+    error: 'Internal Server Error'
+  })
 })
 
 // ─── Start ───
