@@ -47,9 +47,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests) only in dev,
-    // or if the origin is in the allowed list.
-    if (!origin && !IS_PROD) return callback(null, true)
+    // Allow requests with no origin — this happens when the frontend
+    // is served from the SAME server (Render), or from mobile apps.
+    // Same-origin requests are safe by definition.
+    if (!origin) return callback(null, true)
+    
+    // Allow whitelisted origins + localhost in dev
     if (allowedOrigins.includes(origin) || (!IS_PROD && origin?.startsWith('http://localhost'))) {
       callback(null, true)
     } else {
@@ -237,40 +240,72 @@ app.get('/api/metadata', async (req, res) => {
   }
 })
 
+// ─── Stream Security (HMAC Tokens) ───
+import crypto from 'crypto'
+const STREAM_SECRET = crypto.randomBytes(32).toString('hex')
+
+app.get('/api/stream/token', (req, res) => {
+  const { id } = req.query
+  if (!id) return res.status(400).json({ error: 'Missing song ID' })
+
+  // Token expires in 60 seconds
+  const expires = Date.now() + 60000 
+  const data = `${id}:${expires}`
+  const token = crypto.createHmac('sha256', STREAM_SECRET).update(data).digest('hex')
+  
+  res.json({ token, expires })
+})
+
 // ─── Stream Endpoint ───
 // Proxies audio from JioSaavn CDN with range-request support.
 app.get('/api/stream', async (req, res) => {
-  const songId = req.query.id
-  if (!songId) return res.status(400).json({ error: 'Missing song ID' })
+  const { id, token, expires } = req.query
+  if (!id) return res.status(400).json({ error: 'Missing song ID' })
+  
+  // 1. Enforce Token Security
+  if (!token || !expires) {
+    return res.status(403).json({ error: 'Forbidden: Missing stream token' })
+  }
+  
+  // 2. Check Expiry
+  if (Date.now() > parseInt(expires, 10)) {
+    return res.status(403).json({ error: 'Forbidden: Stream token expired' })
+  }
+  
+  // 3. Verify HMAC Signature
+  const expectedData = `${id}:${expires}`
+  const expectedToken = crypto.createHmac('sha256', STREAM_SECRET).update(expectedData).digest('hex')
+  if (token !== expectedToken) {
+    return res.status(403).json({ error: 'Forbidden: Invalid stream token' })
+  }
 
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
-  console.log(`[Stream] Request for ${songId} from ${clientIp} (Range: ${req.headers.range || 'none'})`)
+  console.log(`[Stream] Authorized request for ${id} from ${clientIp}`)
 
   try {
     // Check cache — instantly reject songs we already know don't exist
-    let streamUrl = streamCache.get(songId)
+    let streamUrl = streamCache.get(id)
 
     if (streamUrl === 'not_found') {
       return res.status(404).json({ error: 'Song not available on Saavn' })
     }
 
     if (!streamUrl || streamUrl === 'loading') {
-      streamUrl = await saavnGetStreamUrl(songId)
+      streamUrl = await saavnGetStreamUrl(id)
       if (!streamUrl) {
         // Cache the failure so retries don't hammer the Saavn API
-        streamCache.set(songId, 'not_found')
+        streamCache.set(id, 'not_found')
         return res.status(404).json({ error: 'Song not available on Saavn' })
       }
-      streamCache.set(songId, streamUrl)
+      streamCache.set(id, streamUrl)
     }
 
-    // For consistency with Vercel deployment, we issue a 302 Redirect
-    // to the Saavn CDN instead of proxying the stream locally.
+    // Redirect to the Saavn CDN (secured by our token wrapper)
     res.redirect(302, streamUrl)
 
   } catch (err) {
     console.error('Stream endpoint error:', err.message)
-    streamCache.delete(songId)
+    streamCache.delete(id)
     res.status(500).json({ error: 'unavailable' })
   }
 })

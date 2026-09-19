@@ -51,6 +51,19 @@ function savePlaybackState(song, position, playing) {
   } catch (e) { /* quota exceeded, ignore */ }
 }
 
+async function getSecureStreamUrl(videoId) {
+  try {
+    const res = await fetch(`/api/stream/token?id=${videoId}`)
+    const data = await res.json()
+    if (data.token && data.expires) {
+      return `/api/stream?id=${videoId}&token=${data.token}&expires=${data.expires}`
+    }
+  } catch (err) {
+    console.error('[Audio] Failed to get secure token', err)
+  }
+  return `/api/stream?id=${videoId}`
+}
+
 function loadPlaybackState() {
   try {
     const raw = localStorage.getItem(PERSIST_KEY)
@@ -422,16 +435,17 @@ export function PlayerProvider({ children }) {
       }
     }
 
-    const onError = () => {
+    const onError = async () => {
       console.error('[Audio] Playback error', audio.error)
       if (retryCountRef.current < 2) {
         retryCountRef.current++
         console.log(`[Audio] Retrying... (${retryCountRef.current}/2)`)
         try {
-          const url = new URL(audio.src, window.location.origin)
-          url.searchParams.set('retry', Date.now())
+          const songId = currentSongRef.current?.videoId
+          if (!songId) return
+          const secureUrl = await getSecureStreamUrl(songId)
           audio.oncanplay = null
-          audio.src = url.toString()
+          audio.src = secureUrl
           audio.load()
           const p = audio.play()
           if (p !== undefined) {
@@ -653,16 +667,19 @@ export function PlayerProvider({ children }) {
     audio.oncanplay = null
 
     console.log(`[Audio] Loading: ${song.title}`)
-    // Add cache-buster to avoid stale browser cache
-    audio.src = `/api/stream?id=${song.videoId}&t=${Date.now()}`
-    audio.load()
+    
+    // Fetch secure token URL instead of raw ID
+    getSecureStreamUrl(song.videoId).then(secureUrl => {
+      audio.src = secureUrl
+      audio.load()
 
-    // Try playing immediately
-    const playPromise = audio.play()
-    if (playPromise !== undefined) {
-      playPromise.catch(err => {
-      })
-    }
+      // Try playing immediately
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+        })
+      }
+    })
   }, [])
 
   // ─── Preload Next Track ───
@@ -680,8 +697,10 @@ export function PlayerProvider({ children }) {
 
     if (nextSongId) {
       console.log(`[Audio] Preloading next track ID: ${nextSongId}`)
-      preloader.src = `/api/stream?id=${nextSongId}`
-      preloader.load()
+      getSecureStreamUrl(nextSongId).then(secureUrl => {
+        preloader.src = secureUrl
+        preloader.load()
+      })
     }
   }, [queue, queueIndex, recommendations])
 
@@ -692,19 +711,22 @@ export function PlayerProvider({ children }) {
       const song = currentSongRef.current
       const persisted = loadPlaybackState()
       audio.crossOrigin = 'anonymous'
-      audio.src = `/api/stream?id=${song.videoId}&t=${Date.now()}`
-      audio.load()
-      // Seek to persisted position once loadable
-      if (persisted?.position > 0) {
-        const onCanPlay = () => {
-          audio.currentTime = persisted.position
-          audio.removeEventListener('canplay', onCanPlay)
+      
+      getSecureStreamUrl(song.videoId).then(secureUrl => {
+        audio.src = secureUrl
+        audio.load()
+        // Seek to persisted position once loadable
+        if (persisted?.position > 0) {
+          const onCanPlay = () => {
+            audio.currentTime = persisted.position
+            audio.removeEventListener('canplay', onCanPlay)
+          }
+          audio.addEventListener('canplay', onCanPlay)
         }
-        audio.addEventListener('canplay', onCanPlay)
-      }
-      setIsAudioLoading(true)
-      setIsPlaying(true)
-      audio.play().catch(() => {})
+        setIsAudioLoading(true)
+        setIsPlaying(true)
+        audio.play().catch(() => {})
+      })
       return
     }
     if (!audio.src) return
