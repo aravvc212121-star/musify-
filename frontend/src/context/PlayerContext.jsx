@@ -49,7 +49,7 @@ function savePlaybackState(song, position, playing) {
       savedAt: Date.now()
     }))
   } catch (e) { /* quota exceeded, ignore */ }
-
+}
 
 function loadPlaybackState() {
   try {
