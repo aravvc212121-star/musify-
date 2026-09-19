@@ -233,6 +233,9 @@ const io = new SocketIOServer(server, {
 // Room state storage: { [roomId]: { members: [{ id, name }], currentTrack: null, isPlaying: false, position: 0 } }
 const blendRooms = {}
 
+// Draw canvas state per room: { [roomId]: { strokes: { [strokeId]: { strokeId, startHue, strokeWidth, points, erased } } } }
+const drawCanvasState = {}
+
 function generateRoomCode() {
   const code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
   return code
@@ -323,11 +326,13 @@ io.on('connection', (socket) => {
         console.log(`[Blend] Host ${socket.id} left. Destroying room ${roomId}.`)
         io.to(roomId).emit('room-destroyed', { reason: 'Host left the room' })
         delete blendRooms[roomId]
+        delete drawCanvasState[roomId]
       } else {
         blendRooms[roomId].members = blendRooms[roomId].members.filter(m => m.id !== socket.id)
         console.log(`[Blend] ${socket.id} left room ${roomId}.`)
         if (blendRooms[roomId].members.length === 0) {
           delete blendRooms[roomId]
+          delete drawCanvasState[roomId]
         } else {
           io.to(roomId).emit('room-updated', blendRooms[roomId])
         }
@@ -343,10 +348,12 @@ io.on('connection', (socket) => {
           console.log(`[Blend] Host ${socket.id} disconnected. Destroying room ${roomId}.`)
           io.to(roomId).emit('room-destroyed', { reason: 'Host disconnected' })
           delete blendRooms[roomId]
+          delete drawCanvasState[roomId]
         } else {
           blendRooms[roomId].members = blendRooms[roomId].members.filter(m => m.id !== socket.id)
           if (blendRooms[roomId].members.length === 0) {
             delete blendRooms[roomId]
+            delete drawCanvasState[roomId]
           } else {
             io.to(roomId).emit('room-updated', blendRooms[roomId])
           }
@@ -418,6 +425,110 @@ io.on('connection', (socket) => {
     room.position = position
     room.isPlaying = isPlaying
     socket.to(roomId).emit('heartbeat', { position, isPlaying, timestamp: Date.now() })
+  })
+
+  // ─── Draw Together Events ───
+
+  // Helper: find which room this socket is in
+  function getSocketRoom() {
+    const rooms = Array.from(socket.rooms).filter(r => r !== socket.id)
+    for (const r of rooms) {
+      if (blendRooms[r]) return r
+    }
+    return null
+  }
+
+  socket.on('draw:start', ({ userId, strokeId, strokeWidth, startHue, x, y, isEraser }) => {
+    const roomId = getSocketRoom()
+    if (!roomId) return
+
+    // Store stroke on server
+    if (!drawCanvasState[roomId]) drawCanvasState[roomId] = { strokes: {} }
+    drawCanvasState[roomId].strokes[strokeId] = {
+      strokeId,
+      startHue,
+      strokeWidth: strokeWidth || 4,
+      points: [{ x, y }],
+      erased: false,
+      isEraser: isEraser || false,
+    }
+
+    // Relay to others
+    socket.to(roomId).emit('draw:start', { userId, strokeId, strokeWidth, startHue, x, y, isEraser })
+  })
+
+  socket.on('draw:point', ({ strokeId, points }) => {
+    const roomId = getSocketRoom()
+    if (!roomId) return
+
+    // Append points to server-side stroke
+    if (drawCanvasState[roomId] && drawCanvasState[roomId].strokes[strokeId]) {
+      const stroke = drawCanvasState[roomId].strokes[strokeId]
+      if (points && Array.isArray(points)) {
+        stroke.points.push(...points)
+      }
+    }
+
+    // Relay to others
+    socket.to(roomId).emit('draw:point', { strokeId, points })
+  })
+
+  socket.on('draw:end', ({ strokeId }) => {
+    const roomId = getSocketRoom()
+    if (!roomId) return
+    socket.to(roomId).emit('draw:end', { strokeId })
+  })
+
+  socket.on('draw:erase', ({ points }) => {
+    const roomId = getSocketRoom()
+    if (!roomId || !drawCanvasState[roomId]) return
+
+    // Mark strokes as erased on server
+    if (points && Array.isArray(points)) {
+      points.forEach(({ x, y, radius }) => {
+        const r = radius || 20
+        Object.values(drawCanvasState[roomId].strokes).forEach(stroke => {
+          if (stroke.erased) return
+          for (const pt of stroke.points) {
+            const dx = pt.x - x
+            const dy = pt.y - y
+            if (dx * dx + dy * dy < r * r) {
+              stroke.erased = true
+              break
+            }
+          }
+        })
+      })
+    }
+
+    // Relay to others
+    socket.to(roomId).emit('draw:erase', { points })
+  })
+
+  socket.on('draw:clear', () => {
+    const roomId = getSocketRoom()
+    if (!roomId) return
+
+    // Clear server-side canvas state
+    if (drawCanvasState[roomId]) {
+      drawCanvasState[roomId].strokes = {}
+    }
+
+    // Relay to others
+    socket.to(roomId).emit('draw:clear')
+  })
+
+  socket.on('draw:requestHistory', () => {
+    const roomId = getSocketRoom()
+    if (!roomId) return
+
+    const state = drawCanvasState[roomId]
+    if (state && state.strokes) {
+      const strokesArr = Object.values(state.strokes)
+      socket.emit('draw:history', strokesArr)
+    } else {
+      socket.emit('draw:history', [])
+    }
   })
 })
 

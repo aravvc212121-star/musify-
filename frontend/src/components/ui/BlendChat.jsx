@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useBlend } from '../../context/BlendContext.jsx'
 import { FiSmile, FiSend } from 'react-icons/fi'
+import DrawCanvas from './DrawCanvas.jsx'
 
 const QUICK_EMOJIS = ['😀', '😂', '😍', '🔥', '👍', '💯', '🎶', '❤️', '😎', '🎉']
 
@@ -19,6 +20,9 @@ export default function BlendChat() {
 
   const [input, setInput] = useState('')
   const [showEmojis, setShowEmojis] = useState(false)
+  const [drawMode, setDrawMode] = useState(false)
+  const [eraserActive, setEraserActive] = useState(false)
+  const [clearTrigger, setClearTrigger] = useState(0)
   const messagesEndRef = useRef(null)
   const listRef = useRef(null)
   const isNearBottomRef = useRef(true)
@@ -63,6 +67,8 @@ export default function BlendChat() {
 
   const members = room.members || []
   const memberNames = members.map(m => m.id === myId ? 'You' : m.name).join(' and ')
+
+  // ─── Draw Mode Overlay rendered below ───
 
   return (
     <div style={{
@@ -123,27 +129,136 @@ export default function BlendChat() {
               {memberNames}
             </div>
           </div>
+
+          {/* Eraser Toggle (only visible in draw mode, moved to left) */}
+          {drawMode && (
+            <button
+              onClick={() => setEraserActive(!eraserActive)}
+              style={{
+                background: eraserActive ? '#00d2ff' : 'rgba(10,10,12,0.65)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: eraserActive ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                boxShadow: 'none',
+                cursor: 'pointer',
+                color: eraserActive ? '#000000' : '#fff',
+                width: '42px', height: '42px',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.9)' }}
+              onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+              onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+              title="Eraser"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.6 1.6c.8-.8 2-.8 2.8 0L21 5.2c.8.8.8 2 0 2.8L10 19" />
+              </svg>
+            </button>
+          )}
+
+          {/* Clear Page (only visible in draw mode) */}
+          {drawMode && (
+            <button
+              onClick={() => {
+                if (socket) socket.emit('draw:clear')
+                setClearTrigger(prev => prev + 1)
+              }}
+              style={{
+                background: 'rgba(10,10,12,0.65)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                boxShadow: 'none',
+                cursor: 'pointer',
+                color: '#fff',
+                width: '42px', height: '42px',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.9)' }}
+              onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+              onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+              title="Clear Canvas"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+              </svg>
+            </button>
+          )}
         </div>
 
-        {/* Right: close */}
-        <button
-          onClick={closeChat}
-          style={{
-            background: 'rgba(10,10,12,0.65)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            cursor: 'pointer',
-            color: '#fff',
-            width: '42px', height: '42px',
-            borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
+        {/* Right: draw + close */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Draw Together icon (Pencil) */}
+          <button
+            onClick={() => {
+              if (drawMode && socket) {
+                socket.emit('draw:clear')
+              }
+              setDrawMode(!drawMode)
+            }}
+            style={{
+              background: drawMode ? '#00d2ff' : 'rgba(10,10,12,0.65)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: drawMode ? 'none' : '1px solid rgba(255,255,255,0.06)',
+              boxShadow: 'none',
+              cursor: 'pointer',
+              color: drawMode ? '#000000' : '#fff',
+              width: '42px', height: '42px',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s',
+            }}
+            onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.9)' }}
+            onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+            onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+            title="Draw Together"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <defs>
+                <linearGradient id="drawIconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ff4444" />
+                  <stop offset="25%" stopColor="#ffaa00" />
+                  <stop offset="50%" stopColor="#00cc44" />
+                  <stop offset="75%" stopColor="#0088ff" />
+                  <stop offset="100%" stopColor="#aa44ff" />
+                </linearGradient>
+              </defs>
+              <path d="M12 19l7-7 3 3-7 7-3-3z" stroke="url(#drawIconGrad)" />
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" stroke="url(#drawIconGrad)" />
+              <path d="M2 2l7.586 7.586" stroke="url(#drawIconGrad)" />
+              <circle cx="11" cy="11" r="2" stroke="url(#drawIconGrad)" />
+            </svg>
+          </button>
+
+          {/* Close */}
+          <button
+            onClick={closeChat}
+            style={{
+              background: 'rgba(10,10,12,0.65)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              cursor: 'pointer',
+              color: '#fff',
+              width: '42px', height: '42px',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* ─── Message List with doodle background ─── */}
@@ -418,6 +533,9 @@ export default function BlendChat() {
           <FiSend size={20} color="#000000" style={{ marginLeft: '-2px', marginTop: '2px' }} />
         </button>
       </div>
+
+      {/* Doodle Overlay */}
+      <DrawCanvas drawMode={drawMode} eraserActive={eraserActive} clearTrigger={clearTrigger} scrollRef={listRef} />
     </div>
   )
 }
