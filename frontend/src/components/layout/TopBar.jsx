@@ -84,6 +84,30 @@ export default function TopBar({ isMobile = false }) {
     return () => window.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Pin TopBar to the top edge during iOS negative overscroll (bounce)
+  useEffect(() => {
+    const panel = document.querySelector('.center-panel')
+    if (!panel || !barRef.current) return
+    let rafId = null
+    const onScroll = () => {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const st = panel.scrollTop
+        if (st < 0 && barRef.current) {
+          barRef.current.style.transform = `translateY(${st}px)`
+        } else if (barRef.current) {
+          barRef.current.style.transform = `translateY(0px)`
+        }
+      })
+    }
+    panel.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      panel.removeEventListener('scroll', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [])
+
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e) => {

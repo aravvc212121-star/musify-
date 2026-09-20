@@ -63,13 +63,39 @@ export default function ArtistPage() {
     load()
   }, [id])
 
-  // Black panel background to match app-wide theme
+  const heroRef = React.useRef(null)
+
+  // Black panel background to match app-wide theme and stretch effect on iOS
   useEffect(() => {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
     panel.style.background = ''
-    return () => { panel.style.background = prev }
+
+    let rafId = null
+    const onScroll = () => {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const st = panel.scrollTop
+        if (st < 0 && heroRef.current) {
+          // Calculate scale to perfectly fill the pulled-down gap
+          const h = heroRef.current.offsetHeight || 320
+          const scale = 1 + Math.abs(st) / h
+          heroRef.current.style.transform = `translateY(${st}px) scale(${scale})`
+          heroRef.current.style.transformOrigin = 'top center'
+        } else if (heroRef.current) {
+          heroRef.current.style.transform = `translateY(0px) scale(1)`
+        }
+      })
+    }
+    panel.addEventListener('scroll', onScroll, { passive: true })
+
+    return () => { 
+      panel.style.background = prev 
+      panel.removeEventListener('scroll', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [])
 
   const color = useMemo(() => {
@@ -88,7 +114,7 @@ export default function ArtistPage() {
       minHeight: '100dvh'
     }}>
       {/* ─── Hero Poster Banner (Full-bleed poster with name overlay) ─── */}
-      <div className="artist-poster-hero" style={{
+      <div ref={heroRef} className="artist-poster-hero" style={{
         position: 'relative',
         width: '100%',
         height: isMobile ? '320px' : '380px',

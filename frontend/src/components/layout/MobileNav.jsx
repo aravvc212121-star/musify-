@@ -338,8 +338,8 @@ export default function MobileNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          height: `${NAV_BAR_HEIGHT}px`,
-          paddingBottom: '8px', // Tiny padding so icons don't hit the absolute physical edge, but much smaller than safe-area
+          height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           // ─── Soft Gradient Fade: Rich tint in between, feathered smooth fade out above ───
           background: 'linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.94) 25%, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.68) 72%, rgba(0, 0, 0, 0.40) 86%, rgba(0, 0, 0, 0.14) 95%, rgba(0, 0, 0, 0) 100%)',
           backdropFilter: 'none',

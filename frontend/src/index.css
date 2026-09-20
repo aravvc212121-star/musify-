@@ -53,7 +53,7 @@ input, textarea, [contenteditable] {
 
 /* ─── Body — fixed layout, no outer scrollbars ─── */
 html, body {
-  overscroll-behavior-y: none; /* Prevent iOS rubber-banding pulling down sticky headers */
+  overscroll-behavior-y: contain; /* Prevent PWA pull-to-refresh fighting with custom bounce */
 }
 
 body {
@@ -135,7 +135,7 @@ body.bg-black {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; /* Momentum scroll on iOS */
-  overscroll-behavior-y: none; /* Prevent iOS rubber-banding pulling down sticky headers */
+  overscroll-behavior-y: contain;
   scroll-behavior: smooth;
 }
 
