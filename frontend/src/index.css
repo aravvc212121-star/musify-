@@ -386,7 +386,7 @@ body.mobile-sidebar-open {
   }
   /* Clearance for floating pill nav bar + mini-player stacked above it */
   .center-panel {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 140px !important;
     /* Buttery smooth momentum scrolling on mobile */
     -webkit-overflow-scrolling: touch;
     scroll-behavior: auto !important; /* Let native momentum handle it */

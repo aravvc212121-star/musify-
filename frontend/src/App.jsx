@@ -71,7 +71,6 @@ function PageWrapper({ children }) {
       transform: visible ? 'none' : 'translate3d(0, 4px, 0)',
       transition: 'opacity 200ms ease-out, transform 200ms ease-out',
       willChange: visible ? 'auto' : 'opacity, transform',
-      minHeight: '100%'
     }}>
       {children}
     </div>

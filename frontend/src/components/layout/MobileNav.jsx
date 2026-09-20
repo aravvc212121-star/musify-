@@ -338,8 +338,8 @@ export default function MobileNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          height: `${NAV_BAR_HEIGHT}px`,
+          paddingBottom: '0px',
           boxSizing: 'border-box',
           // ─── Gradient: solid black at bottom (covers safe-area padding zone), fades to transparent at top ───
           background: 'linear-gradient(to top, #000000 0%, rgba(0, 0, 0, 0.98) 20%, rgba(0, 0, 0, 0.92) 40%, rgba(0, 0, 0, 0.78) 58%, rgba(0, 0, 0, 0.55) 74%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0) 100%)',

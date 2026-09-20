@@ -105,14 +105,16 @@ export default function SearchOverlay() {
               <FiSearch size={18} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
               <input
                 ref={inputRef}
-                type="search"
+                type="text"
+                name="search_field_overlay"
                 value={query}
                 autoFocus
-                autoComplete="off"
+                autoComplete="nope"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 inputMode="search"
+                data-form-type="other"
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && query.trim()) {
