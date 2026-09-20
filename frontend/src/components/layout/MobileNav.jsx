@@ -340,8 +340,9 @@ export default function MobileNav() {
           right: 0,
           height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          // ─── Soft Gradient Fade: Rich tint in between, feathered smooth fade out above ───
-          background: 'linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.94) 25%, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.68) 72%, rgba(0, 0, 0, 0.40) 86%, rgba(0, 0, 0, 0.14) 95%, rgba(0, 0, 0, 0) 100%)',
+          boxSizing: 'border-box',
+          // ─── Gradient: solid black at bottom (covers safe-area padding zone), fades to transparent at top ───
+          background: 'linear-gradient(to top, #000000 0%, rgba(0, 0, 0, 0.98) 20%, rgba(0, 0, 0, 0.92) 40%, rgba(0, 0, 0, 0.78) 58%, rgba(0, 0, 0, 0.55) 74%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0) 100%)',
           backdropFilter: 'none',
           WebkitBackdropFilter: 'none',
           border: 'none',
@@ -370,7 +371,7 @@ export default function MobileNav() {
         ref={capsuleRef}
         style={{
           position: 'absolute',
-          top: '32px',
+          top: `${NAV_BAR_HEIGHT / 2}px`,
           left: capsuleStyle.left,
           width: capsuleStyle.width,
           height: '48px',

@@ -280,10 +280,7 @@ export default function HomePage() {
   // Track whether the page has been scrolled past the collapse threshold
   const [isScrolled, setIsScrolled] = useState(false)
 
-  const headerRef = useRef(null)
-
   // Collapse the "Rhym" wordmark into the logo when the user scrolls down
-  // AND pin the header to the top during iOS overscroll bounce
   useEffect(() => {
     // The scrollable container is .center-panel (the nearest scrolling ancestor)
     const panel = document.querySelector('.center-panel')
@@ -294,14 +291,7 @@ export default function HomePage() {
       if (rafId) return
       rafId = requestAnimationFrame(() => {
         rafId = null
-        const st = panel.scrollTop
-        setIsScrolled(st > THRESHOLD)
-
-        if (st < 0 && headerRef.current) {
-          headerRef.current.style.transform = `translateY(${st}px)`
-        } else if (headerRef.current) {
-          headerRef.current.style.transform = `translateY(0px)`
-        }
+        setIsScrolled(panel.scrollTop > THRESHOLD)
       })
     }
     panel.addEventListener('scroll', onScroll, { passive: true })
@@ -588,7 +578,7 @@ export default function HomePage() {
       {/* Content Container with relative positioning */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* ─── Home Header: Rhym Logo + Brand Text + Profile Avatar ─── */}
-        <header ref={headerRef} style={{
+        <header style={{
           position: 'sticky',
           top: 0,
           zIndex: 100,

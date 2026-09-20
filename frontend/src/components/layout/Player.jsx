@@ -189,7 +189,7 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          // Dock closer above the bottom nav bar
+          // Dock above the bottom nav bar (64px nav + 8px gap + safe area)
           bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
           left: '12px',
           right: '12px',

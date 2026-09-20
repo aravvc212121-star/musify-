@@ -225,7 +225,7 @@ export default function SearchPage({ isMobile }) {
   return (
     <div ref={containerRef} style={{
       padding: isMobile ? '8px 4px 16px' : '12px 24px 16px',
-      minHeight: '100%',
+      minHeight: 'calc(100% + 1px)', /* Force slight overflow so iOS always enables scroll touch */
     }}>
 
       {/* ═══ STATE 1: RECENT SEARCHES (when search is empty) ═══ */}

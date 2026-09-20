@@ -38,38 +38,13 @@ export default function AlbumPage() {
     load()
   }, [albumName])
 
-  const heroRef = React.useRef(null)
-
-  // Black panel background and stretch effect on iOS
+  // Black panel background to match app-wide theme
   useEffect(() => {
     const panel = document.querySelector('.center-panel')
     if (!panel) return
     const prev = panel.style.background
     panel.style.background = ''
-
-    let rafId = null
-    const onScroll = () => {
-      if (rafId) return
-      rafId = requestAnimationFrame(() => {
-        rafId = null
-        const st = panel.scrollTop
-        if (st < 0 && heroRef.current) {
-          const h = heroRef.current.offsetHeight || 300
-          const scale = 1 + Math.abs(st) / h
-          heroRef.current.style.transform = `translateY(${st}px) scale(${scale})`
-          heroRef.current.style.transformOrigin = 'top center'
-        } else if (heroRef.current) {
-          heroRef.current.style.transform = `translateY(0px) scale(1)`
-        }
-      })
-    }
-    panel.addEventListener('scroll', onScroll, { passive: true })
-
-    return () => { 
-      panel.style.background = prev 
-      panel.removeEventListener('scroll', onScroll)
-      if (rafId) cancelAnimationFrame(rafId)
-    }
+    return () => { panel.style.background = prev }
   }, [])
 
   const color = useMemo(() => {
@@ -99,7 +74,7 @@ export default function AlbumPage() {
       minHeight: '100dvh'
     }}>
       {/* ─── Hero Section ─── */}
-      <div ref={heroRef} style={{
+      <div style={{
         background: `linear-gradient(to bottom, ${color}, #121212 100%)`,
         padding: isMobile ? '48px 16px 24px' : '64px 32px 32px',
         display: 'flex',
