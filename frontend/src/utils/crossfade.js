@@ -24,6 +24,10 @@ class CrossfadeManager {
     if (typeof window !== 'undefined' && !this.fadePlayer) {
       this.fadePlayer = new Audio()
       this.fadePlayer.preload = 'auto'
+      if (typeof document !== 'undefined') {
+        this.fadePlayer.style.display = 'none'
+        document.body.appendChild(this.fadePlayer)
+      }
     }
   }
 

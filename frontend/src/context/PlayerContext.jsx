@@ -329,6 +329,13 @@ export function PlayerProvider({ children }) {
   // ─── Audio Element Setup ───
   useEffect(() => {
     const audio = audioRef.current
+    
+    // CRITICAL FOR IOS: The audio element MUST be in the DOM to survive backgrounding
+    if (typeof document !== 'undefined' && !audio.parentNode) {
+      audio.style.display = 'none'
+      document.body.appendChild(audio)
+    }
+
     crossfadeManager.init(audio)
     
     audio.volume = volume / 100
@@ -700,6 +707,13 @@ export function PlayerProvider({ children }) {
   // ─── Preload Next Track ───
   useEffect(() => {
     const preloader = preloaderRef.current
+    
+    // Attach to DOM for iOS safety
+    if (typeof document !== 'undefined' && !preloader.parentNode) {
+      preloader.style.display = 'none'
+      document.body.appendChild(preloader)
+    }
+
     preloader.preload = 'auto'
     preloader.volume = 0
     
