@@ -32,7 +32,10 @@ const PORT = process.env.PORT || 3001
 // Hide express stack and add security headers
 app.use(helmet({
   contentSecurityPolicy: false, // Don't break React app connections
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
+  referrerPolicy: false // Allow referrer to be sent to media CDNs if needed
 }))
 app.use(compression())
 app.use(cors())

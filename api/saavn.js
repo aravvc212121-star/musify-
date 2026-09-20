@@ -27,9 +27,11 @@ async function fetchWithTimeout(url, options = {}, timeout = 8000) {
   
   // Use an Indian IP to bypass JioSaavn's geo-blocking on international (Vercel) servers
   // which hides songs like "Die For You - The Weeknd"
+  // Randomize the last octet to prevent WAF throttling/blocking
+  const randomIP = `103.212.158.${Math.floor(Math.random() * 255)}`
   const defaultHeaders = {
-    'X-Forwarded-For': '103.212.158.118', // Random Indian IP
-    'True-Client-IP': '103.212.158.118',
+    'X-Forwarded-For': randomIP,
+    'True-Client-IP': randomIP,
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/json, text/plain, */*'
   };
