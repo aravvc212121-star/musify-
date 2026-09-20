@@ -39,7 +39,7 @@ const TABS = [
   { path: '/library', label: 'Your Library', Icon: LibraryIcon },
 ]
 
-export const NAV_BAR_HEIGHT = 64
+export const NAV_BAR_HEIGHT = (typeof window !== 'undefined' && window.__rhymIsIOS) ? 52 : 64
 export const NAV_BAR_BOTTOM_MARGIN = 2 // px above safe-area
 
 export default function MobileNav() {
@@ -341,14 +341,14 @@ export default function MobileNav() {
           height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           boxSizing: 'border-box',
-          // ─── Soft Gradient Fade ───
-          background: 'linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.94) 25%, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.68) 72%, rgba(0, 0, 0, 0.40) 86%, rgba(0, 0, 0, 0.14) 95%, rgba(0, 0, 0, 0) 100%)',
+          // ─── Gradient: solid black at bottom (covers safe-area padding zone), fades to transparent at top ───
+          background: 'linear-gradient(to top, #000000 0%, rgba(0, 0, 0, 0.98) 20%, rgba(0, 0, 0, 0.92) 40%, rgba(0, 0, 0, 0.78) 58%, rgba(0, 0, 0, 0.55) 74%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0) 100%)',
           backdropFilter: 'none',
           WebkitBackdropFilter: 'none',
           border: 'none',
           boxShadow: 'none',
           borderRadius: 0,
-          // Layout
+          // Layout — on iOS push icons lower to match native tab bar feel
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
@@ -367,20 +367,6 @@ export default function MobileNav() {
         WebkitBackfaceVisibility: 'hidden',
       }}
     >
-      {/* ── SOLID BLACK SAFE AREA BLOCK ── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 'env(safe-area-inset-bottom, 0px)',
-          backgroundColor: '#000000',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
       <div 
         ref={capsuleRef}
         style={{

@@ -329,13 +329,6 @@ export function PlayerProvider({ children }) {
   // ─── Audio Element Setup ───
   useEffect(() => {
     const audio = audioRef.current
-    
-    // CRITICAL FOR IOS: The audio element MUST be in the DOM to survive backgrounding
-    if (typeof document !== 'undefined' && !audio.parentNode) {
-      audio.style.display = 'none'
-      document.body.appendChild(audio)
-    }
-
     crossfadeManager.init(audio)
     
     audio.volume = volume / 100
@@ -487,7 +480,10 @@ export function PlayerProvider({ children }) {
 
   // ─── Web Audio API Initialization ───
   const initWebAudio = useCallback(() => {
-    if (eqFiltersRef.current || !audioRef.current) return
+    // DO NOT use Web Audio API on iOS. iOS aggressively suspends AudioContext in the background,
+    // which kills the actual audio output even while the HTMLMediaElement timer keeps advancing.
+    if (eqFiltersRef.current || !audioRef.current || (typeof window !== 'undefined' && window.__rhymIsIOS)) return
+    
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext
       const actx = new AudioContext()
@@ -707,13 +703,6 @@ export function PlayerProvider({ children }) {
   // ─── Preload Next Track ───
   useEffect(() => {
     const preloader = preloaderRef.current
-    
-    // Attach to DOM for iOS safety
-    if (typeof document !== 'undefined' && !preloader.parentNode) {
-      preloader.style.display = 'none'
-      document.body.appendChild(preloader)
-    }
-
     preloader.preload = 'auto'
     preloader.volume = 0
     

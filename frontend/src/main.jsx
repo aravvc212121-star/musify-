@@ -14,6 +14,21 @@ import BlendModal from './components/ui/BlendModal.jsx'
 import RoomCodePopup from './components/ui/RoomCodePopup.jsx'
 import './index.css'
 
+// ─── iOS Platform Detection ───
+// Detect iOS (iPhone/iPad/iPod) to apply platform-specific fixes
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+if (isIOS) {
+  document.body.classList.add('is-ios')
+  // Force plain black background on iOS (no doodle pattern)
+  document.body.classList.add('bg-black')
+  localStorage.setItem('rhym_bg_mode', 'black')
+}
+
+// Export for use by other components
+window.__rhymIsIOS = isIOS
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

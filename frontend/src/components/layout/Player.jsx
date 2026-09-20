@@ -189,8 +189,8 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          // Dock above the bottom nav bar (64px nav + 8px gap + safe area)
-          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          // Dock above the bottom nav bar (nav height + gap + safe area)
+          bottom: `calc(${window.__rhymIsIOS ? '60px' : '72px'} + env(safe-area-inset-bottom, 0px))`,
           left: '12px',
           right: '12px',
           height: '56px',

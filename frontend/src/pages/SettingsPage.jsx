@@ -171,6 +171,11 @@ export default function SettingsPage() {
 
   // Apply background mode to body
   useEffect(() => {
+    // iOS always gets plain black background — override any user preference
+    if (window.__rhymIsIOS) {
+      document.body.classList.add('bg-black')
+      return
+    }
     localStorage.setItem('rhym_bg_mode', bgMode)
     if (bgMode === 'black') {
       document.body.classList.add('bg-black')
