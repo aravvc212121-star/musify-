@@ -65,8 +65,7 @@ body {
   background-attachment: fixed;
   margin: 0;
   padding: 0;
-  /* Push content below the notch/status bar in PWA standalone mode */
-  padding-top: env(safe-area-inset-top, 0px);
+  /* Individual pages now handle their own safe-area-inset-top padding */
   display: flex;
   justify-content: center;
   font-family: var(--font);
@@ -86,7 +85,7 @@ body.bg-black {
 /* ─── App Shell Layout ─── */
 #app-container {
   width: 100vw;
-  /* Fallback for older browsers, then override with dvh for modern browsers */
+  /* Fallback for older browsers, then override with dvh for iOS PWA */
   height: 100vh;
   height: 100dvh;
   background: transparent !important;
@@ -99,23 +98,6 @@ body.bg-black {
   overflow: hidden;
   gap: 12px;
   padding: 12px 12px 0 12px;
-}
-
-/* ─── iOS Standalone Mode Overrides ─── */
-@media (display-mode: standalone) {
-  @supports (-webkit-touch-callout: none) {
-    html, body {
-      height: 100%;
-    }
-    body {
-      min-height: 100dvh;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    #app-container {
-      height: 100%;
-      width: 100%;
-    }
-  }
 }
 
 /* Tablet (768-1024px) */

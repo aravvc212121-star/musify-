@@ -260,13 +260,10 @@ export function PlayerProvider({ children }) {
   const repeatRef = useRef('none')
   const sleepTimerRef = useRef(sleepTimer)
   const playNextRef = useRef(null)
-  const playPreviousRef = useRef(null)
   const playSongRef = useRef(null)
   const volumeRef = useRef(volume)
   const retryCountRef = useRef(0)
   const currentSongRef = useRef(null)
-  // Persistent singleton AudioContext — NEVER recreated per song (iOS requirement)
-  const audioContextRef = useRef(null)
 
   useEffect(() => { currentSongRef.current = currentSong }, [currentSong])
 
@@ -383,17 +380,7 @@ export function PlayerProvider({ children }) {
     }
 
     const onPlay = () => setIsPlaying(true)
-    const onPause = () => {
-      // Diagnostic logging for unexpected stops
-      console.log('[Audio Diagnostic] Playback paused.', {
-        audioContextState: audioContextRef.current?.state,
-        visibilityState: document.visibilityState,
-        currentTime: audio.currentTime,
-        src: audio.src,
-        hasMediaSession: 'mediaSession' in navigator && !!navigator.mediaSession.metadata,
-      })
-      setIsPlaying(false)
-    }
+    const onPause = () => setIsPlaying(false)
 
     const onEnded = () => {
       // Sleep Timer: End of track
@@ -488,100 +475,12 @@ export function PlayerProvider({ children }) {
     }
   }, [])
 
-  // ─── iOS Audio Unlock: Reliable silent-audio unlock on first user interaction ───
-  useEffect(() => {
-    function unlockAudioContext() {
-      const actx = audioContextRef.current
-      if (actx && actx.state === 'suspended') {
-        const buffer = actx.createBuffer(1, 1, 22050)
-        const source = actx.createBufferSource()
-        source.buffer = buffer
-        source.connect(actx.destination)
-        source.start(0)
-        actx.resume().then(() => {
-          console.log('[iOS Audio] AudioContext unlocked via user gesture')
-        }).catch(() => {})
-      }
-      // Also ensure the audio element is ready
-      const audio = audioRef.current
-      if (audio && audio.paused && !audio.src) {
-        audio.play().then(() => audio.pause()).catch(() => {})
-      }
-    }
-    document.addEventListener('touchstart', unlockAudioContext, { once: true })
-    document.addEventListener('click', unlockAudioContext, { once: true })
-    return () => {
-      document.removeEventListener('touchstart', unlockAudioContext)
-      document.removeEventListener('click', unlockAudioContext)
-    }
-  }, [])
-
-  // ─── iOS Background Audio Resume: visibilitychange + pageshow ───
-  useEffect(() => {
-    function resumeAudioContext() {
-      const actx = audioContextRef.current
-      if (actx && actx.state === 'suspended') {
-        console.log('[iOS Audio] Resuming suspended AudioContext (visibility/pageshow)')
-        actx.resume().catch(() => {})
-      }
-    }
-
-    function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') {
-        resumeAudioContext()
-        // Also resume audio element if it was playing
-        const audio = audioRef.current
-        if (audio && audio.src && !audio.ended) {
-          // Diagnostic log
-          console.log('[iOS Audio] visibilitychange -> visible',
-            'audioContext.state:', audioContextRef.current?.state,
-            'audio.paused:', audio.paused,
-            'audio.currentTime:', audio.currentTime
-          )
-        }
-      }
-    }
-
-    function handlePageShow(e) {
-      if (e.persisted) {
-        resumeAudioContext()
-        console.log('[iOS Audio] pageshow (bfcache restore) -> resuming')
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('pageshow', handlePageShow)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('pageshow', handlePageShow)
-    }
-  }, [])
-
-  // ─── Web Audio API Initialization (Persistent Singleton) ───
+  // ─── Web Audio API Initialization ───
   const initWebAudio = useCallback(() => {
     if (eqFiltersRef.current || !audioRef.current) return
     try {
-      // Reuse existing AudioContext or create one — NEVER recreate per song
-      if (!audioContextRef.current) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext
-        audioContextRef.current = new AudioContextClass()
-        console.log('[Audio] Created persistent AudioContext')
-
-        // Auto-resume when iOS suspends it (phone calls, Siri, backgrounding, OS resource mgmt)
-        audioContextRef.current.addEventListener('statechange', () => {
-          console.log('[Audio] AudioContext statechange:', audioContextRef.current.state)
-          if (audioContextRef.current.state === 'suspended') {
-            audioContextRef.current.resume().catch(() => {})
-          }
-        })
-      }
-
-      const actx = audioContextRef.current
-      
-      // Resume if suspended (common on iOS after background)
-      if (actx.state === 'suspended') {
-        actx.resume().catch(() => {})
-      }
+      const AudioContext = window.AudioContext || window.webkitAudioContext
+      const actx = new AudioContext()
       
       const source = actx.createMediaElementSource(audioRef.current)
       
@@ -645,60 +544,23 @@ export function PlayerProvider({ children }) {
     return () => clearInterval(interval)
   }, [sleepTimer])
 
-  // ─── Media Session API — re-register ALL handlers on every track change ───
-  // This prevents stale closures from referencing old audio elements or song data
+  // ─── Media Session API ───
   useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentSong) return
-
-    // Update metadata
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist || currentSong.channelTitle,
-      album: 'Rhym',
-      artwork: [
-        { src: currentSong.thumbnail, sizes: '512x512', type: 'image/png' },
-        { src: currentSong.thumbnail, sizes: '320x180', type: 'image/jpeg' }
-      ]
-    })
-
-    // Re-register all handlers fresh — using audioRef.current directly
-    // to ensure we always reference the live audio element, not a stale closure
-    navigator.mediaSession.setActionHandler('play', () => {
-      console.log('[MediaSession] play handler invoked')
-      const audio = audioRef.current
-      if (audio) {
-        // Resume AudioContext if suspended (iOS requirement)
-        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          audioContextRef.current.resume().catch(() => {})
-        }
-        audio.play().catch(() => {})
-      }
-    })
-    navigator.mediaSession.setActionHandler('pause', () => {
-      console.log('[MediaSession] pause handler invoked')
-      const audio = audioRef.current
-      if (audio) audio.pause()
-    })
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-      console.log('[MediaSession] previoustrack handler invoked')
-      if (playPreviousRef.current) playPreviousRef.current()
-    })
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-      console.log('[MediaSession] nexttrack handler invoked')
-      if (playNextRef.current) playNextRef.current()
-    })
-    // Seek support for lock screen scrubbing
-    try {
-      navigator.mediaSession.setActionHandler('seekto', (details) => {
-        const audio = audioRef.current
-        if (audio && details.seekTime != null) {
-          audio.currentTime = details.seekTime
-          setCurrentTime(details.seekTime)
-        }
+    if ('mediaSession' in navigator && currentSong) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist || currentSong.channelTitle,
+        album: 'Rhym',
+        artwork: [
+          { src: currentSong.thumbnail, sizes: '320x180', type: 'image/jpeg' }
+        ]
       })
-    } catch(e) { /* seekto not supported */ }
 
-    console.log('[MediaSession] All handlers re-registered for:', currentSong.title)
+      navigator.mediaSession.setActionHandler('play', () => togglePlay())
+      navigator.mediaSession.setActionHandler('pause', () => togglePlay())
+      navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious())
+      navigator.mediaSession.setActionHandler('nexttrack', () => playNext())
+    }
   }, [currentSong])
 
   const lastPositionUpdateRef = useRef(0)
@@ -751,8 +613,6 @@ export function PlayerProvider({ children }) {
     const audio = audioRef.current
     if (audio) {
       audio.pause()
-      audio.currentTime = 0
-      audio.loop = false
       audio.removeAttribute('src')
       audio.load()
     }
@@ -767,11 +627,6 @@ export function PlayerProvider({ children }) {
     if (!isHistoryNav && !isAutoCrossfade && currentSongRef.current && song.videoId !== currentSongRef.current.videoId) {
       setPlaybackHistory(prev => [currentSongRef.current, ...prev].slice(0, 50))
     }
-
-    // Fully stop previous playback to avoid overlapping loop-tails
-    audio.pause()
-    audio.currentTime = 0
-    audio.loop = false
 
     audio.crossOrigin = 'anonymous'
     setCurrentSong(song)
@@ -832,12 +687,6 @@ export function PlayerProvider({ children }) {
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current
-    
-    // Ensure AudioContext is resumed synchronously on user tap (iOS requirement)
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume().catch(() => {})
-    }
-
     // If no audio source but we have a restored song, load and play it
     if (!audio.src && currentSongRef.current) {
       const song = currentSongRef.current
@@ -930,8 +779,6 @@ export function PlayerProvider({ children }) {
       }
     }
   }, [playbackHistory, playSong])
-
-  useEffect(() => { playPreviousRef.current = playPrevious }, [playPrevious])
 
   const addToQueue = useCallback((song, atTop = false) => {
     setQueue(prev => {

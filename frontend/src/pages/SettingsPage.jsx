@@ -242,7 +242,7 @@ export default function SettingsPage() {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '4px 12px 0px',
+        padding: 'calc(4px + env(safe-area-inset-top, 0px)) 12px 0px',
         position: 'sticky',
         top: 0,
         background: 'transparent',

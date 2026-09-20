@@ -383,8 +383,9 @@ export default function MobileNav() {
             bottom: 0,
             left: 0,
             right: 0,
-            // Only fills the safe-area-inset-bottom padding zone
+            // Cap it strictly to safe area to prevent device bleed bugs
             height: 'env(safe-area-inset-bottom, 0px)',
+            maxHeight: 'env(safe-area-inset-bottom, 0px)',
             background: miniPlayerColor,
             transition: 'background 0.4s ease',
             pointerEvents: 'none',

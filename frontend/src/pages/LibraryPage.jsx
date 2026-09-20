@@ -62,7 +62,7 @@ export default function LibraryPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '10px 16px 6px 16px',
+        padding: 'calc(10px + env(safe-area-inset-top, 0px)) 16px 6px 16px',
         position: 'sticky',
         top: 0,
         background: 'transparent',
