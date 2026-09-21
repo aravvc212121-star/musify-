@@ -225,6 +225,7 @@ export default function SearchPage({ isMobile }) {
   return (
     <div ref={containerRef} style={{
       padding: isMobile ? '8px 4px 16px' : '12px 24px 16px',
+      minHeight: '100%',
     }}>
 
       {/* ═══ STATE 1: RECENT SEARCHES (when search is empty) ═══ */}

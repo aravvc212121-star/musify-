@@ -242,14 +242,12 @@ export default function TopBar({ isMobile = false }) {
             <FiSearch style={{ color: '#fff', fontSize: '18px', marginLeft: '4px', flexShrink: 0 }} />
             <input
               ref={searchInputRef}
-              type="text"
-              name="search_field"
-              autoComplete="nope"
+              type="search"
+              autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
               inputMode="search"
-              data-form-type="other"
               placeholder="What do you want to play?"
               value={searchQuery}
               onChange={(e) => {

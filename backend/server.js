@@ -17,6 +17,8 @@ import compression from 'compression'
 import { LRUCache } from 'lru-cache'
 import http from 'http'
 import { Server as SocketIOServer } from 'socket.io'
+import helmet from 'helmet'
+import xss from 'xss'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -27,6 +29,11 @@ const app = express()
 const PORT = process.env.PORT || 3001
 
 // ─── Middleware ───
+// Hide express stack and add security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Don't break React app connections
+  crossOriginEmbedderPolicy: false
+}))
 app.use(compression())
 app.use(cors())
 app.use(express.json())
@@ -227,7 +234,8 @@ const io = new SocketIOServer(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  maxHttpBufferSize: 1e6 // 1MB limit for security
 })
 
 // Room state storage: { [roomId]: { members: [{ id, name }], currentTrack: null, isPlaying: false, position: 0 } }
@@ -404,15 +412,26 @@ io.on('connection', (socket) => {
     if (!blendRooms[roomId]) return
     const member = blendRooms[roomId].members.find(m => m.id === socket.id)
     if (!member) return
+    if (!socket.rooms.has(roomId)) return // Security: Verify room membership
+
+    // Rate limiting: max 5 messages per 2 seconds
+    const now = Date.now()
+    if (!socket.rateLimits) socket.rateLimits = { chat: [] }
+    socket.rateLimits.chat = socket.rateLimits.chat.filter(t => now - t < 2000)
+    if (socket.rateLimits.chat.length >= 5) return // Rate limited
+    socket.rateLimits.chat.push(now)
+
+    // Sanitize message to prevent XSS
+    const sanitizedMessage = xss((message || '').trim())
+    if (!sanitizedMessage) return
 
     const chatMsg = {
-      id: `${socket.id}-${Date.now()}`,
+      id: `${socket.id}-${now}`,
       senderId: socket.id,
-      senderName: senderName || member.name || 'User',
-      message: (message || '').trim(),
-      timestamp: Date.now(),
+      senderName: xss(senderName || member.name || 'User'),
+      message: sanitizedMessage,
+      timestamp: now,
     }
-    if (!chatMsg.message) return
 
     // Broadcast to ALL members in the room (sender included for confirmation)
     io.to(roomId).emit('chat-message', chatMsg)
@@ -420,7 +439,7 @@ io.on('connection', (socket) => {
 
   // Heartbeat to fix drift
   socket.on('heartbeat', ({ roomId, position, isPlaying }) => {
-    if (!blendRooms[roomId]) return
+    if (!blendRooms[roomId] || !socket.rooms.has(roomId)) return // Security: Verify room membership
     const room = blendRooms[roomId]
     room.position = position
     room.isPlaying = isPlaying
@@ -436,6 +455,17 @@ io.on('connection', (socket) => {
       if (blendRooms[r]) return r
     }
     return null
+  }
+
+  // Rate limiting helper for high-frequency drawing events
+  function isRateLimited(type, limit, windowMs) {
+    const now = Date.now()
+    if (!socket.rateLimits) socket.rateLimits = {}
+    if (!socket.rateLimits[type]) socket.rateLimits[type] = []
+    socket.rateLimits[type] = socket.rateLimits[type].filter(t => now - t < windowMs)
+    if (socket.rateLimits[type].length >= limit) return true
+    socket.rateLimits[type].push(now)
+    return false
   }
 
   socket.on('draw:start', ({ userId, strokeId, strokeWidth, startHue, x, y, isEraser }) => {
@@ -459,13 +489,16 @@ io.on('connection', (socket) => {
 
   socket.on('draw:point', ({ strokeId, points }) => {
     const roomId = getSocketRoom()
-    if (!roomId) return
+    if (!roomId || !socket.rooms.has(roomId)) return
+    if (isRateLimited('draw_point', 30, 1000)) return // Max 30 point events per second
 
     // Append points to server-side stroke
     if (drawCanvasState[roomId] && drawCanvasState[roomId].strokes[strokeId]) {
       const stroke = drawCanvasState[roomId].strokes[strokeId]
       if (points && Array.isArray(points)) {
-        stroke.points.push(...points)
+        // Enforce max points per payload
+        const safePoints = points.slice(0, 100)
+        stroke.points.push(...safePoints)
       }
     }
 
@@ -533,10 +566,31 @@ io.on('connection', (socket) => {
 })
 
 // ─── Serve static files ───
-app.use(express.static(path.join(__dirname, '../frontend/dist')))
+// Explicitly block sensitive files
+app.use((req, res, next) => {
+  if (req.url.includes('.env') || req.url.includes('.git')) {
+    return res.status(404).send('Not Found')
+  }
+  next()
+})
+
+app.use(express.static(path.join(__dirname, '../frontend/dist'), {
+  dotfiles: 'ignore' // Ignore hidden files
+}))
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
+})
+
+// ─── Generic 404 for API ───
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' })
+})
+
+// ─── Global Error Handler ───
+app.use((err, req, res, next) => {
+  console.error('Unhandled Server Error:', err.message)
+  res.status(500).json({ error: 'Internal Server Error' })
 })
 
 // ─── Start ───

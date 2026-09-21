@@ -39,7 +39,7 @@ const TABS = [
   { path: '/library', label: 'Your Library', Icon: LibraryIcon },
 ]
 
-export const NAV_BAR_HEIGHT = (typeof window !== 'undefined' && window.__rhymIsIOS) ? 52 : 64
+export const NAV_BAR_HEIGHT = 64
 export const NAV_BAR_BOTTOM_MARGIN = 2 // px above safe-area
 
 export default function MobileNav() {
@@ -338,17 +338,16 @@ export default function MobileNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          height: `${NAV_BAR_HEIGHT}px`,
-          paddingBottom: '0px',
-          boxSizing: 'border-box',
-          // ─── Gradient: solid black at bottom (covers safe-area padding zone), fades to transparent at top ───
-          background: 'linear-gradient(to top, #000000 0%, rgba(0, 0, 0, 0.98) 20%, rgba(0, 0, 0, 0.92) 40%, rgba(0, 0, 0, 0.78) 58%, rgba(0, 0, 0, 0.55) 74%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0) 100%)',
+          height: `calc(${NAV_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          // ─── Soft Gradient Fade: Rich tint in between, feathered smooth fade out above ───
+          background: 'linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.94) 25%, rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.68) 72%, rgba(0, 0, 0, 0.40) 86%, rgba(0, 0, 0, 0.14) 95%, rgba(0, 0, 0, 0) 100%)',
           backdropFilter: 'none',
           WebkitBackdropFilter: 'none',
           border: 'none',
           boxShadow: 'none',
           borderRadius: 0,
-          // Layout — on iOS push icons lower to match native tab bar feel
+          // Layout
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
@@ -367,11 +366,38 @@ export default function MobileNav() {
         WebkitBackfaceVisibility: 'hidden',
       }}
     >
+      {/*
+        ── System nav-bar color bleed ───────────────────────────────────────────
+        Purely visual strip rendered inside MobileNav's paddingBottom zone
+        (the safe-area-inset-bottom region that sits behind the device's gesture
+        pill / 3-button nav bar). When the mini-player is active, this fills
+        that area with its dominant color so the mini-player color flows
+        seamlessly all the way to the screen edge with no black gap.
+        All tab buttons, the capsule, and the nav bar layout are untouched.
+      */}
+      {miniPlayerColor && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            // Only fills the safe-area-inset-bottom padding zone
+            height: 'env(safe-area-inset-bottom, 0px)',
+            background: miniPlayerColor,
+            transition: 'background 0.4s ease',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+      )}
+
       <div 
         ref={capsuleRef}
         style={{
           position: 'absolute',
-          top: `${NAV_BAR_HEIGHT / 2}px`,
+          top: '50%',
           left: capsuleStyle.left,
           width: capsuleStyle.width,
           height: '48px',

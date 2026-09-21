@@ -189,8 +189,8 @@ export default function Player() {
         }}
         style={{
           position: 'fixed',
-          // Dock above the bottom nav bar (nav height + gap)
-          bottom: `${window.__rhymIsIOS ? '60px' : '72px'}`,
+          // Dock closer above the bottom nav bar
+          bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))',
           left: '12px',
           right: '12px',
           height: '56px',

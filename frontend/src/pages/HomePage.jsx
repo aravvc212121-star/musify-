@@ -819,7 +819,7 @@ export default function HomePage() {
         {dailySongs.length > 0 && (
           <div style={{
             marginBottom: isMobile ? '8px' : '12px',
-            marginTop: '0px',
+            marginTop: '-12px',
             position: 'relative'
           }}>
             <div 

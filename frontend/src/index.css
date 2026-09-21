@@ -53,7 +53,7 @@ input, textarea, [contenteditable] {
 
 /* ─── Body — fixed layout, no outer scrollbars ─── */
 html, body {
-  overscroll-behavior-y: none; /* Prevent iOS rubber-banding pulling down sticky headers */
+  overscroll-behavior-y: contain; /* Prevent PWA pull-to-refresh fighting with custom bounce */
 }
 
 body {
@@ -65,7 +65,8 @@ body {
   background-attachment: fixed;
   margin: 0;
   padding: 0;
-  /* Individual pages now handle their own safe-area-inset-top padding */
+  /* Push content below the notch/status bar in PWA standalone mode */
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   justify-content: center;
   font-family: var(--font);
@@ -135,7 +136,7 @@ body.bg-black {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; /* Momentum scroll on iOS */
-  overscroll-behavior-y: none; /* Prevent iOS rubber-banding pulling down sticky headers */
+  overscroll-behavior-y: contain;
   scroll-behavior: smooth;
 }
 
@@ -148,7 +149,7 @@ body.bg-black {
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   contain: layout style paint;
 }
 
@@ -386,7 +387,7 @@ body.mobile-sidebar-open {
   }
   /* Clearance for floating pill nav bar + mini-player stacked above it */
   .center-panel {
-    padding-bottom: 140px !important;
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
     /* Buttery smooth momentum scrolling on mobile */
     -webkit-overflow-scrolling: touch;
     scroll-behavior: auto !important; /* Let native momentum handle it */

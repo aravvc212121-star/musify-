@@ -333,9 +333,6 @@ export function PlayerProvider({ children }) {
     
     audio.volume = volume / 100
     audio.preload = 'auto'
-    // iOS background playback: these attributes prevent iOS from suspending audio
-    audio.setAttribute('playsinline', '')
-    audio.setAttribute('webkit-playsinline', '')
 
     const lastRoundedTimeRef = { current: -1 }
     const onTimeUpdate = () => {
@@ -480,10 +477,7 @@ export function PlayerProvider({ children }) {
 
   // ─── Web Audio API Initialization ───
   const initWebAudio = useCallback(() => {
-    // DO NOT use Web Audio API on iOS. iOS aggressively suspends AudioContext in the background,
-    // which kills the actual audio output even while the HTMLMediaElement timer keeps advancing.
-    if (eqFiltersRef.current || !audioRef.current || (typeof window !== 'undefined' && window.__rhymIsIOS)) return
-    
+    if (eqFiltersRef.current || !audioRef.current) return
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext
       const actx = new AudioContext()
@@ -550,45 +544,23 @@ export function PlayerProvider({ children }) {
     return () => clearInterval(interval)
   }, [sleepTimer])
 
-  // ─── Media Session API (iOS background playback requires direct audio control) ───
+  // ─── Media Session API ───
   useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentSong) return
-    
-    const audio = audioRef.current
-    
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist || currentSong.channelTitle,
-      album: 'Rhym',
-      artwork: [
-        { src: currentSong.thumbnail, sizes: '320x180', type: 'image/jpeg' },
-        { src: currentSong.albumArt || currentSong.thumbnail, sizes: '512x512', type: 'image/jpeg' }
-      ]
-    })
+    if ('mediaSession' in navigator && currentSong) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist || currentSong.channelTitle,
+        album: 'Rhym',
+        artwork: [
+          { src: currentSong.thumbnail, sizes: '320x180', type: 'image/jpeg' }
+        ]
+      })
 
-    // iOS requires direct audio.play()/pause() calls from Media Session handlers
-    // Using togglePlay() adds indirection that iOS's background audio policy rejects
-    navigator.mediaSession.setActionHandler('play', () => {
-      audio.play().catch(() => {})
-      setIsPlaying(true)
-    })
-    navigator.mediaSession.setActionHandler('pause', () => {
-      crossfadeManager.cancelCrossfade(volumeRef.current / 100)
-      audio.pause()
-      setIsPlaying(false)
-    })
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-      if (playPrevious) playPrevious()
-    })
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-      if (playNextRef.current) playNextRef.current()
-    })
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime != null) {
-        audio.currentTime = details.seekTime
-        setCurrentTime(details.seekTime)
-      }
-    })
+      navigator.mediaSession.setActionHandler('play', () => togglePlay())
+      navigator.mediaSession.setActionHandler('pause', () => togglePlay())
+      navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious())
+      navigator.mediaSession.setActionHandler('nexttrack', () => playNext())
+    }
   }, [currentSong])
 
   const lastPositionUpdateRef = useRef(0)
@@ -632,7 +604,6 @@ export function PlayerProvider({ children }) {
 
   // ─── Clear Player ───
   const clearPlayer = useCallback(() => {
-    crossfadeManager.cancelCrossfade(volumeRef.current / 100)
     setCurrentSong(null)
     setIsPlaying(false)
     setQueue([])
@@ -651,12 +622,6 @@ export function PlayerProvider({ children }) {
   const playSong = useCallback((song, songQueue = null, index = 0, isAutoCrossfade = false, isHistoryNav = false) => {
     if (!song) return
     const audio = audioRef.current
-
-    // Cancel any ongoing crossfade if this isn't an auto-crossfade transition
-    // This prevents the old song from stuttering/repeating when user manually switches
-    if (!isAutoCrossfade) {
-      crossfadeManager.cancelCrossfade(volumeRef.current / 100)
-    }
 
     // History Tracking: Push previous song to stack if not moving backward
     if (!isHistoryNav && !isAutoCrossfade && currentSongRef.current && song.videoId !== currentSongRef.current.videoId) {
@@ -744,8 +709,6 @@ export function PlayerProvider({ children }) {
     }
     if (!audio.src) return
     if (isPlaying) {
-      // Cancel any active crossfade to prevent stuttering/repeating on pause
-      crossfadeManager.cancelCrossfade(volumeRef.current / 100)
       audio.pause()
     } else {
       audio.play().catch(() => {})

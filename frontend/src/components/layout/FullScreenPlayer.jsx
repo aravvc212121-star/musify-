@@ -879,7 +879,6 @@ export default function FullScreenPlayer() {
         position: 'absolute', top: 0, right: 0, left: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end', 
         padding: isMobile ? '12px 16px' : '24px',
-        paddingTop: isMobile ? (window.__rhymIsIOS ? 'calc(24px + env(safe-area-inset-top, 0px))' : '12px') : '24px',
         background: 'transparent', pointerEvents: 'none'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '8px', pointerEvents: 'auto' }}>
@@ -956,7 +955,7 @@ export default function FullScreenPlayer() {
                     style={{
                       position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
                       borderRadius: '12px', 
-                      background: isShareMode ? SWATCHES[selectedColorIdx].value : vibrantColor,
+                      background: isShareMode ? SWATCHES[selectedColorIdx].value : `linear-gradient(135deg, ${vibrantColor} 0%, ${vibrantColor}dd 100%)`,
                       color: isShareMode ? (SWATCHES[selectedColorIdx].text === 'light' ? '#fff' : '#000') : '#fff',
                       backdropFilter: 'none',
                       transform: 'rotateY(180deg)', overflowY: 'auto', padding: '40px 24px',
